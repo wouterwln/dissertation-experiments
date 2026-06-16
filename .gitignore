@@ -1,0 +1,44 @@
+# Root-level safety net. Each chapter-* folder also carries its own
+# .gitignore (and .dvc/.gitignore) covering its DVC outputs and cache.
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Claude Code workspace artifacts (skills, worktrees, local settings).
+# These are tooling, not dissertation experiments; chapter-6 also carries
+# leftover git worktrees with embedded .git links that must never be tracked.
+**/.claude/
+
+# Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# DVC local state (per-chapter subrepos)
+**/.dvc/cache/
+**/.dvc/tmp/
+**/.dvc/config.local
+
+# DVC-produced experiment outputs (regenerated via `dvc repro`)
+**/data/
+**/output/
+**/logs/
