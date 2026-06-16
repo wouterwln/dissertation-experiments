@@ -1,0 +1,36 @@
+# Chapter 4: Nuijten-MP planning in the chapter-3 epistemic environments
+#
+# These parameters are tuned for the Nuijten-MP planner (NOT the chapter-3 VFE
+# defaults). Two findings drove the tuning:
+#   1. A terminal-only goal lets the planner choose the epistemic cue detour, but
+#      it commits to the goal only as the receding horizon shrinks to the exact
+#      remaining distance -> receding_horizon must be true, with enough max_steps.
+#   2. The chapter-3 cue-cost action prior (cue_cost_epsilon < 1) HURTS the MP
+#      planner: it has its own epistemic drive, so biasing toward the cue makes it
+#      loop. cue_cost_epsilon = 1.0 (uniform action prior) gives the best results.
+
+tmaze:
+  experiment:
+    n_episodes: 50
+    max_steps: 6
+    planning_horizon: 6
+    planning_iterations: 20
+    receding_horizon: true
+    goal_temperature: 4.5
+    terminal_goal_only: true
+    seed: 42
+
+reactivity_maze:
+  experiment:
+    n_episodes: 50
+    max_steps: 10
+    planning_horizon: 10
+    planning_iterations: 10
+    receding_horizon: true
+    n_theta: 2
+    cue_accuracy: 1.0
+    location_observation_accuracy: 0.95
+    goal_temperature: 5.0
+    cue_cost_epsilon: 1.0
+    terminal_goal_only: true
+    seed: 42

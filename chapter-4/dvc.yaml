@@ -1,0 +1,56 @@
+stages:
+  tmaze_nuijten:
+    cmd: >-
+      uv run python scripts/tmaze/experiment.py
+      --n-episodes ${tmaze.experiment.n_episodes}
+      --max-steps ${tmaze.experiment.max_steps}
+      --planning-horizon ${tmaze.experiment.planning_horizon}
+      --planning-iterations ${tmaze.experiment.planning_iterations}
+      --goal-temperature ${tmaze.experiment.goal_temperature}
+      --receding-horizon
+      --terminal-goal-only
+      --seed ${tmaze.experiment.seed}
+      --output-dir data/tmaze/nuijten
+    deps:
+      - scripts/tmaze/experiment.py
+      - src/environments/tmaze.py
+      - src/adapters
+      - src/agents/nuijten_agent.py
+      - src/inference
+    params:
+      - tmaze.experiment
+    metrics:
+      - data/tmaze/nuijten/stats.json:
+          cache: false
+    outs:
+      - data/tmaze/nuijten/results.json
+
+  reactivity_nuijten:
+    cmd: >-
+      uv run python scripts/reactivity_maze/experiment.py
+      --n-episodes ${reactivity_maze.experiment.n_episodes}
+      --max-steps ${reactivity_maze.experiment.max_steps}
+      --planning-horizon ${reactivity_maze.experiment.planning_horizon}
+      --planning-iterations ${reactivity_maze.experiment.planning_iterations}
+      --n-theta ${reactivity_maze.experiment.n_theta}
+      --cue-accuracy ${reactivity_maze.experiment.cue_accuracy}
+      --location-observation-accuracy ${reactivity_maze.experiment.location_observation_accuracy}
+      --goal-temperature ${reactivity_maze.experiment.goal_temperature}
+      --cue-cost-epsilon ${reactivity_maze.experiment.cue_cost_epsilon}
+      --receding-horizon
+      --terminal-goal-only
+      --seed ${reactivity_maze.experiment.seed}
+      --output-dir data/reactivity_maze/nuijten
+    deps:
+      - scripts/reactivity_maze/experiment.py
+      - src/environments/epistemic_maze.py
+      - src/adapters
+      - src/agents/nuijten_agent.py
+      - src/inference
+    params:
+      - reactivity_maze.experiment
+    metrics:
+      - data/reactivity_maze/nuijten/stats.json:
+          cache: false
+    outs:
+      - data/reactivity_maze/nuijten/results.json

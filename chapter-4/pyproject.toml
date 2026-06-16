@@ -1,0 +1,25 @@
+[project]
+name = "chapter4-nuijten-epistemic"
+version = "0.1.0"
+description = "Nuijten-MP message-passing planning in the chapter-3 epistemic environments"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "jax>=0.6.2",
+    "numpy>=1.24.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.65.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "dvc>=3.56",
+]
+cuda = [
+    "jax[cuda12-pip]>=0.9.0",
+]
+macos = ["jax-mps>=0.9.6"]

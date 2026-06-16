@@ -1,0 +1,103 @@
+schema: '2.0'
+stages:
+  tmaze_nuijten:
+    cmd: uv run python scripts/tmaze/experiment.py --n-episodes 50 --max-steps 6
+      --planning-horizon 6 --planning-iterations 20 --goal-temperature 4.5 
+      --receding-horizon --terminal-goal-only --seed 42 --output-dir 
+      data/tmaze/nuijten
+    deps:
+    - path: scripts/tmaze/experiment.py
+      hash: md5
+      md5: 9e4241ebfefdcc483607d8313a9eda9c
+      size: 6395
+    - path: src/adapters
+      hash: md5
+      md5: 4f439498a1d567961bdac016055da20b.dir
+      size: 20061
+      nfiles: 6
+    - path: src/agents/nuijten_agent.py
+      hash: md5
+      md5: a5c6a42b3a814b810d4dada60aacbb29
+      size: 3377
+    - path: src/environments/tmaze.py
+      hash: md5
+      md5: c32e0e0f9d51025b37dde083bd6b467f
+      size: 9903
+    - path: src/inference
+      hash: md5
+      md5: 96a3d367b9dda49e88498b42d8afd0b3.dir
+      size: 145284
+      nfiles: 8
+    params:
+      params.yaml:
+        tmaze.experiment:
+          n_episodes: 50
+          max_steps: 6
+          planning_horizon: 6
+          planning_iterations: 20
+          receding_horizon: true
+          goal_temperature: 4.5
+          terminal_goal_only: true
+          seed: 42
+    outs:
+    - path: data/tmaze/nuijten/results.json
+      hash: md5
+      md5: 567d60761c8785e2ff5b236028181c9e
+      size: 20162
+    - path: data/tmaze/nuijten/stats.json
+      hash: md5
+      md5: bc1972d47187a1eec6b7f3c1af65187a
+      size: 534
+  reactivity_nuijten:
+    cmd: uv run python scripts/reactivity_maze/experiment.py --n-episodes 50 
+      --max-steps 10 --planning-horizon 10 --planning-iterations 10 --n-theta 2 
+      --cue-accuracy 1.0 --location-observation-accuracy 0.95 --goal-temperature
+      5.0 --cue-cost-epsilon 1.0 --receding-horizon --terminal-goal-only --seed 
+      42 --output-dir data/reactivity_maze/nuijten
+    deps:
+    - path: scripts/reactivity_maze/experiment.py
+      hash: md5
+      md5: c17a0935858a70f9ab1a5a23530606bd
+      size: 7739
+    - path: src/adapters
+      hash: md5
+      md5: 4f439498a1d567961bdac016055da20b.dir
+      size: 20061
+      nfiles: 6
+    - path: src/agents/nuijten_agent.py
+      hash: md5
+      md5: a5c6a42b3a814b810d4dada60aacbb29
+      size: 3377
+    - path: src/environments/epistemic_maze.py
+      hash: md5
+      md5: 8cbfc7b72d425df31132f5f3dd0b2038
+      size: 22508
+    - path: src/inference
+      hash: md5
+      md5: 96a3d367b9dda49e88498b42d8afd0b3.dir
+      size: 145284
+      nfiles: 8
+    params:
+      params.yaml:
+        reactivity_maze.experiment:
+          n_episodes: 50
+          max_steps: 10
+          planning_horizon: 10
+          planning_iterations: 10
+          receding_horizon: true
+          n_theta: 2
+          cue_accuracy: 1.0
+          location_observation_accuracy: 0.95
+          goal_temperature: 5.0
+          cue_cost_epsilon: 1.0
+          terminal_goal_only: true
+          seed: 42
+    outs:
+    - path: data/reactivity_maze/nuijten/results.json
+      hash: md5
+      md5: 20e5e292ef435ee3285b4f761245af77
+      size: 31920
+    - path: data/reactivity_maze/nuijten/stats.json
+      hash: md5
+      md5: a0ccf26ea621a6bb4273c6cf2605659c
+      size: 803
