@@ -1,0 +1,39 @@
+[project]
+name = "learningpomdp"
+version = "0.1.0"
+description = "Online learning of POMDP transition and observation matrices for Active Inference planning"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flax>=0.10.7",
+    "gymnasium>=1.0.0",
+    "imageio>=2.31.0",
+    "imageio-ffmpeg>=0.4.9",
+    "jax>=0.4.20",
+    "jaxlib>=0.4.20",
+    "matplotlib>=3.10.8",
+    "minigrid>=3.0.0",
+    "numba>=0.65.1",
+    "numpy>=1.24.0",
+    "optax>=0.2.8",
+    "tqdm>=4.65.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "dvc>=3.0.0",
+]
+gpu = [
+    "jax[cuda12]>=0.4.20",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: opt-in slow tests (deselected by default; run via `pytest -m slow`)",
+]
+addopts = "-m 'not slow'"

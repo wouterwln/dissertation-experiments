@@ -1,0 +1,225 @@
+# Parameters for the door-code system-identification experiment.
+# Edit values here, then `dvc repro` reruns affected stages.
+
+env:
+  K: 6              # number of doors / symbols  [reduced 8→6 after K=8 OOM'd CPU and exceeded GPU wallclock]
+  lock_length: 4    # doors to open in sequence per episode
+  probe_noise: 0.2  # per-probe bit-flip probability in [0, 0.5]
+
+runner:
+  n_seeds: 100      # outer-loop theta_true samples (m)  [paper-grade]
+  n_episodes: 25    # episodes per block (n)
+  max_steps: 16     # max env steps per episode (K probes + lock door opens + buffer)
+  horizon: 8        # model-based planning horizon (lock_length=4 + 4 step buffer)
+  clip_horizon: true  # cap the per-step planning horizon to remaining
+                      # max_steps so the planner never plans past the
+                      # episode budget. Recommended ON.
+  seed: 0
+  learn_on_failure: false # if false, no Bayesian update on the failure
+                           # transition (the agent died and can't observe it)
+
+planner:
+  # Model-based planners (AIF, VBP, PSRL, BOSS use AIF as base):
+  iterations: 70
+  damping: 0.9
+  # Tabular Bayes-adaptive Q (BeliefQ):
+  q_lr: 0.2
+  q_epsilon: 0.2
+  q_gamma: 0.99
+  # BOSS — sample K thetas / episode, optimistic combination
+  boss_n_samples: 10
+  # BAMCP / BA-POMCP — Monte-Carlo tree search over belief, with theta
+  # ~ q(theta) resampled per simulation. The literal-POMCP ablation
+  # (--planner pomcp) reuses these same hyperparams; only the
+  # resample_theta_per_sim flag differs (False instead of True).
+  # 10000 simulations matches the Guez 2012 BAMCP paper-grade norm.
+  bamcp_n_simulations: 10000
+  bamcp_depth: 6
+  bamcp_ucb_c: 1.0
+  bamcp_gamma: 0.99
+  # IDS — Information-Directed Sampling. Reuses BAMCP for the Q oracle
+  # (mirrors bamcp_n_simulations by default) and adds closed-form
+  # information gain I(a) over discrete θ-dependent observations.
+  ids_bamcp_n_simulations: 10000
+  ids_epsilon_info: 1.0e-6
+
+# M2 — Farama-MiniGrid-backed spatial sibling of door_code. Small-grid
+# ablation (one (K, grid_size) cell, 4-planner subset). All env knobs
+# surfaced here; nothing hard-coded inside MiniGridDoorCodeEnv beyond
+# the protocol-required defaults.
+minigrid:
+  env:
+    K: 3              # reduced 4→3 to tighten reward std and sharpen planner separation
+    lock_length: 3    # open all 3 doors in correct sequence
+    grid_size: 7      # one above the K=3, lock=3 floor (constraint: grid >= max(5, K+2, M+3) = 6)
+    slip_prob: 0.1    # uniform random over 6 underlying MG actions w.p. slip_prob
+    probe_noise: 0.1  # per-probe bit-flip probability in [0, 0.5]
+    agent_view_size: 3 # 3x3 partial FOV (must be odd, >= 3)
+  runner:
+    n_seeds: 100      # outer-loop theta_true samples (m)  [paper-grade]
+    n_episodes: 10     # episodes per block (n)
+    max_steps: 35     # probe → toggle x3 → walk-to-goal; needs >= optimal path
+    horizon: 25        # kept at 25: planning horizon is the load-bearing axis under probe noise
+    clip_horizon: true
+    seed: 0
+    learn_on_failure: false
+    video_fps: 4      # mp4 frame rate for the per-episode recordings
+  planner:
+    # Model-based planners (AIF, VBP, PSRL, BOSS, Oracle):
+    iterations: 70
+    damping: 0.9
+    # Tabular Bayes-adaptive Q (BeliefQ):
+    q_lr: 0.2
+    q_epsilon: 0.2
+    q_gamma: 0.99
+    # BOSS — sample N thetas / episode, optimistic combination:
+    boss_n_samples: 10
+    # BAMCP / BA-POMCP. POMCP-literal ablation reuses these (only the
+    # resample_theta_per_sim flag differs at the call site).
+    # 10000 simulations matches the Guez 2012 BAMCP paper-grade norm.
+    bamcp_n_simulations: 10000
+    bamcp_depth: 15
+    bamcp_ucb_c: 1.0
+    bamcp_gamma: 0.99
+    # IDS — Information-Directed Sampling.
+    ids_bamcp_n_simulations: 10000
+    ids_epsilon_info: 1.0e-6
+
+# M4 — RockSample BA-POMDP. Factorized θ split into K rock-quality
+# components (per-episode reset) and K sensor-reliability components
+# (persistent across the block). Sensor accuracy decays with Chebyshev
+# distance to the rock. Sample-based BA-RL baselines (PSRL, BAMCP, BOSS,
+# Factored BA-POMCP) are now wired alongside AIF/VBP/Oracle/Random.
+# BeliefQ is deferred (door-code-specific belief feature).
+rock_sample:
+  env:
+    K: 4              # number of rocks  [reduced 5→4: K=5 needed 62.9 GB > 40 GB A100]
+    grid_size: 5      # square grid side length
+    sensor_noise_eta: 0.3  # noisy-sensor (θ_s=1) accuracy attenuation
+    sample_reward: 1.0     # ±reward magnitude for a successful SAMPLE
+    # Asymmetric goal prior so AIF/VBP can't exploit SAMPLE for free
+    # info gain under uniform quality belief. With bad_logit > good_logit,
+    # E[log C | sample under uniform] < 0, forcing SENSE-first behaviour.
+    # Sample-based planners (PSRL/BAMCP/BOSS/Factored-BAMCP) ignore C.
+    good_logit: 2.0
+    bad_logit: 4.0
+    layout_seed: 0
+  runner:
+    n_seeds: 50       # outer-loop blocks (m)  [paper-grade; capped at 50 since
+                      # K=5 base is the most expensive per-seed env in the suite]
+    n_episodes: 10     # episodes per block (n)
+    max_steps: 30     # bumped 20→30: Oracle hit budget on 3-good-rock layouts
+    horizon: 15        # myopic planning ok (no terminal goal state; reward-accum)
+    clip_horizon: true
+    seed: 0
+    # Numba JIT for BAMCP/BOSS/Factored-BAMCP rollouts + spawn-pool
+    # multiprocessing across seeds. AIF/VBP/Oracle/PSRL/Random ignore
+    # both flags. Empirical speedup: ~5-6× wall-clock at 8 seeds with
+    # workers=4 (combined Numba ~1.4× + MP ~4×). Strings (lowercase) so
+    # DVC's `${...}` interpolation passes them to the CLI verbatim.
+    use_numba: "true"
+    workers: 4
+  planner:
+    iterations: 70
+    damping: 0.9
+    # Sample-based BA-RL — BAMCP / BOSS / Factored BA-POMCP. 10000
+    # simulations matches the Guez 2012 BAMCP paper-grade norm.
+    bamcp_n_simulations: 10000
+    bamcp_depth: 6
+    bamcp_ucb_c: 1.0
+    bamcp_gamma: 0.99
+    boss_n_samples: 10
+    # IDS — Information-Directed Sampling.
+    ids_bamcp_n_simulations: 10000
+    ids_epsilon_info: 1.0e-6
+  # K-scaling sweep — reuse rock_sample.{env, runner, planner} hyperparams
+  # and vary only K across this list. K=5 needs ~59 GB peak VRAM at
+  # grid_size=5 (fits A100 80 GB; OOMs anything smaller). K=6 would need
+  # ~300 GB and is A100-infeasible. n_states ≈ grid_size² · 2^K · (K+2);
+  # T = n_states² · n_actions cells × 8 bytes.
+  k_sweep: [2, 3, 4]
+
+# Factored Tiger — canonical-literature BA-POMDP (Katt et al. 2019,
+# FBA-POMDP). K independent doors with persistent factored θ; LISTEN
+# disambiguates, OPEN commits. Pairs with M4 RockSample to show the
+# ThetaSpec/FactorSpec paradigm covers persistent-only and
+# persistent+episodic θ with no machinery change.
+factored_tiger:
+  env:
+    K: 6                       # number of doors  [reduced 8→6: K=8 needed 38 GB ≈ 40 GB A100 cap]
+    listen_accuracy: 0.85      # P(LISTEN_k emits correct bit | θ_k)
+    open_safe_reward: 10.0     # canonical Katt 2019 magnitudes
+    open_tiger_penalty: 100.0
+    listen_cost: 0.0           # set >0 for canonical-numerics; default 0
+                                # so AIF/VBP's goal-prior optimization
+                                # cleanly matches the reward structure
+                                # (per-action LISTEN cost can't be folded
+                                # into a state-only goal).
+    # Asymmetric goal prior so AIF/VBP can't exploit OPEN for free info
+    # gain. Sample-based planners ignore C and use env reward directly.
+    # Hand-picked 1:2 ratio; intentionally decoupled from the reward
+    # function's 1:10 magnitudes — see FactoredTigerEnv.create_goal
+    # docstring. Treat as a design knob, not a tuned value.
+    good_logit: 2.0
+    bad_logit: 4.0
+  runner:
+    n_seeds: 100               # outer-loop blocks (m)  [paper-grade]
+    n_episodes: 5              # episodes per block (n)
+    max_steps: 25              # bounded-horizon termination
+    horizon: 10                # model-based planning horizon
+    clip_horizon: true
+    seed: 0
+    workers: 4
+  planner:
+    iterations: 70
+    damping: 0.9
+    # 10000 simulations matches the Guez 2012 BAMCP paper-grade norm.
+    bamcp_n_simulations: 10000
+    bamcp_depth: 6
+    bamcp_ucb_c: 1.0
+    bamcp_gamma: 0.99
+    boss_n_samples: 10
+    ids_bamcp_n_simulations: 10000
+    ids_epsilon_info: 1.0e-6
+
+# BAMCP sims-budget ablation on door_code — shows the 0.00 flatline is
+# budget-invariant around the canonical 10000 (Guez 2012 norm). BAMCP
+# only: BOSS, IDS and POMCP inherit their action values from the same
+# MCTS machinery. Reduced seed count (vs runner.n_seeds=100) keeps the
+# 40000-sims arm cluster-feasible.
+door_code_simscaling:
+  sims_sweep: [1000, 10000, 40000]
+  n_seeds: 25
+
+# Snellius cluster — number of SLURM array tasks (= shards) per stage.
+# Each shard runs ceil(n_seeds / n_shards) seeds with an independent base
+# RNG; scripts/aggregate_shards.py stitches the per-shard JSONs into a
+# single per-planner JSON that matches the non-sharded runner schema.
+# Tune to balance wall-clock parallelism against JAX/XLA startup cost
+# (each shard pays one JAX compile, ~30-60s on A100). The local DVC path
+# ignores this block.
+cluster:
+  door_code: { n_shards: 5 }             # 100 seeds / 20 per shard (no workers)
+  minigrid_door_code: { n_shards: 5 }    # 100 seeds / 20 per shard (no workers)
+  rock_sample: { n_shards: 2 }           # 50 seeds / 25 per shard (+ workers=4)
+  rock_sample_kscaling: { n_shards: 2 }  # 25 seeds/shard × 3 K per planner; K=4 AIF needed split to fit 16h GPU wallclock
+  factored_tiger: { n_shards: 1 }        # 100 seeds, workers=4 handles parallelism
+
+  # CPU-partition (genoa) submission knobs. door_code and minigrid runners
+  # have no --workers flag, so we shard heavily (one seed per shard, single
+  # core per task). The rock_sample / factored_tiger runners do, so we use
+  # fewer fat shards with --workers across seeds. Sharding sized so each
+  # CPU job finishes well under 8h at 10000 BAMCP simulations.
+  #
+  # max_concurrent caps simultaneously-running array tasks (SLURM --array=...%N)
+  # so a fresh submission does not dispatch the whole array at once. Limits the
+  # node-startup thundering herd that trips GPFS node-health checks during a
+  # scratch incident. Set it >= n_shards on the long-running rock_sample stages
+  # so their few-but-multi-hour shards still run fully in parallel.
+  cpu:
+    door_code: { n_shards: 100, max_concurrent: 20 }          # 1 seed per shard, 1 core
+    door_code_simscaling: { n_shards: 25, max_concurrent: 20 } # 1 seed per shard, 1 core
+    minigrid_door_code: { n_shards: 100, max_concurrent: 20 } # 1 seed per shard, 1 core
+    rock_sample: { n_shards: 10, workers: 4, max_concurrent: 10 }      # 5 seeds/shard; reduced workers 10→4 after 40G OOM
+    rock_sample_kscaling: { n_shards: 10, workers: 4, max_concurrent: 10 }
+    factored_tiger: { n_shards: 20, workers: 2, max_concurrent: 8 }   # 5 seeds/shard; reduced workers 10→2 after 20G OOM at K=8

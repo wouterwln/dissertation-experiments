@@ -1,0 +1,57 @@
+# macOS
+.DS_Store
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.tox/
+.nox/
+
+# Virtual environments and local Python tooling
+.venv/
+venv/
+env/
+ENV/
+.direnv/
+
+# Coverage and test output
+.coverage
+.coverage.*
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+site/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# DVC local state
+.dvc/tmp/
+.dvc/cache/
+.dvc/config.local
+
+# Logs and runtime files
+*.log
+
+# Experiment output
+output/
+
+# Local notes (not for public repo)
+roadmap.md
+
+# Claude Code harness artifacts
+.claude/scheduled_tasks.lock
+.claude/worktrees/

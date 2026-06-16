@@ -1,0 +1,482 @@
+stages:
+  door_code:
+    foreach:
+      aif:
+        planner: aif
+      vbp:
+        planner: vbp
+      psrl:
+        planner: psrl
+      belief_q:
+        planner: belief_q
+      boss:
+        planner: boss
+      bamcp:
+        planner: bamcp
+      pomcp:
+        planner: pomcp
+      ids:
+        planner: ids
+      oracle:
+        planner: oracle
+      random:
+        planner: random
+    do:
+      cmd: >-
+        uv run python scripts/run_door_code.py
+        --planner ${item.planner}
+        --K ${env.K}
+        --lock-length ${env.lock_length}
+        --probe-noise ${env.probe_noise}
+        --n-seeds ${runner.n_seeds}
+        --n-episodes ${runner.n_episodes}
+        --max-steps ${runner.max_steps}
+        --horizon ${runner.horizon}
+        --seed ${runner.seed}
+        --planner-iterations ${planner.iterations}
+        --planner-damping ${planner.damping}
+        --q-lr ${planner.q_lr}
+        --q-epsilon ${planner.q_epsilon}
+        --q-gamma ${planner.q_gamma}
+        --boss-n-samples ${planner.boss_n_samples}
+        --bamcp-n-simulations ${planner.bamcp_n_simulations}
+        --bamcp-depth ${planner.bamcp_depth}
+        --bamcp-ucb-c ${planner.bamcp_ucb_c}
+        --bamcp-gamma ${planner.bamcp_gamma}
+        --ids-bamcp-n-simulations ${planner.ids_bamcp_n_simulations}
+        --ids-epsilon-info ${planner.ids_epsilon_info}
+        --learn-on-failure ${runner.learn_on_failure}
+        --clip-horizon ${runner.clip_horizon}
+        --output output/door_code/${item.planner}.json
+      deps:
+        - scripts/run_door_code.py
+        - learningpomdp/
+      params:
+        - env
+        - runner
+        - planner
+      outs:
+        - output/door_code/${item.planner}.json
+
+  plot:
+    cmd: >-
+      uv run python scripts/plot_door_code.py
+      --input-dir output/door_code
+      --output output/door_code/figure.pdf
+    deps:
+      - scripts/plot_door_code.py
+      - output/door_code/aif.json
+      - output/door_code/vbp.json
+      - output/door_code/psrl.json
+      - output/door_code/belief_q.json
+      - output/door_code/boss.json
+      - output/door_code/bamcp.json
+      - output/door_code/pomcp.json
+      - output/door_code/ids.json
+      - output/door_code/oracle.json
+      - output/door_code/random.json
+    outs:
+      - output/door_code/figure.pdf
+
+  # BAMCP sims-budget ablation — sweep MCTS rollouts per plan() call
+  # around the canonical 10000 (Guez 2012 paper-grade norm) to show the
+  # door-code 0.00 flatline is budget-invariant, not a simulation-budget
+  # artifact. BAMCP only: BOSS, IDS and POMCP inherit their action
+  # values from the same MCTS machinery. Output JSONs live at
+  # output/door_code_simscaling/sims<sims>/bamcp.json.
+  door_code_simscaling:
+    matrix:
+      sims: ${door_code_simscaling.sims_sweep}
+    cmd: >-
+      uv run python scripts/run_door_code.py
+      --planner bamcp
+      --K ${env.K}
+      --lock-length ${env.lock_length}
+      --probe-noise ${env.probe_noise}
+      --n-seeds ${door_code_simscaling.n_seeds}
+      --n-episodes ${runner.n_episodes}
+      --max-steps ${runner.max_steps}
+      --horizon ${runner.horizon}
+      --seed ${runner.seed}
+      --planner-iterations ${planner.iterations}
+      --planner-damping ${planner.damping}
+      --q-lr ${planner.q_lr}
+      --q-epsilon ${planner.q_epsilon}
+      --q-gamma ${planner.q_gamma}
+      --boss-n-samples ${planner.boss_n_samples}
+      --bamcp-n-simulations ${item.sims}
+      --bamcp-depth ${planner.bamcp_depth}
+      --bamcp-ucb-c ${planner.bamcp_ucb_c}
+      --bamcp-gamma ${planner.bamcp_gamma}
+      --ids-bamcp-n-simulations ${planner.ids_bamcp_n_simulations}
+      --ids-epsilon-info ${planner.ids_epsilon_info}
+      --learn-on-failure ${runner.learn_on_failure}
+      --clip-horizon ${runner.clip_horizon}
+      --output output/door_code_simscaling/sims${item.sims}/bamcp.json
+    deps:
+      - scripts/run_door_code.py
+      - learningpomdp/
+    params:
+      - env
+      - runner
+      - planner
+      - door_code_simscaling
+    outs:
+      - output/door_code_simscaling/sims${item.sims}/bamcp.json
+
+  # Note: figure.pdf is a SIBLING of the per-sims subdirectories (same
+  # DVC overlapping deps/outs constraint as plot_rock_sample_kscaling).
+  # The sims<N> deps mirror door_code_simscaling.sims_sweep; extend both
+  # together.
+  plot_door_code_simscaling:
+    cmd: >-
+      uv run python scripts/plot_door_code_simscaling.py
+      --input-dir output/door_code_simscaling
+      --output output/door_code_simscaling/figure.pdf
+    deps:
+      - scripts/plot_door_code_simscaling.py
+      - output/door_code_simscaling/sims1000/bamcp.json
+      - output/door_code_simscaling/sims10000/bamcp.json
+      - output/door_code_simscaling/sims40000/bamcp.json
+    params:
+      - door_code_simscaling.sims_sweep
+    outs:
+      - output/door_code_simscaling/figure.pdf
+
+  # M2 — Farama-MiniGrid spatial sibling. Same planner slate as M1
+  # (the planners are environment-agnostic; they consume T/B/goal),
+  # one (K, grid_size) config; all env knobs come from params.yaml's
+  # `minigrid` block.
+  minigrid_door_code:
+    foreach:
+      aif:
+        planner: aif
+      vbp:
+        planner: vbp
+      psrl:
+        planner: psrl
+      belief_q:
+        planner: belief_q
+      boss:
+        planner: boss
+      bamcp:
+        planner: bamcp
+      pomcp:
+        planner: pomcp
+      ids:
+        planner: ids
+      oracle:
+        planner: oracle
+      random:
+        planner: random
+    do:
+      cmd: >-
+        uv run python scripts/run_minigrid_door_code.py
+        --planner ${item.planner}
+        --K ${minigrid.env.K}
+        --lock-length ${minigrid.env.lock_length}
+        --probe-noise ${minigrid.env.probe_noise}
+        --grid-size ${minigrid.env.grid_size}
+        --slip-prob ${minigrid.env.slip_prob}
+        --agent-view-size ${minigrid.env.agent_view_size}
+        --n-seeds ${minigrid.runner.n_seeds}
+        --n-episodes ${minigrid.runner.n_episodes}
+        --max-steps ${minigrid.runner.max_steps}
+        --horizon ${minigrid.runner.horizon}
+        --seed ${minigrid.runner.seed}
+        --learn-on-failure ${minigrid.runner.learn_on_failure}
+        --clip-horizon ${minigrid.runner.clip_horizon}
+        --planner-iterations ${minigrid.planner.iterations}
+        --planner-damping ${minigrid.planner.damping}
+        --q-lr ${minigrid.planner.q_lr}
+        --q-epsilon ${minigrid.planner.q_epsilon}
+        --q-gamma ${minigrid.planner.q_gamma}
+        --boss-n-samples ${minigrid.planner.boss_n_samples}
+        --bamcp-n-simulations ${minigrid.planner.bamcp_n_simulations}
+        --bamcp-depth ${minigrid.planner.bamcp_depth}
+        --bamcp-ucb-c ${minigrid.planner.bamcp_ucb_c}
+        --bamcp-gamma ${minigrid.planner.bamcp_gamma}
+        --ids-bamcp-n-simulations ${minigrid.planner.ids_bamcp_n_simulations}
+        --ids-epsilon-info ${minigrid.planner.ids_epsilon_info}
+        --output output/minigrid_door_code/${item.planner}.json
+        --video-dir output/minigrid_door_code/${item.planner}/videos
+        --video-fps ${minigrid.runner.video_fps}
+      deps:
+        - scripts/run_minigrid_door_code.py
+        - learningpomdp/
+      params:
+        - minigrid
+      outs:
+        - output/minigrid_door_code/${item.planner}.json
+        - output/minigrid_door_code/${item.planner}/videos
+
+  plot_minigrid:
+    cmd: >-
+      uv run python scripts/plot_minigrid_door_code.py
+      --input-dir output/minigrid_door_code
+      --output output/minigrid_door_code/figure.pdf
+    deps:
+      - scripts/plot_minigrid_door_code.py
+      - output/minigrid_door_code/aif.json
+      - output/minigrid_door_code/vbp.json
+      - output/minigrid_door_code/psrl.json
+      - output/minigrid_door_code/belief_q.json
+      - output/minigrid_door_code/boss.json
+      - output/minigrid_door_code/bamcp.json
+      - output/minigrid_door_code/pomcp.json
+      - output/minigrid_door_code/ids.json
+      - output/minigrid_door_code/oracle.json
+      - output/minigrid_door_code/random.json
+    outs:
+      - output/minigrid_door_code/figure.pdf
+
+  # M4 — RockSample BA-POMDP. Factorized θ. Full sample-based BA-RL
+  # slate (PSRL/BAMCP/BOSS/Factored BA-POMCP) wired alongside AIF/VBP/
+  # Oracle/Random. BeliefQ deferred (door-code-specific belief feature).
+  rock_sample:
+    foreach:
+      aif:
+        planner: aif
+      vbp:
+        planner: vbp
+      psrl:
+        planner: psrl
+      bamcp:
+        planner: bamcp
+      boss:
+        planner: boss
+      factored_bamcp:
+        planner: factored_bamcp
+      ids:
+        planner: ids
+      oracle:
+        planner: oracle
+      random:
+        planner: random
+    do:
+      cmd: >-
+        uv run python scripts/run_rock_sample.py
+        --planner ${item.planner}
+        --K ${rock_sample.env.K}
+        --grid-size ${rock_sample.env.grid_size}
+        --sensor-noise-eta ${rock_sample.env.sensor_noise_eta}
+        --sample-reward ${rock_sample.env.sample_reward}
+        --good-logit ${rock_sample.env.good_logit}
+        --bad-logit ${rock_sample.env.bad_logit}
+        --layout-seed ${rock_sample.env.layout_seed}
+        --n-seeds ${rock_sample.runner.n_seeds}
+        --n-episodes ${rock_sample.runner.n_episodes}
+        --max-steps ${rock_sample.runner.max_steps}
+        --horizon ${rock_sample.runner.horizon}
+        --seed ${rock_sample.runner.seed}
+        --clip-horizon ${rock_sample.runner.clip_horizon}
+        --planner-iterations ${rock_sample.planner.iterations}
+        --planner-damping ${rock_sample.planner.damping}
+        --bamcp-n-simulations ${rock_sample.planner.bamcp_n_simulations}
+        --bamcp-depth ${rock_sample.planner.bamcp_depth}
+        --bamcp-ucb-c ${rock_sample.planner.bamcp_ucb_c}
+        --bamcp-gamma ${rock_sample.planner.bamcp_gamma}
+        --boss-n-samples ${rock_sample.planner.boss_n_samples}
+        --ids-bamcp-n-simulations ${rock_sample.planner.ids_bamcp_n_simulations}
+        --ids-epsilon-info ${rock_sample.planner.ids_epsilon_info}
+        --workers ${rock_sample.runner.workers}
+        --output output/rock_sample/${item.planner}.json
+      deps:
+        - scripts/run_rock_sample.py
+        - learningpomdp/
+      params:
+        - rock_sample
+      outs:
+        - output/rock_sample/${item.planner}.json
+
+  plot_rock_sample:
+    cmd: >-
+      uv run python scripts/plot_rock_sample.py
+      --input-dir output/rock_sample
+      --output output/rock_sample/figure.pdf
+    deps:
+      - scripts/plot_rock_sample.py
+      - output/rock_sample/aif.json
+      - output/rock_sample/vbp.json
+      - output/rock_sample/psrl.json
+      - output/rock_sample/bamcp.json
+      - output/rock_sample/boss.json
+      - output/rock_sample/factored_bamcp.json
+      - output/rock_sample/ids.json
+      - output/rock_sample/oracle.json
+      - output/rock_sample/random.json
+    outs:
+      - output/rock_sample/figure.pdf
+
+  rock_sample_viz:
+    cmd: >-
+      uv run python scripts/visualize_rock_sample.py
+      --input-dir output/rock_sample
+      --output-dir output/rock_sample/viz
+      --planners aif bamcp psrl oracle random
+      --seed-idx 0
+      --fps 4
+    deps:
+      - scripts/visualize_rock_sample.py
+      - output/rock_sample/aif.json
+      - output/rock_sample/bamcp.json
+      - output/rock_sample/psrl.json
+      - output/rock_sample/oracle.json
+      - output/rock_sample/random.json
+    outs:
+      - output/rock_sample/viz
+    params:
+      - rock_sample.env.K
+      - rock_sample.env.grid_size
+      - rock_sample.env.layout_seed
+
+  # M4 K-scaling — sweep K ∈ rock_sample.k_sweep to visualise the
+  # factor-aware planning gap widening with #factors. Uses the canonical
+  # M4 planner slate and hyperparams; only K varies. The outer foreach
+  # cross-product is (K, planner). Output JSONs live at
+  # output/rock_sample_kscaling/K<K>/<planner>.json.
+  rock_sample_kscaling:
+    matrix:
+      K: ${rock_sample.k_sweep}
+      planner:
+        - aif
+        - vbp
+        - psrl
+        - bamcp
+        - boss
+        - factored_bamcp
+        - ids
+        - oracle
+        - random
+    cmd: >-
+      uv run python scripts/run_rock_sample.py
+      --planner ${item.planner}
+      --K ${item.K}
+      --grid-size ${rock_sample.env.grid_size}
+      --sensor-noise-eta ${rock_sample.env.sensor_noise_eta}
+      --sample-reward ${rock_sample.env.sample_reward}
+      --good-logit ${rock_sample.env.good_logit}
+      --bad-logit ${rock_sample.env.bad_logit}
+      --layout-seed ${rock_sample.env.layout_seed}
+      --n-seeds ${rock_sample.runner.n_seeds}
+      --n-episodes ${rock_sample.runner.n_episodes}
+      --max-steps ${rock_sample.runner.max_steps}
+      --horizon ${rock_sample.runner.horizon}
+      --seed ${rock_sample.runner.seed}
+      --clip-horizon ${rock_sample.runner.clip_horizon}
+      --planner-iterations ${rock_sample.planner.iterations}
+      --planner-damping ${rock_sample.planner.damping}
+      --bamcp-n-simulations ${rock_sample.planner.bamcp_n_simulations}
+      --bamcp-depth ${rock_sample.planner.bamcp_depth}
+      --bamcp-ucb-c ${rock_sample.planner.bamcp_ucb_c}
+      --bamcp-gamma ${rock_sample.planner.bamcp_gamma}
+      --boss-n-samples ${rock_sample.planner.boss_n_samples}
+      --ids-bamcp-n-simulations ${rock_sample.planner.ids_bamcp_n_simulations}
+      --ids-epsilon-info ${rock_sample.planner.ids_epsilon_info}
+      --workers ${rock_sample.runner.workers}
+      --output output/rock_sample_kscaling/K${item.K}/${item.planner}.json
+    deps:
+      - scripts/run_rock_sample.py
+      - learningpomdp/
+    params:
+      - rock_sample
+    outs:
+      - output/rock_sample_kscaling/K${item.K}/${item.planner}.json
+
+  # Note: figure.pdf is a SIBLING of the per-K subdirectories, not nested
+  # inside any of them — DVC rejects overlapping deps/outs paths. The K
+  # subdirectories listed here mirror rock_sample.k_sweep; if you extend
+  # k_sweep, add the matching K<K> entry to deps so DVC reruns the plot.
+  plot_rock_sample_kscaling:
+    cmd: >-
+      uv run python scripts/plot_rock_sample_kscaling.py
+      --input-dir output/rock_sample_kscaling
+      --output output/rock_sample_kscaling/figure.pdf
+    deps:
+      - scripts/plot_rock_sample_kscaling.py
+      - output/rock_sample_kscaling/K2
+      - output/rock_sample_kscaling/K3
+      - output/rock_sample_kscaling/K4
+    params:
+      - rock_sample.k_sweep
+    outs:
+      - output/rock_sample_kscaling/figure.pdf
+
+  # Factored Tiger — canonical-literature env (Katt et al. 2019, FBA-POMDP)
+  # with purely persistent factored θ. Pairs with RockSample (persistent
+  # + episodic) to show the same paradigm handles both regimes. Belief-Q
+  # deferred (door-code-specific belief feature).
+  factored_tiger:
+    foreach:
+      aif:
+        planner: aif
+      vbp:
+        planner: vbp
+      psrl:
+        planner: psrl
+      bamcp:
+        planner: bamcp
+      boss:
+        planner: boss
+      factored_bamcp:
+        planner: factored_bamcp
+      ids:
+        planner: ids
+      oracle:
+        planner: oracle
+      random:
+        planner: random
+    do:
+      cmd: >-
+        uv run python scripts/run_factored_tiger.py
+        --planner ${item.planner}
+        --K ${factored_tiger.env.K}
+        --listen-accuracy ${factored_tiger.env.listen_accuracy}
+        --open-safe-reward ${factored_tiger.env.open_safe_reward}
+        --open-tiger-penalty ${factored_tiger.env.open_tiger_penalty}
+        --listen-cost ${factored_tiger.env.listen_cost}
+        --good-logit ${factored_tiger.env.good_logit}
+        --bad-logit ${factored_tiger.env.bad_logit}
+        --n-seeds ${factored_tiger.runner.n_seeds}
+        --n-episodes ${factored_tiger.runner.n_episodes}
+        --max-steps ${factored_tiger.runner.max_steps}
+        --horizon ${factored_tiger.runner.horizon}
+        --seed ${factored_tiger.runner.seed}
+        --clip-horizon ${factored_tiger.runner.clip_horizon}
+        --planner-iterations ${factored_tiger.planner.iterations}
+        --planner-damping ${factored_tiger.planner.damping}
+        --bamcp-n-simulations ${factored_tiger.planner.bamcp_n_simulations}
+        --bamcp-depth ${factored_tiger.planner.bamcp_depth}
+        --bamcp-ucb-c ${factored_tiger.planner.bamcp_ucb_c}
+        --bamcp-gamma ${factored_tiger.planner.bamcp_gamma}
+        --boss-n-samples ${factored_tiger.planner.boss_n_samples}
+        --ids-bamcp-n-simulations ${factored_tiger.planner.ids_bamcp_n_simulations}
+        --ids-epsilon-info ${factored_tiger.planner.ids_epsilon_info}
+        --workers ${factored_tiger.runner.workers}
+        --output output/factored_tiger/${item.planner}.json
+      deps:
+        - scripts/run_factored_tiger.py
+        - learningpomdp/
+      params:
+        - factored_tiger
+      outs:
+        - output/factored_tiger/${item.planner}.json
+
+  plot_factored_tiger:
+    cmd: >-
+      uv run python scripts/plot_factored_tiger.py
+      --input-dir output/factored_tiger
+      --output output/factored_tiger/figure.pdf
+    deps:
+      - scripts/plot_factored_tiger.py
+      - output/factored_tiger/aif.json
+      - output/factored_tiger/vbp.json
+      - output/factored_tiger/psrl.json
+      - output/factored_tiger/bamcp.json
+      - output/factored_tiger/boss.json
+      - output/factored_tiger/factored_bamcp.json
+      - output/factored_tiger/ids.json
+      - output/factored_tiger/oracle.json
+      - output/factored_tiger/random.json
+    outs:
+      - output/factored_tiger/figure.pdf
