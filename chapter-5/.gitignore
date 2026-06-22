@@ -1,6 +1,8 @@
 .DS_Store
 **/.DS_Store
 .venv/
+.venv-gpu/
+.venvs/
 __pycache__/
 **/__pycache__/
 **/*.pyc

@@ -69,6 +69,7 @@ scripts/
 │   ├── experiment.py              # T-Maze experiment runner
 │   ├── convergence_analysis.py    # Convergence and budget sweeps
 │   ├── plot_convergence.py        # Generate convergence figures
+│   ├── plot_experiment.py         # Render episode video/TikZ from results.json (post-hoc)
 │   └── diagnostics.py             # Diagnostic tools
 └── epistemic_maze/
     ├── experiment.py

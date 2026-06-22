@@ -87,7 +87,7 @@ stages:
       - data/tmaze/convergence/figures
 
   tmaze_experiment_marginal:
-    cmd: uv run python scripts/tmaze/experiment.py --inference-mode marginal --output-dir data/tmaze/marginal
+    cmd: uv run python scripts/tmaze/experiment.py --inference-mode marginal --output-dir data/tmaze/marginal --no-video --no-tikz
     params:
       - tmaze.experiment.n_episodes
       - tmaze.experiment.max_steps
@@ -101,15 +101,12 @@ stages:
       - src/environments/tmaze.py
       - src/planning/factorized_optimizer.py
       - src/objectives/factorized_vfe.py
-      - src/visualization/tmaze_viz.py
     outs:
       - data/tmaze/marginal/results.json
       - data/tmaze/marginal/stats.json
-      - data/tmaze/marginal/episode.mp4
-      - data/tmaze/marginal/frames
 
   tmaze_experiment_active:
-    cmd: uv run python scripts/tmaze/experiment.py --inference-mode active --output-dir data/tmaze/active
+    cmd: uv run python scripts/tmaze/experiment.py --inference-mode active --output-dir data/tmaze/active --no-video --no-tikz
     params:
       - tmaze.experiment.n_episodes
       - tmaze.experiment.max_steps
@@ -123,15 +120,12 @@ stages:
       - src/environments/tmaze.py
       - src/planning/factorized_optimizer.py
       - src/objectives/factorized_vfe.py
-      - src/visualization/tmaze_viz.py
     outs:
       - data/tmaze/active/results.json
       - data/tmaze/active/stats.json
-      - data/tmaze/active/episode.mp4
-      - data/tmaze/active/frames
 
   tmaze_experiment_planning:
-    cmd: uv run python scripts/tmaze/experiment.py --inference-mode planning --output-dir data/tmaze/planning
+    cmd: uv run python scripts/tmaze/experiment.py --inference-mode planning --output-dir data/tmaze/planning --no-video --no-tikz
     params:
       - tmaze.experiment.n_episodes
       - tmaze.experiment.max_steps
@@ -145,12 +139,51 @@ stages:
       - src/environments/tmaze.py
       - src/planning/factorized_optimizer.py
       - src/objectives/factorized_vfe.py
-      - src/visualization/tmaze_viz.py
     outs:
       - data/tmaze/planning/results.json
       - data/tmaze/planning/stats.json
+
+  # Post-hoc visualization: render the last-episode video + TikZ frames from each
+  # run's results.json. Separated from the experiment stages so editing the
+  # visualization code re-renders figures without re-running the experiments.
+  tmaze_video_marginal:
+    cmd: uv run python scripts/tmaze/plot_experiment.py --input-dir data/tmaze/marginal
+    deps:
+      - scripts/tmaze/plot_experiment.py
+      - src/visualization/tmaze_viz.py
+      - data/tmaze/marginal/results.json
+    outs:
+      - data/tmaze/marginal/episode.mp4
+      - data/tmaze/marginal/frames
+
+  tmaze_video_active:
+    cmd: uv run python scripts/tmaze/plot_experiment.py --input-dir data/tmaze/active
+    deps:
+      - scripts/tmaze/plot_experiment.py
+      - src/visualization/tmaze_viz.py
+      - data/tmaze/active/results.json
+    outs:
+      - data/tmaze/active/episode.mp4
+      - data/tmaze/active/frames
+
+  tmaze_video_planning:
+    cmd: uv run python scripts/tmaze/plot_experiment.py --input-dir data/tmaze/planning
+    deps:
+      - scripts/tmaze/plot_experiment.py
+      - src/visualization/tmaze_viz.py
+      - data/tmaze/planning/results.json
+    outs:
       - data/tmaze/planning/episode.mp4
       - data/tmaze/planning/frames
+
+  tmaze_reference:
+    cmd: uv run python scripts/tmaze/plot_experiment.py --reference data/tmaze/tmaze.tex
+    deps:
+      - scripts/tmaze/plot_experiment.py
+      - src/visualization/tmaze_viz.py
+    outs:
+      - data/tmaze/tmaze.tex
+      - data/tmaze/colors.tex
 
   tmaze_experiment_sophisticated:
     cmd: uv run python scripts/tmaze/experiment.py --strategy sophisticated --output-dir data/tmaze/sophisticated --no-video --no-tikz

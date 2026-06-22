@@ -11,6 +11,10 @@ dependencies = [
     "tqdm>=4.65.0",
 ]
 
+[project.optional-dependencies]
+# Standardized CUDA path across all chapters: `uv sync --extra gpu`.
+gpu = ["jax[cuda12]>=0.6.2"]
+
 [tool.setuptools.packages.find]
 include = ["src*"]
 
@@ -18,8 +22,5 @@ include = ["src*"]
 dev = [
     "pytest>=9.0.2",
     "dvc>=3.56",
-]
-cuda = [
-    "jax[cuda12-pip]>=0.9.0",
 ]
 macos = ["jax-mps>=0.9.6"]

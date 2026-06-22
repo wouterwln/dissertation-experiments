@@ -42,16 +42,19 @@ All experiment parameters are controlled by `params.yaml` in the project root. J
 
 ## Environment setup
 
-The script `cluster/setup_env.sh` handles module loading and virtual environment creation. It:
+The script `cluster/setup_env.sh` is uv-native (matching chapters 5 and 6). It:
 
-1. Loads `Python/3.11.3-GCCcore-12.3.0`
-2. Creates a GPU venv at `.venvs/venv-gpu/` with the project installed in editable mode plus `jax[cuda12]`
-3. On subsequent runs, activates the existing venv
+1. Loads `Python/3.11.3-GCCcore-12.3.0` (no CUDA module — `jax[cuda12]` ships its own libs)
+2. Bootstraps `uv` into `~/.local/bin` on first use
+3. Builds a GPU venv at `.venv-gpu/` from the lockfile via `uv sync --extra gpu`
+4. On subsequent runs, reuses the existing venv (skips the sync unless `FORCE_UV_SYNC=1`)
 
-**Important:** Run the environment setup once on the login node before submitting jobs, since compute nodes may lack internet access:
+**Important:** Build the env once on the login node before submitting jobs, since compute
+nodes lack internet access (the `FORCE_UV_SYNC` guard also stops array tasks from
+re-syncing in parallel):
 
 ```bash
-source cluster/setup_env.sh
+FORCE_UV_SYNC=1 source cluster/setup_env.sh
 ```
 
 ## Submitting jobs
@@ -244,7 +247,7 @@ Update `PYTHON_MODULE` in `cluster/setup_env.sh` if needed.
 Compute nodes may not have internet access. Always create the venv on the login node first:
 
 ```bash
-source cluster/setup_env.sh
+FORCE_UV_SYNC=1 source cluster/setup_env.sh
 ```
 
 ### No GPU available / long queue times
@@ -259,11 +262,11 @@ squeue -u $USER --start    # estimated start time
 The job logs print JAX device info at the start. If you see `CpuDevice` instead of `GpuDevice`, verify that:
 
 1. The job is running on the `gpu` partition
-2. `jax[cuda12]` is installed in the venv (`pip list | grep jax`)
+2. `jax[cuda12]` is installed in the venv (`uv pip list | grep jax`)
 
 ### Stale venv after dependency changes
 
 ```bash
-rm -rf .venvs/venv-gpu
-source cluster/setup_env.sh
+rm -rf .venv-gpu
+FORCE_UV_SYNC=1 source cluster/setup_env.sh
 ```
