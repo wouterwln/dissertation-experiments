@@ -85,28 +85,6 @@ stages:
       - data/convergence_sweep/rocksample/summary.csv:
           cache: false
 
-  convergence_sweep_minigrid:
-    cmd: >-
-      uv run python run_convergence_sweep.py
-      --environment minigrid
-      --grid-size ${convergence_sweep.minigrid.grid_size}
-      --planning-horizon ${convergence_sweep.minigrid.planning_horizon}
-      --fov-size ${convergence_sweep.minigrid.fov_size}
-      --obs-alpha ${convergence_sweep.minigrid.obs_alpha}
-      --observe-first
-      --n-iterations ${convergence_sweep.n_iterations}
-      --output-dir data/convergence_sweep
-    deps:
-      - run_convergence_sweep.py
-      - environments/minigrid.py
-      - inference/
-    params:
-      - convergence_sweep
-      - convergence_sweep.minigrid
-    plots:
-      - data/convergence_sweep/minigrid/summary.csv:
-          cache: false
-
   convergence_sweep_plots:
     cmd: >-
       uv run python plot_convergence_sweep.py
@@ -120,7 +98,6 @@ stages:
       - data/convergence_sweep/frozen-lake/summary.csv
       - data/convergence_sweep/wumpus-world/summary.csv
       - data/convergence_sweep/rocksample/summary.csv
-      - data/convergence_sweep/minigrid/summary.csv
     plots:
       - data/convergence_sweep/plots/:
           cache: false
@@ -241,36 +218,4 @@ stages:
         - rocksample_methods.${key}
       metrics:
         - data/results/rocksample/${key}.json:
-            cache: false
-
-  minigrid:
-    foreach: ${minigrid_methods}
-    do:
-      cmd: >-
-        uv run python run_minigrid.py
-        --planning-method ${key}
-        --grid-size ${minigrid.grid_size}
-        --fov-size ${minigrid.fov_size}
-        --obs-alpha ${minigrid.obs_alpha}
-        --episodes ${minigrid.episodes}
-        --max-steps ${minigrid.max_steps}
-        --planning-horizon ${minigrid.planning_horizon}
-        --inference-iterations ${minigrid.inference_iterations}
-        --planning-iterations ${item.planning_iterations}
-        --damping ${item.damping}
-        --seed ${minigrid.seed}
-        --receding-horizon
-        --output data/results/minigrid/${key}.json
-        --record ${minigrid.record}
-      deps:
-        - run_minigrid.py
-        - agents/flat_tensor_agent.py
-        - environments/minigrid.py
-        - environments/gym_wrapper.py
-        - inference/
-      params:
-        - minigrid
-        - minigrid_methods.${key}
-      metrics:
-        - data/results/minigrid/${key}.json:
             cache: false
