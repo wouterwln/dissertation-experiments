@@ -1,8 +1,15 @@
 """Convergence variant of the Nuijten-MP planner that returns a per-iteration VFE trace.
 
 `nuijten_mp_convergence` mirrors `nuijten_mp.nuijten_mp_planning` but additionally
-accumulates the Bethe free energy (region-based, with EFE action-prior factors) at
-each message-passing iteration. Used to verify that the Nuijten-MP scheme converges.
+accumulates the Bethe free energy (region-based, with EFE prior factors) at each
+message-passing iteration. Used to verify that the Nuijten-MP scheme converges.
+
+For pedagogical transparency the EFE drives are booked as explicit prior-factor
+energies: the action prior `pi(u)` (singleton factor on u), and the observation
+ambiguity prior on the joint `(x, theta)` observation region. The obs->x and
+obs->theta EFE messages are the two mirrored cavity-projections of that single
+joint factor, so the ambiguity is counted once (not once per leg). See
+`compute_nuijten_vfe`.
 
 This is a trimmed copy of chapter-5's `inference/convergence.py` containing only the
 Nuijten path (the only method chapter-4 uses). All computation is in log-space.
@@ -14,7 +21,7 @@ from jax import lax
 from jax.scipy.special import logsumexp
 from functools import partial
 
-from .messages import LOG_ZERO, safe_log, safe_log_div
+from .messages import LOG_ZERO, EPSILON, safe_log, safe_log_div
 from .region_extended_loopy_bp import (
     compute_log_reduced,
     compute_pref_to_x_msgs,
@@ -72,7 +79,23 @@ def compute_nuijten_vfe(log_dyn_regions, obs_regions,
                         log_T_kernel_tiled, log_B_flat,
                         log_cavity_dyn, log_cavity_obs,
                         log_prior_theta, action_prior_per_t):
-    """VFE for Nuijten methods — region-extended with additional EFE prior factors."""
+    """VFE for Nuijten methods — region-extended with additional EFE prior factors.
+
+    Two EFE drives are reified as explicit prior factors and booked as energies, each
+    a cross-entropy ``-<log factor>`` under the relevant region belief:
+
+    - ``U_prior`` — EFE action prior ``pi_t(u)`` (singleton factor on the action variable).
+    - ``U_epi``   — observation ambiguity prior on the *joint* ``(x, theta)`` observation
+      region: ``psi_t(x, theta) ~ exp(-sum_k H_k(x, theta))``, with
+      ``H_k(x, theta) = H[p_k(y | x, theta)]`` the per-cell likelihood entropy.
+
+    NOTE: ``U_epi`` is counted ONCE on the joint ``(x, theta)`` edge. The ``obs->x`` and
+    ``obs->theta`` EFE messages are the two mirrored cavity-projections of this single
+    factor (same ``H_k(x, theta)`` field, conditioned on theta vs. on x); booking both as
+    separate singleton energies would double-count the same ambiguity. ``U_epi`` equals
+    the canonical EFE ambiguity ``E_{q(x,theta)}[H[p(y|x,theta)]]`` and is belief-weighted
+    (tracks ``q(x, theta)``), so it is NOT a constant offset.
+    """
     horizon = q_u.shape[0]
     n_fov = obs_regions.shape[1]
 
@@ -118,6 +141,24 @@ def compute_nuijten_vfe(log_dyn_regions, obs_regions,
     log_q_theta = log_q_theta - logsumexp(log_q_theta)
     H_theta = _entropy(log_q_theta)
 
+    # --- Epistemic prior factor energy (obs ambiguity on the joint (x,θ) region) ---
+    # Single joint factor ψ_t(x,θ) ∝ exp(-Σ_k H_k(x,θ)); counted once (NOT split into
+    # obs→x and obs→θ, which are the two mirrored projections of this same field).
+    # H_k(x,θ) = -Σ_y p_k(y|x,θ) log p_k(y|x,θ) — fixed property of the likelihood tensor.
+    p_B = jnp.exp(log_B_flat)
+    plogp = jnp.where(log_B_flat > LOG_ZERO / 2, p_B * log_B_flat, 0.0)
+    H_obs = -plogp.sum(axis=1)  # (n_fov, n_states, n_static)
+
+    def epi_energy_t(t):
+        def epi_energy_k(k):
+            # q(x,θ | k, t): marginalize the obs region belief over y, renormalize.
+            b_xtheta = obs_regions[t, k].sum(axis=0)
+            b_xtheta = b_xtheta / (b_xtheta.sum() + EPSILON)
+            return jnp.sum(b_xtheta * H_obs[k])
+        return jax.vmap(epi_energy_k)(jnp.arange(n_fov)).sum()
+
+    U_epi = jax.vmap(epi_energy_t)(jnp.arange(horizon + 1)).sum()
+
     # --- Intersection terms ---
     def dyn_intersection_t(t):
         log_joint_xu = logsumexp(log_dyn_regions[t], axis=(1, 2))
@@ -138,7 +179,7 @@ def compute_nuijten_vfe(log_dyn_regions, obs_regions,
 
     obs_intersection = jax.vmap(obs_intersection_t)(jnp.arange(horizon + 1)).sum()
 
-    return (U_dyn + U_obs + U_prior) - (H_x + H_u + H_theta) + dyn_intersection + obs_intersection
+    return (U_dyn + U_obs + U_prior + U_epi) - (H_x + H_u + H_theta) + dyn_intersection + obs_intersection
 
 
 # =============================================================================

@@ -25,8 +25,8 @@ stages:
       size: 9903
     - path: src/inference
       hash: md5
-      md5: 38a24f8bfef84c23b5c73d32a055e2ae.dir
-      size: 171498
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
       nfiles: 10
     params:
       params.yaml:
@@ -42,11 +42,11 @@ stages:
     outs:
     - path: data/tmaze/nuijten/results.json
       hash: md5
-      md5: 411a25530f1e1da6e24479fd4e706d4f
+      md5: 4159eab8afc83e89a00d4a1fd78c4e32
       size: 371962
     - path: data/tmaze/nuijten/stats.json
       hash: md5
-      md5: 7f78c1ffd1dce3b9f4e278d4621bacdc
+      md5: a9761ebcba9feac624b6d63f5988c666
       size: 538
   stochastic_maze_nuijten:
     cmd: uv run python scripts/stochastic_maze/experiment.py --n-episodes 1000 
@@ -73,8 +73,8 @@ stages:
       size: 11660
     - path: src/inference
       hash: md5
-      md5: 38a24f8bfef84c23b5c73d32a055e2ae.dir
-      size: 171498
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
       nfiles: 10
     params:
       params.yaml:
@@ -89,11 +89,11 @@ stages:
     outs:
     - path: data/stochastic_maze/nuijten/results.json
       hash: md5
-      md5: abe40a3955d088f111f2960caa98e8d7
+      md5: f68b04ec88e7f276920a5b4d6b4f2f5f
       size: 408447
     - path: data/stochastic_maze/nuijten/stats.json
       hash: md5
-      md5: f37f3451f03f99b5a14b38011aa9a615
+      md5: a4c4df559b5ee5ccab9ec1e624d1e648
       size: 537
   tmaze_convergence:
     cmd: uv run python scripts/convergence/run_convergence.py --environment 
@@ -115,8 +115,8 @@ stages:
       size: 9903
     - path: src/inference
       hash: md5
-      md5: 38a24f8bfef84c23b5c73d32a055e2ae.dir
-      size: 171498
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
       nfiles: 10
     params:
       params.yaml:
@@ -130,12 +130,12 @@ stages:
     outs:
     - path: data/tmaze/nuijten/convergence.json
       hash: md5
-      md5: 8a4775610db4d098982143ff8ea9a272
-      size: 637169
+      md5: b42d5dec39c793b7d5b4a279bdd37471
+      size: 614500
     - path: data/tmaze/nuijten/convergence_stats.json
       hash: md5
-      md5: 9a7941288a73db03e338bd9dff9f0553
-      size: 248
+      md5: 234ea852f058d6c4a73a6fecb2379d68
+      size: 247
   stochastic_maze_convergence:
     cmd: uv run python scripts/convergence/run_convergence.py --environment 
       stochastic_maze --n-episodes 100 --max-steps 10 --planning-horizon 10 
@@ -156,8 +156,8 @@ stages:
       size: 11660
     - path: src/inference
       hash: md5
-      md5: 38a24f8bfef84c23b5c73d32a055e2ae.dir
-      size: 171498
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
       nfiles: 10
     params:
       params.yaml:
@@ -171,11 +171,11 @@ stages:
     outs:
     - path: data/stochastic_maze/nuijten/convergence.json
       hash: md5
-      md5: f03fe9cd4155bb731f6948611f32c61f
-      size: 1424843
+      md5: 904c6fd0e716eb2079c040ffa02a1ae8
+      size: 1427245
     - path: data/stochastic_maze/nuijten/convergence_stats.json
       hash: md5
-      md5: 6e2c7175decd8c90aa10b092553d10f3
+      md5: 7eb94cdda20ebff519e94794b50728be
       size: 275
   convergence_plots:
     cmd: uv run python scripts/convergence/plot_convergence.py --environments 
@@ -184,12 +184,12 @@ stages:
     deps:
     - path: data/stochastic_maze/nuijten/convergence.json
       hash: md5
-      md5: f03fe9cd4155bb731f6948611f32c61f
-      size: 1424843
+      md5: 904c6fd0e716eb2079c040ffa02a1ae8
+      size: 1427245
     - path: data/tmaze/nuijten/convergence.json
       hash: md5
-      md5: 8a4775610db4d098982143ff8ea9a272
-      size: 637169
+      md5: b42d5dec39c793b7d5b4a279bdd37471
+      size: 614500
     - path: scripts/convergence/plot_convergence.py
       hash: md5
       md5: 4ab517700ebc1bc1577b51c4bca1fd92
@@ -197,6 +197,6 @@ stages:
     outs:
     - path: data/convergence_plots
       hash: md5
-      md5: 4292b4a6e569ea04a4c72a1d73fe02a7.dir
-      size: 410026
+      md5: 879031a83b0b09a67ab79ee919ed1a5b.dir
+      size: 390759
       nfiles: 6
