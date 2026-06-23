@@ -29,14 +29,33 @@ def set_seed(seed: int):
     np.random.seed(seed)
 
 
-def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
-    """Run a single Frozen Lake episode."""
+def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False,
+                record=True):
+    """Run a single Frozen Lake episode.
+
+    Returns ``(summary, trajectory)``. The trajectory captures the full
+    per-timestep record needed to redraw any figure offline from the
+    DVC-tracked data without re-running: the true latent hole-config
+    ``theta_true``, executed ``actions``, sampled ``observations``,
+    per-step ``rewards``, the true ``states_visited`` (flat index + decoded
+    ``positions``/``scanned``), and the agent's posterior over hole
+    configurations ``q_static`` after each inference step.
+    """
     result = env.reset(seed=seed)
     agent = agent.reset()
 
     total_reward = 0.0
     steps = 0
     max_steps = env.max_steps
+
+    actions: list[int] = []
+    observations = [np.asarray(result.obs).round().astype(int).tolist()]
+    rewards: list[float] = []
+    states_visited = [int(env._state_idx)]
+    positions = [int(env._position)]
+    scanned = [int(env._scanned)]
+    q_static_hist: list[list[float]] = []
+    planning_time_s = 0.0
 
     while True:
         if receding_horizon:
@@ -45,7 +64,14 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
             time_remaining = agent.planning_horizon
 
         obs = jnp.array(result.obs)
+        t0 = time.perf_counter()
         action, agent = agent.step(obs, time_remaining)
+        planning_time_s += time.perf_counter() - t0
+
+        if record:
+            q_static_hist.append(
+                [float(v) for v in np.asarray(agent.q_static_state)]
+            )
 
         if verbose:
             print(f"Step {steps}: action={action}, time_remaining={time_remaining}")
@@ -54,16 +80,40 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
         total_reward += result.reward
         steps += 1
 
+        if record:
+            actions.append(int(action))
+            observations.append(np.asarray(result.obs).round().astype(int).tolist())
+            rewards.append(float(result.reward))
+            states_visited.append(int(env._state_idx))
+            positions.append(int(env._position))
+            scanned.append(int(env._scanned))
+
         if result.terminated or result.truncated:
             break
 
-    return {
+    summary = {
         "total_reward": total_reward,
         "steps": steps,
-        "success": result.reward > 0,
-        "terminated": result.terminated,
-        "truncated": result.truncated,
+        "success": bool(result.reward > 0),
+        "terminated": bool(result.terminated),
+        "truncated": bool(result.truncated),
+        "theta_true": int(env.config_idx),
+        "planning_time_s": planning_time_s,
     }
+    trajectory = {
+        "theta_true": int(env.config_idx),
+        "actions": actions,
+        "observations": observations,
+        "rewards": rewards,
+        "states_visited": states_visited,
+        "positions": positions,
+        "scanned": scanned,
+        "q_static": q_static_hist,
+        "terminated": bool(result.terminated),
+        "truncated": bool(result.truncated),
+        "planning_time_s": planning_time_s,
+    }
+    return summary, trajectory
 
 
 def main():
@@ -164,17 +214,19 @@ def main():
     print("-" * 50)
 
     results = []
+    trajectories = []
     successes = 0
     t0 = time.time()
 
     pbar = tqdm(range(args.episodes), desc="Episodes")
     for i in pbar:
         seed = args.seed + i
-        episode_result = run_episode(
+        episode_result, trajectory = run_episode(
             agent, env, seed=seed, receding_horizon=args.receding_horizon,
             verbose=args.verbose,
         )
         results.append(episode_result)
+        trajectories.append(trajectory)
         if episode_result["success"]:
             successes += 1
         pbar.set_postfix({
@@ -218,6 +270,23 @@ def main():
                 "receding_horizon": args.receding_horizon,
                 "seed_start": args.seed,
             },
+            "env": {
+                "environment": "frozen_lake",
+                "grid_size": args.grid_size,
+                "n_configs": args.n_configs,
+                "n_pos": int(env.n_pos),
+                "start_pos": int(env.start_pos),
+                "goal_pos": int(env.goal_pos),
+                "holes": holes.tolist(),
+            },
+            "n_episodes": args.episodes,
+            "per_episode": {
+                key: [r[key] for r in results]
+                for key in (
+                    "total_reward", "steps", "success", "terminated",
+                    "truncated", "theta_true", "planning_time_s",
+                )
+            },
             "results": {
                 "success_rate": success_rate,
                 "avg_steps": avg_steps,
@@ -225,6 +294,7 @@ def main():
                 "successes": successes,
                 "total_time_s": elapsed,
             },
+            "trajectories": trajectories,
         }
         with open(output_path, "w") as f:
             json.dump(output_data, f, indent=2)
