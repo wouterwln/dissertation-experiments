@@ -11,9 +11,8 @@ sys.path.insert(0, str(project_root))
 
 from src.adapters.generative_model import (
     build_tmaze_generative_model,
-    build_reactivity_generative_model,
+    build_stochastic_maze_generative_model,
 )
-from src.environments.epistemic_maze import EpistemicAction, components_to_state
 
 
 def test_tmaze_shapes():
@@ -59,42 +58,41 @@ def test_tmaze_goal_normalized():
     assert int(jnp.argmax(m.goal[:, 1])) == 4
 
 
-def test_reactivity_shapes():
-    m = build_reactivity_generative_model(n_theta=2)
-    assert m.transition_tensor.shape == (35, 35, 2, 8)
-    assert m.observation_tensor.shape == (2, 7, 35, 2)
-    assert m.planning_observation_tensor.shape == (1, 7, 35, 2)
-    assert m.goal.shape == (35, 2)
-    assert m.action_prior.shape == (8,)
-    assert m.theta_prior.shape == (2,)
+def test_stochastic_maze_shapes():
+    m = build_stochastic_maze_generative_model()
+    # default 5x5 = 25 states, 4 actions, no hidden context (n_theta=1)
+    assert m.transition_tensor.shape == (25, 25, 1, 4)
+    assert m.observation_tensor.shape == (1, 25, 25, 1)
+    assert m.planning_observation_tensor.shape == (1, 25, 25, 1)
+    assert m.goal.shape == (25, 1)
+    assert m.action_prior.shape == (4,)
+    assert m.theta_prior.shape == (1,)
+    # start_state = Julia 11 (1-indexed) = state 10 (0-indexed) = (0,2)
+    assert m.start_state_idx == 10
 
 
-def test_reactivity_transition_normalized_and_theta_independent():
-    m = build_reactivity_generative_model(n_theta=2)
+def test_stochastic_maze_transition_normalized():
+    m = build_stochastic_maze_generative_model()
+    # next-state distribution sums to 1 for each (current_state, theta, action)
     sums = m.transition_tensor.sum(axis=0)
     assert jnp.allclose(sums, 1.0, atol=1e-5)
-    assert jnp.allclose(m.transition_tensor[:, :, 0, :], m.transition_tensor[:, :, 1, :])
 
 
-def test_reactivity_observation_semantics():
-    m = build_reactivity_generative_model(n_theta=2)
-    loc, ctx = m.observation_tensor[0], m.observation_tensor[1]
-    # location channel per (state, theta) sums to 1
-    assert jnp.allclose(loc.sum(axis=0), 1.0, atol=1e-5)
-    # context channel padded outcomes 3..6 are exactly zero (n_theta+1 = 3 used)
-    assert jnp.all(ctx[3:] == 0.0)
-    # off-cue states fire the neutral outcome (index n_theta == 2) with prob 1
-    non_cue_states = [s for s in range(35) if s % 7 != 6]
-    assert jnp.allclose(ctx[2, jnp.array(non_cue_states), :], 1.0, atol=1e-5)
+def test_stochastic_maze_observation_normalized():
+    m = build_stochastic_maze_generative_model()
+    obs = m.observation_tensor[0]  # (n_obs, n_states, 1)
+    # per (state, theta) the observation distribution sums to 1
+    assert jnp.allclose(obs.sum(axis=0), 1.0, atol=1e-5)
 
 
-def test_reactivity_action_prior_favours_cue():
-    m = build_reactivity_generative_model(n_theta=2, cue_cost_epsilon=0.01)
-    # cue_cost_epsilon < 1 makes VISIT_CUE more probable than a baseline nav action
-    assert jnp.allclose(m.action_prior.sum(), 1.0, atol=1e-5)
-    assert m.action_prior[int(EpistemicAction.VISIT_CUE)] > m.action_prior[0]
+def test_stochastic_maze_goal_peaked_on_goal_state():
+    m = build_stochastic_maze_generative_model()
+    assert jnp.allclose(m.goal.sum(axis=0), 1.0, atol=1e-5)
+    # terminal goal is a near-delta on the +1 goal state (linear index 14 = (4,2))
+    assert int(jnp.argmax(m.goal[:, 0])) == 14
+    assert float(m.goal[14, 0]) > 0.99
 
 
-def test_reactivity_start_state():
-    m = build_reactivity_generative_model(n_theta=2, start_location=3)
-    assert m.start_state_idx == components_to_state(3, 4)
+def test_stochastic_maze_action_prior_uniform():
+    m = build_stochastic_maze_generative_model()
+    assert jnp.allclose(m.action_prior, 0.25, atol=1e-6)

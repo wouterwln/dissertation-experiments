@@ -25,32 +25,87 @@ stages:
     outs:
       - data/tmaze/nuijten/results.json
 
-  reactivity_nuijten:
+  stochastic_maze_nuijten:
     cmd: >-
-      uv run python scripts/reactivity_maze/experiment.py
-      --n-episodes ${reactivity_maze.experiment.n_episodes}
-      --max-steps ${reactivity_maze.experiment.max_steps}
-      --planning-horizon ${reactivity_maze.experiment.planning_horizon}
-      --planning-iterations ${reactivity_maze.experiment.planning_iterations}
-      --n-theta ${reactivity_maze.experiment.n_theta}
-      --cue-accuracy ${reactivity_maze.experiment.cue_accuracy}
-      --location-observation-accuracy ${reactivity_maze.experiment.location_observation_accuracy}
-      --goal-temperature ${reactivity_maze.experiment.goal_temperature}
-      --cue-cost-epsilon ${reactivity_maze.experiment.cue_cost_epsilon}
+      uv run python scripts/stochastic_maze/experiment.py
+      --n-episodes ${stochastic_maze.experiment.n_episodes}
+      --max-steps ${stochastic_maze.experiment.max_steps}
+      --planning-horizon ${stochastic_maze.experiment.planning_horizon}
+      --planning-iterations ${stochastic_maze.experiment.planning_iterations}
+      --goal-temperature ${stochastic_maze.experiment.goal_temperature}
       --receding-horizon
-      --terminal-goal-only
-      --seed ${reactivity_maze.experiment.seed}
-      --output-dir data/reactivity_maze/nuijten
+      --seed ${stochastic_maze.experiment.seed}
+      --output-dir data/stochastic_maze/nuijten
     deps:
-      - scripts/reactivity_maze/experiment.py
-      - src/environments/epistemic_maze.py
+      - scripts/stochastic_maze/experiment.py
+      - src/environments/stochastic_maze.py
       - src/adapters
       - src/agents/nuijten_agent.py
       - src/inference
     params:
-      - reactivity_maze.experiment
+      - stochastic_maze.experiment
     metrics:
-      - data/reactivity_maze/nuijten/stats.json:
+      - data/stochastic_maze/nuijten/stats.json:
           cache: false
     outs:
-      - data/reactivity_maze/nuijten/results.json
+      - data/stochastic_maze/nuijten/results.json
+
+  tmaze_convergence:
+    cmd: >-
+      uv run python scripts/convergence/run_convergence.py
+      --environment tmaze
+      --n-episodes ${convergence.tmaze.n_episodes}
+      --max-steps ${convergence.tmaze.max_steps}
+      --planning-horizon ${convergence.tmaze.planning_horizon}
+      --n-iterations ${convergence.tmaze.n_iterations}
+      --goal-temperature ${convergence.tmaze.goal_temperature}
+      --seed ${convergence.tmaze.seed}
+    deps:
+      - scripts/convergence/run_convergence.py
+      - src/environments/tmaze.py
+      - src/adapters
+      - src/inference
+    params:
+      - convergence.tmaze
+    metrics:
+      - data/tmaze/nuijten/convergence_stats.json:
+          cache: false
+    outs:
+      - data/tmaze/nuijten/convergence.json
+
+  stochastic_maze_convergence:
+    cmd: >-
+      uv run python scripts/convergence/run_convergence.py
+      --environment stochastic_maze
+      --n-episodes ${convergence.stochastic_maze.n_episodes}
+      --max-steps ${convergence.stochastic_maze.max_steps}
+      --planning-horizon ${convergence.stochastic_maze.planning_horizon}
+      --n-iterations ${convergence.stochastic_maze.n_iterations}
+      --goal-temperature ${convergence.stochastic_maze.goal_temperature}
+      --seed ${convergence.stochastic_maze.seed}
+    deps:
+      - scripts/convergence/run_convergence.py
+      - src/environments/stochastic_maze.py
+      - src/adapters
+      - src/inference
+    params:
+      - convergence.stochastic_maze
+    metrics:
+      - data/stochastic_maze/nuijten/convergence_stats.json:
+          cache: false
+    outs:
+      - data/stochastic_maze/nuijten/convergence.json
+
+  convergence_plots:
+    cmd: >-
+      uv run python scripts/convergence/plot_convergence.py
+      --environments tmaze stochastic_maze
+      --input-dir data
+      --output-dir data/convergence_plots
+      --format both
+    deps:
+      - scripts/convergence/plot_convergence.py
+      - data/tmaze/nuijten/convergence.json
+      - data/stochastic_maze/nuijten/convergence.json
+    outs:
+      - data/convergence_plots

@@ -11,26 +11,45 @@
 
 tmaze:
   experiment:
-    n_episodes: 50
-    max_steps: 6
-    planning_horizon: 6
+    n_episodes: 1000
+    max_steps: 5
+    planning_horizon: 5
     planning_iterations: 20
     receding_horizon: true
     goal_temperature: 4.5
     terminal_goal_only: true
     seed: 42
 
-reactivity_maze:
+stochastic_maze:
   experiment:
-    n_episodes: 50
+    n_episodes: 1000
     max_steps: 10
     planning_horizon: 10
-    planning_iterations: 10
+    planning_iterations: 40
     receding_horizon: true
-    n_theta: 2
-    cue_accuracy: 1.0
-    location_observation_accuracy: 0.95
-    goal_temperature: 5.0
-    cue_cost_epsilon: 1.0
-    terminal_goal_only: true
+    # 5x5 maze (biaslab/EFEasVFE config). Terminal goal (near-delta on the +1 state)
+    # + receding horizon; the EFE ambiguity drive routes the agent along the
+    # zero-observation-noise safe corridor (cols x=0 / x=4), avoiding the stochastic
+    # interior entirely -> ~100% success. goal_temperature is the terminal-goal
+    # precision (peak logit on the goal state).
+    goal_temperature: 10.0
+    seed: 42
+
+# Bethe Free Energy convergence study for the Nuijten-MP planner.
+# Records a per-iteration BFE trace at every planning step (fixed horizon),
+# across episodes, for each environment.
+convergence:
+  tmaze:
+    n_episodes: 100
+    max_steps: 4
+    planning_horizon: 4
+    n_iterations: 60
+    goal_temperature: 4.5
+    seed: 42
+  stochastic_maze:
+    n_episodes: 100
+    max_steps: 10
+    planning_horizon: 10
+    n_iterations: 60
+    goal_temperature: 10.0
     seed: 42

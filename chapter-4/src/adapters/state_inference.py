@@ -3,7 +3,7 @@
 Joint predict-then-correct update over (dynamic state x, latent context theta),
 copied from chapter-5's RockSample agent (`agents/rocksample_agent.py::_infer_state`)
 and made standalone. Generic over (n_states, n_theta, n_actions, n_channels,
-n_obs_types), so it serves both the T-Maze and the reactivity maze unchanged.
+n_obs_types), so it serves both the T-Maze and the stochastic maze unchanged.
 """
 
 import jax.numpy as jnp

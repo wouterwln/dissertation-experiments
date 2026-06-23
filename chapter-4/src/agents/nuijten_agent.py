@@ -2,7 +2,7 @@
 
 Mirrors chapter-5's `_RockSampleAgentBase` / `RockSampleNuijtenMPAgent`: dense
 Bayesian state inference between steps, then `nuijten_mp_planning` for action
-selection. Generic over both the T-Maze and the reactivity maze via the
+selection. Generic over both the T-Maze and the stochastic maze via the
 `GenerativeModel` adapter.
 """
 

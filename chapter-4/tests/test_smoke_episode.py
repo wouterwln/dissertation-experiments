@@ -12,12 +12,12 @@ sys.path.insert(0, str(project_root))
 
 from src.adapters.generative_model import (
     build_tmaze_generative_model,
-    build_reactivity_generative_model,
+    build_stochastic_maze_generative_model,
 )
 from src.adapters.state_inference import infer_state
 from src.agents.nuijten_agent import NuijtenAgent
 from src.environments.tmaze import TMaze, State
-from src.environments.epistemic_maze import EpistemicMaze, N_NAV_STATES
+from src.environments.stochastic_maze import StochasticMaze, DEFAULT_START_STATE
 
 # Keep iterations/horizon tiny so the smoke test is fast.
 ITERS = 3
@@ -73,30 +73,25 @@ def test_offcue_reading_leaves_theta_belief_unchanged():
         assert jnp.allclose(q_static_new, q_static, atol=1e-5)
 
 
-def test_reactivity_episode_runs():
+def test_stochastic_maze_episode_runs():
     import random
     random.seed(0)
     rng = np.random.default_rng(0)
-    n_theta = 2
-    env = EpistemicMaze.create(theta=0, start_location=0, n_theta=n_theta,
-                               cue_accuracy=1.0, location_accuracy=0.95)
-    model = build_reactivity_generative_model(n_theta=n_theta, start_location=0)
-    agent = NuijtenAgent.create(model, planning_horizon=6, planning_iterations=ITERS,
+    model = build_stochastic_maze_generative_model()
+    env = StochasticMaze.create(start_state=DEFAULT_START_STATE)
+    agent = NuijtenAgent.create(model, planning_horizon=10, planning_iterations=ITERS,
                                 terminal_goal_only=True)
 
-    def encode(loc_vec, ctx_vec):
-        def samp(v):
-            p = np.asarray(v, dtype=np.float64); p = p / p.sum()
-            return int(rng.choice(len(p), p=p))
-        return jnp.array([samp(loc_vec), samp(ctx_vec)], dtype=jnp.int32)
-
-    obs = encode(env._get_location_observation(), env._get_context_observation())
-    for step in range(6):
-        action, agent = agent.step(obs, 6)
-        assert 0 <= action < 8
-        loc_vec, ctx_vec, _, _ = env.step(action)
-        obs = encode(loc_vec, ctx_vec)
+    obs = jnp.array([env.agent_state], dtype=jnp.int32)
+    total_reward = 0.0
+    for step in range(10):
+        action, agent = agent.step(obs, 10 - step)
+        assert 0 <= action < 4
+        _, observation, reward, done = env.step(rng, int(action))
+        total_reward += float(reward)
+        obs = jnp.array([observation], dtype=jnp.int32)
         _check_beliefs(agent)
+        if done:
+            break
 
-    assert isinstance(env.get_final_reward(), float)
-    assert env.get_outcome() in {"goal", "safe_sink", "wrong_goal", "penalty", "other"}
+    assert isinstance(total_reward, float)

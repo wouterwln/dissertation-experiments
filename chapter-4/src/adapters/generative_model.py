@@ -19,11 +19,12 @@ import jax
 import jax.numpy as jnp
 
 from src.environments.tmaze import State, create_tmaze_tensors
-from src.environments.epistemic_maze import (
-    N_LOCATIONS,
-    N_NAV_STATES,
-    create_epistemic_maze_tensors,
-    components_to_state,
+from src.environments.stochastic_maze import (
+    DEFAULT_GRID_X,
+    DEFAULT_GRID_Y,
+    DEFAULT_N_ACTIONS,
+    DEFAULT_START_STATE,
+    generate_maze_tensors,
 )
 
 
@@ -124,54 +125,53 @@ def build_tmaze_generative_model(goal_temperature: float = 4.5) -> GenerativeMod
     )
 
 
-def build_reactivity_generative_model(
-    n_theta: int = 2,
-    cue_accuracy: float = 1.0,
-    location_observation_accuracy: float = 0.95,
-    goal_temperature: float = 5.0,
-    cue_cost_epsilon: float = 0.01,
-    start_location: int = 0,
+def build_stochastic_maze_generative_model(
+    grid_size_x: int = DEFAULT_GRID_X,
+    grid_size_y: int = DEFAULT_GRID_Y,
+    n_actions: int = DEFAULT_N_ACTIONS,
+    goal_temperature: float = 10.0,
+    start_state: int = DEFAULT_START_STATE,
 ) -> GenerativeModel:
-    """Reactivity (Epistemic) maze (35 states, 8 actions).
+    """Stochastic maze (default 4x5 = 20 states, 4 actions, no hidden context).
 
-    Channels: [location (noisy, 7 outcomes), context/theta (theta-dependent,
-    n_theta+1 outcomes incl. a neutral outcome at index n_theta)].
+    This is a noisy, partially observed navigation task, so there is no latent
+    theta to infer: the planner runs with ``n_theta = 1``. A single observation
+    channel reports the (noisy) agent location. The goal is a per-state preference
+    C(x) built from the reward states (softmax of goal_temperature * reward).
     """
-    (transition, location_observation, theta_observation,
-     goal_mapping, action_prior, theta_prior) = create_epistemic_maze_tensors(
-        n_theta=n_theta,
-        cue_accuracy=cue_accuracy,
-        location_observation_accuracy=location_observation_accuracy,
-        goal_temperature=goal_temperature,
-        cue_cost_epsilon=cue_cost_epsilon,
-    )
-    # transition (35,35,8); location_observation (7,35);
-    # theta_observation (n_theta+1, 35, n_theta); goal_mapping (35, n_theta)
+    n_theta = 1
+    A, B, reward_states = generate_maze_tensors(grid_size_x, grid_size_y, n_actions)
+    # A: (n_states, n_states) p(obs|state);  B: (n_states, n_states, n_actions)
+    n_states = grid_size_x * grid_size_y
 
-    transition_4d = _theta_independent_transition_to_4d(transition, n_theta)
+    # Transition -> theta-dependent (theta-independent here): (S, S, 1, A).
+    transition_4d = _theta_independent_transition_to_4d(B, n_theta)
 
-    location_modality = _lift_to_theta(location_observation, n_theta)  # (7, 35, n_theta)
-    theta_modality = theta_observation                                 # (n_theta+1, 35, n_theta)
-    n_obs_types = max(location_modality.shape[0], theta_modality.shape[0])
-    observation_tensor = jnp.stack(
-        [_pad_outcomes(location_modality, n_obs_types),
-         _pad_outcomes(theta_modality, n_obs_types)],
-        axis=0,
-    )  # (2, n_obs_types, 35, n_theta)
+    # Goal: a terminal preference peaked on the +1 goal state (matching the original
+    # delta `Categorical` on the goal). It is bound to the final node only
+    # (terminal_goal_only=True); avoidance of the sink/penalty states is left to the
+    # planner's EFE ambiguity drive, which routes along the low-observation-noise
+    # corridor rather than gambling through the noisy stochastic interior.
+    goal_state = next(s for s, r in reward_states if r > 0)
+    goal_logits = jnp.zeros(n_states).at[goal_state].set(float(goal_temperature))
+    goal = jax.nn.softmax(goal_logits)[:, None]  # (S, 1); near-delta for large temp
 
-    start_state_idx = components_to_state(start_location, 4)  # knob = 4 (max reactivity)
+    # Single observation channel (location), lifted over the (trivial) theta axis.
+    location_modality = _lift_to_theta(A, n_theta)            # (n_states, n_states, 1)
+    n_obs_types = location_modality.shape[0]                  # = n_states
+    observation_tensor = location_modality[None]             # (1, n_states, n_states, 1)
 
     return GenerativeModel(
         transition_tensor=transition_4d,
         observation_tensor=observation_tensor,
-        planning_observation_tensor=observation_tensor[1:2],  # context channel (theta-informative)
-        goal=goal_mapping,
-        action_prior=action_prior,
-        theta_prior=theta_prior,
-        start_state_idx=int(start_state_idx),
-        n_states=int(N_LOCATIONS * 5),
+        planning_observation_tensor=observation_tensor,  # only channel (theta-uninformative)
+        goal=goal,
+        action_prior=jnp.ones(n_actions) / n_actions,
+        theta_prior=jnp.ones(n_theta),
+        start_state_idx=int(start_state),
+        n_states=n_states,
         n_theta=n_theta,
-        n_actions=8,
-        n_channels=2,
+        n_actions=n_actions,
+        n_channels=1,
         n_obs_types=int(n_obs_types),
     )
