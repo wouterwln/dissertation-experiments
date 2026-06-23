@@ -12,13 +12,13 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 20b4480fdfc600bca68c9ac5181a1ed4.dir
-      size: 2849120
-      nfiles: 143
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 39dc655eac882c8d9e8f909dd5d97752
-      size: 13469
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
@@ -49,32 +49,32 @@ stages:
     outs:
     - path: output/door_code/aif.json
       hash: md5
-      md5: 00900c9b6aa91a567322cfd8ea2eb7dc
-      size: 394110
+      md5: e69bb613af6e8e9934c0199dac72e579
+      size: 127849215
   door_code@vbp:
-    cmd: uv run python scripts/run_door_code.py --planner vbp --K 5 
-      --lock-length 3 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      6 --horizon 6 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --ids-bamcp-n-simulations 256 --ids-epsilon-info 1e-06 
-      --learn-on-failure false --clip-horizon true --output 
-      output/door_code/vbp.json
+    cmd: uv run python scripts/run_door_code.py --planner vbp --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/vbp.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 179acd487ea0b75f7ad1243f14c197d6.dir
-      size: 2758690
-      nfiles: 139
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 2df1a583b08056dbff3de7fce3ed257f
-      size: 12117
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 5
-          lock_length: 3
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -82,49 +82,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
-          ids_bamcp_n_simulations: 256
+          ids_bamcp_n_simulations: 10000
           ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 6
-          horizon: 6
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/vbp.json
       hash: md5
-      md5: 2b7652901659778890a00fd93de9017f
-      size: 225167
+      md5: fe28ecb4fed61270b1d8beed8239920c
+      size: 129248410
   door_code@psrl:
-    cmd: uv run python scripts/run_door_code.py --planner psrl --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/psrl.json
+    cmd: uv run python scripts/run_door_code.py --planner psrl --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/psrl.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -132,47 +133,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/psrl.json
       hash: md5
-      md5: 7f7a89b647b91625eb47513b419bd8a7
-      size: 191747
+      md5: 28666d28620c09fb04332732c4633a39
+      size: 124443544
   door_code@belief_q:
-    cmd: uv run python scripts/run_door_code.py --planner belief_q --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/belief_q.json
+    cmd: uv run python scripts/run_door_code.py --planner belief_q --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/belief_q.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -180,47 +184,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/belief_q.json
       hash: md5
-      md5: 1f22d446747d849dda401f20e3e1c398
-      size: 217177
+      md5: d8c29881ce21f4668d2b01ba4faf8d33
+      size: 129498545
   door_code@boss:
-    cmd: uv run python scripts/run_door_code.py --planner boss --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/boss.json
+    cmd: uv run python scripts/run_door_code.py --planner boss --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/boss.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -228,47 +235,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/boss.json
       hash: md5
-      md5: 9d1a26128bddb5d62a96394e00072dc7
-      size: 192611
+      md5: 3300c5184d72282c42e988f8e3132530
+      size: 137941983
   door_code@bamcp:
-    cmd: uv run python scripts/run_door_code.py --planner bamcp --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/bamcp.json
+    cmd: uv run python scripts/run_door_code.py --planner bamcp --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/bamcp.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -276,47 +286,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/bamcp.json
       hash: md5
-      md5: 1a3ee9530bda632b4678b6dd18cb5758
-      size: 200015
+      md5: 5a5dfec1b0d6fa745430bb73b9ffe38d
+      size: 137949590
   door_code@pomcp:
-    cmd: uv run python scripts/run_door_code.py --planner pomcp --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/pomcp.json
+    cmd: uv run python scripts/run_door_code.py --planner pomcp --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/pomcp.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -324,47 +337,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/pomcp.json
       hash: md5
-      md5: d5475dd4ac2ab7f13eb1de1e31626ed2
-      size: 192299
+      md5: c99eea8be8c5603fc455deadd49b5fb5
+      size: 137934692
   door_code@oracle:
-    cmd: uv run python scripts/run_door_code.py --planner oracle --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/oracle.json
+    cmd: uv run python scripts/run_door_code.py --planner oracle --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/oracle.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -372,47 +388,50 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/oracle.json
       hash: md5
-      md5: d2f63a7725d342a01ecf8aa64458e812
-      size: 189840
+      md5: e59043d9e054088b4d93114fe1b4f13f
+      size: 126849829
   door_code@random:
-    cmd: uv run python scripts/run_door_code.py --planner random --K 3 
-      --lock-length 1 --probe-noise 0.2 --n-seeds 50 --n-episodes 40 --max-steps
-      4 --horizon 4 --seed 0 --planner-iterations 70 --planner-damping 0.9 
-      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 4 
-      --bamcp-n-simulations 256 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 
-      0.99 --learn-on-failure false --clip-horizon true --output 
-      output/door_code/random.json
+    cmd: uv run python scripts/run_door_code.py --planner random --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/random.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 0da9fd7086a0930dcc4f513fbb1fa955.dir
-      size: 2730803
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_door_code.py
       hash: md5
-      md5: 99027f631971ad7251bb1c68bf063672
-      size: 11066
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
     params:
       params.yaml:
         env:
-          K: 3
-          lock_length: 1
+          K: 6
+          lock_length: 4
           probe_noise: 0.2
         planner:
           iterations: 70
@@ -420,108 +439,115 @@ stages:
           q_lr: 0.2
           q_epsilon: 0.2
           q_gamma: 0.99
-          boss_n_samples: 4
-          bamcp_n_simulations: 256
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
           bamcp_depth: 6
           bamcp_ucb_c: 1.0
           bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
         runner:
-          n_seeds: 50
-          n_episodes: 40
-          max_steps: 4
-          horizon: 4
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
           clip_horizon: true
           seed: 0
           learn_on_failure: false
     outs:
     - path: output/door_code/random.json
       hash: md5
-      md5: 0551370e5dfe7a9db5c3418ad3c92b1a
-      size: 221637
+      md5: 022d874c723e0aed9546c4a7593f7847
+      size: 123524614
   plot:
     cmd: uv run python scripts/plot_door_code.py --input-dir output/door_code 
       --output output/door_code/figure.pdf
     deps:
     - path: output/door_code/aif.json
       hash: md5
-      md5: 069853216fc94611f226883c4ecbeae7
-      size: 223782
+      md5: e69bb613af6e8e9934c0199dac72e579
+      size: 127849215
     - path: output/door_code/bamcp.json
       hash: md5
-      md5: 1a3ee9530bda632b4678b6dd18cb5758
-      size: 200015
+      md5: 5a5dfec1b0d6fa745430bb73b9ffe38d
+      size: 137949590
     - path: output/door_code/belief_q.json
       hash: md5
-      md5: 1f22d446747d849dda401f20e3e1c398
-      size: 217177
+      md5: d8c29881ce21f4668d2b01ba4faf8d33
+      size: 129498545
     - path: output/door_code/boss.json
       hash: md5
-      md5: 9d1a26128bddb5d62a96394e00072dc7
-      size: 192611
+      md5: 3300c5184d72282c42e988f8e3132530
+      size: 137941983
+    - path: output/door_code/ids.json
+      hash: md5
+      md5: 42dcadcfda3ed9072592042330080046
+      size: 137947299
     - path: output/door_code/oracle.json
       hash: md5
-      md5: d2f63a7725d342a01ecf8aa64458e812
-      size: 189840
+      md5: e59043d9e054088b4d93114fe1b4f13f
+      size: 126849829
     - path: output/door_code/pomcp.json
       hash: md5
-      md5: d5475dd4ac2ab7f13eb1de1e31626ed2
-      size: 192299
+      md5: c99eea8be8c5603fc455deadd49b5fb5
+      size: 137934692
     - path: output/door_code/psrl.json
       hash: md5
-      md5: 7f7a89b647b91625eb47513b419bd8a7
-      size: 191747
+      md5: 28666d28620c09fb04332732c4633a39
+      size: 124443544
     - path: output/door_code/random.json
       hash: md5
-      md5: 0551370e5dfe7a9db5c3418ad3c92b1a
-      size: 221637
+      md5: 022d874c723e0aed9546c4a7593f7847
+      size: 123524614
     - path: output/door_code/vbp.json
       hash: md5
-      md5: 5580d205c169a060fc688925dcd108c3
-      size: 209637
+      md5: fe28ecb4fed61270b1d8beed8239920c
+      size: 129248410
     - path: scripts/plot_door_code.py
       hash: md5
-      md5: e75e4c5c80a78b1e76eadb0c51e54f6a
-      size: 6945
+      md5: feef52609dc7a4cb22894939aaf5df77
+      size: 13874
     outs:
     - path: output/door_code/figure.pdf
       hash: md5
-      md5: 04facc4def74ebc7b8fca4df6a88cc22
-      size: 31685
+      md5: cda9c22e26efea51dc3715d1db17280d
+      size: 46560
   minigrid_door_code@aif:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/aif.json --video-dir 
       output/minigrid_door_code/aif/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -532,56 +558,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/aif.json
       hash: md5
-      md5: 4764a8811436fe6ef4d3206529c870e8
-      size: 6573
+      md5: 35ee27769397ebdeb6515bbc78d5898a
+      size: 42569104
     - path: output/minigrid_door_code/aif/videos
       hash: md5
-      md5: 05592f805e534d99b0c052ad49588d48.dir
-      size: 247775
-      nfiles: 32
+      md5: eab13945f046050f1a152e5d0ba2aadd.dir
+      size: 2261258
+      nfiles: 200
   minigrid_door_code@vbp:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner vbp --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner vbp --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/vbp.json --video-dir 
       output/minigrid_door_code/vbp/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -592,56 +621,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/vbp.json
       hash: md5
-      md5: 711a50285ee574ff03ace6736ecd0b04
-      size: 7143
+      md5: aa91f4d3ae157c8432072486a9a3aeca
+      size: 23807235
     - path: output/minigrid_door_code/vbp/videos
       hash: md5
-      md5: 4c3bc8125284937f12fb5be319962914.dir
-      size: 136433
-      nfiles: 32
+      md5: a8a75d5abcd6eebd77e6f8323e1a351b.dir
+      size: 1206055
+      nfiles: 200
   minigrid_door_code@psrl:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner psrl --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner psrl --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/psrl.json --video-dir 
       output/minigrid_door_code/psrl/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -652,56 +684,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/psrl.json
       hash: md5
-      md5: 709f0fbabbb301afeb0604ae9a8e4900
-      size: 6648
+      md5: ed747f05da55409c50600229824d3d14
+      size: 24436297
     - path: output/minigrid_door_code/psrl/videos
       hash: md5
-      md5: 74c1a8a8d8fa1bf540ab7ddcf1673789.dir
-      size: 145916
-      nfiles: 32
+      md5: 208b744b73d932c02a7e300739c2f791.dir
+      size: 1722061
+      nfiles: 200
   minigrid_door_code@belief_q:
     cmd: uv run python scripts/run_minigrid_door_code.py --planner belief_q --K 
-      2 --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+      3 --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/belief_q.json --video-dir 
       output/minigrid_door_code/belief_q/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -712,56 +747,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/belief_q.json
       hash: md5
-      md5: d0dc655463060db9218b778a2ed13945
-      size: 6712
+      md5: 9877c07fe247f4807de698b1b69a06ea
+      size: 44742043
     - path: output/minigrid_door_code/belief_q/videos
       hash: md5
-      md5: f638d86feefe84acd057431601bf1b06.dir
-      size: 237518
-      nfiles: 32
+      md5: a639e5a2c805aea329695b9c0ae0da81.dir
+      size: 112917
+      nfiles: 10
   minigrid_door_code@boss:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner boss --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner boss --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/boss.json --video-dir 
       output/minigrid_door_code/boss/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -772,56 +810,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/boss.json
       hash: md5
-      md5: 324fdfbd8f2a32115ec3a0038428fda4
-      size: 6470
+      md5: 439d404b22446890af515053d142577b
+      size: 46333516
     - path: output/minigrid_door_code/boss/videos
       hash: md5
-      md5: 28a16c472732859889239b4f97c9c8bf.dir
-      size: 159077
-      nfiles: 32
+      md5: a5a178dcabf018b2359d6e06695975ef.dir
+      size: 66220
+      nfiles: 10
   minigrid_door_code@bamcp:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner bamcp --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner bamcp --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/bamcp.json --video-dir 
       output/minigrid_door_code/bamcp/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -832,56 +873,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/bamcp.json
       hash: md5
-      md5: 13de088b0613d36faf021057fc08329b
-      size: 6588
+      md5: 37cb971b81a1ded607ce7089c1498685
+      size: 46335075
     - path: output/minigrid_door_code/bamcp/videos
       hash: md5
-      md5: 386be4075038b03404d801e644ddc6a2.dir
-      size: 204418
-      nfiles: 32
+      md5: 6d30429922b9fb98e641d676ccc63491.dir
+      size: 67169
+      nfiles: 10
   minigrid_door_code@pomcp:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner pomcp --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner pomcp --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/pomcp.json --video-dir 
       output/minigrid_door_code/pomcp/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -892,56 +936,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/pomcp.json
       hash: md5
-      md5: 9fd504f8cd217945e6bfae225905dcb5
-      size: 6480
+      md5: 3c9923007df5b4db0265de814f0f2311
+      size: 46334498
     - path: output/minigrid_door_code/pomcp/videos
       hash: md5
-      md5: 53bfe692651ad6c580299e2adc49a4bb.dir
-      size: 162402
-      nfiles: 32
+      md5: 314776856487d765fae48c2e8230f50a.dir
+      size: 75104
+      nfiles: 10
   minigrid_door_code@oracle:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner oracle --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner oracle --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/oracle.json --video-dir 
       output/minigrid_door_code/oracle/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -952,56 +999,59 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/oracle.json
       hash: md5
-      md5: 9ba499c9e9aa6b617f08a2154997be46
-      size: 6574
+      md5: 08541950c2838014803e96e3654a40f8
+      size: 29163095
     - path: output/minigrid_door_code/oracle/videos
       hash: md5
-      md5: da26c345699aca51c5a84b6e2b71cfdb.dir
-      size: 146018
-      nfiles: 32
+      md5: d11c8bd8ff7fe072edb600b6ae4df895.dir
+      size: 1836906
+      nfiles: 200
   minigrid_door_code@random:
-    cmd: uv run python scripts/run_minigrid_door_code.py --planner random --K 2 
-      --lock-length 1 --probe-noise 0.1 --grid-size 5 --slip-prob 0.1 
-      --agent-view-size 3 --n-seeds 4 --n-episodes 8 --max-steps 25 --horizon 10
-      --seed 0 --learn-on-failure false --clip-horizon true --planner-iterations
-      70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
-      --boss-n-samples 4 --bamcp-n-simulations 256 --bamcp-depth 15 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --output 
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner random --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
       output/minigrid_door_code/random.json --video-dir 
       output/minigrid_door_code/random/videos --video-fps 4
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1d9ba2f4e604f48c5d08791faf2374db.dir
-      size: 2730748
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_minigrid_door_code.py
       hash: md5
-      md5: deadac65717060ca354a34817e429c2a
-      size: 11898
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
     params:
       params.yaml:
         minigrid:
           env:
-            K: 2
-            lock_length: 1
-            grid_size: 5
+            K: 3
+            lock_length: 3
+            grid_size: 7
             slip_prob: 0.1
             probe_noise: 0.1
             agent_view_size: 3
           runner:
-            n_seeds: 4
-            n_episodes: 8
-            max_steps: 25
-            horizon: 10
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
             clip_horizon: true
             seed: 0
             learn_on_failure: false
@@ -1012,104 +1062,111 @@ stages:
             q_lr: 0.2
             q_epsilon: 0.2
             q_gamma: 0.99
-            boss_n_samples: 4
-            bamcp_n_simulations: 256
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
             bamcp_depth: 15
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
     outs:
     - path: output/minigrid_door_code/random.json
       hash: md5
-      md5: 911d661940ec1c34b2a629ec62e532f8
-      size: 6746
+      md5: b21a4e2711aff740f415e29c727eb9ab
+      size: 37836584
     - path: output/minigrid_door_code/random/videos
       hash: md5
-      md5: 65b7ae26ef6b3929230f6a2aab037829.dir
-      size: 230006
-      nfiles: 32
+      md5: be415401b688266bb0d69ece907bc5e3.dir
+      size: 101532
+      nfiles: 10
   plot_minigrid:
     cmd: uv run python scripts/plot_minigrid_door_code.py --input-dir 
       output/minigrid_door_code --output output/minigrid_door_code/figure.pdf
     deps:
     - path: output/minigrid_door_code/aif.json
       hash: md5
-      md5: 4764a8811436fe6ef4d3206529c870e8
-      size: 6573
+      md5: 35ee27769397ebdeb6515bbc78d5898a
+      size: 42569104
     - path: output/minigrid_door_code/bamcp.json
       hash: md5
-      md5: 13de088b0613d36faf021057fc08329b
-      size: 6588
+      md5: 37cb971b81a1ded607ce7089c1498685
+      size: 46335075
     - path: output/minigrid_door_code/belief_q.json
       hash: md5
-      md5: d0dc655463060db9218b778a2ed13945
-      size: 6712
+      md5: 9877c07fe247f4807de698b1b69a06ea
+      size: 44742043
     - path: output/minigrid_door_code/boss.json
       hash: md5
-      md5: 324fdfbd8f2a32115ec3a0038428fda4
-      size: 6470
+      md5: 439d404b22446890af515053d142577b
+      size: 46333516
+    - path: output/minigrid_door_code/ids.json
+      hash: md5
+      md5: d7aff95e6f1dc1271daa207ad0af19f9
+      size: 46334508
     - path: output/minigrid_door_code/oracle.json
       hash: md5
-      md5: 9ba499c9e9aa6b617f08a2154997be46
-      size: 6574
+      md5: 08541950c2838014803e96e3654a40f8
+      size: 29163095
     - path: output/minigrid_door_code/pomcp.json
       hash: md5
-      md5: 9fd504f8cd217945e6bfae225905dcb5
-      size: 6480
+      md5: 3c9923007df5b4db0265de814f0f2311
+      size: 46334498
     - path: output/minigrid_door_code/psrl.json
       hash: md5
-      md5: 709f0fbabbb301afeb0604ae9a8e4900
-      size: 6648
+      md5: ed747f05da55409c50600229824d3d14
+      size: 24436297
     - path: output/minigrid_door_code/random.json
       hash: md5
-      md5: 911d661940ec1c34b2a629ec62e532f8
-      size: 6746
+      md5: b21a4e2711aff740f415e29c727eb9ab
+      size: 37836584
     - path: output/minigrid_door_code/vbp.json
       hash: md5
-      md5: 711a50285ee574ff03ace6736ecd0b04
-      size: 7143
+      md5: aa91f4d3ae157c8432072486a9a3aeca
+      size: 23807235
     - path: scripts/plot_minigrid_door_code.py
       hash: md5
-      md5: 900a1e0045e30da2c65ec0c2191e6a8e
-      size: 6820
+      md5: 471926170a3e4461fb07423244f2c1af
+      size: 11812
     outs:
     - path: output/minigrid_door_code/figure.pdf
       hash: md5
-      md5: e3861549d4d89a59e3c708df8aee99f6
-      size: 27576
+      md5: e6d96517147880b39c62ce6e4821a24c
+      size: 39691
   rock_sample@random:
-    cmd: uv run python scripts/run_rock_sample.py --planner random --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner random --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/random.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: ec0e08de838b5f026313612c7b25e088.dir
-      size: 2757701
-      nfiles: 139
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: 7996fa8938dd4a417df33acfc6ca3887
-      size: 12148
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1117,52 +1174,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
-            ids_bamcp_n_simulations: 1024
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
             ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/random.json
       hash: md5
-      md5: b48c624ce441d815ebb68649879ce037
-      size: 28989
+      md5: 3518b8dcc8a9e9f67f5e4d46b0fe2bdd
+      size: 18783998
   rock_sample@oracle:
-    cmd: uv run python scripts/run_rock_sample.py --planner oracle --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner oracle --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/oracle.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: ec0e08de838b5f026313612c7b25e088.dir
-      size: 2757701
-      nfiles: 139
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: 7996fa8938dd4a417df33acfc6ca3887
-      size: 12148
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1170,52 +1232,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
-            ids_bamcp_n_simulations: 1024
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
             ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/oracle.json
       hash: md5
-      md5: ba1e5b77ea10cf90f20c93475b71d312
-      size: 31935
+      md5: 019240032e66b535ac12191a44643ca3
+      size: 18745720
   rock_sample@aif:
-    cmd: uv run python scripts/run_rock_sample.py --planner aif --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner aif --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/aif.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 6381fd30fb6993b56b58161eca6a939b.dir
-      size: 2730578
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: bc91be8dd1af4c81f3453b71d89a5d83
-      size: 11118
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1223,50 +1290,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/aif.json
       hash: md5
-      md5: a3bea5be813cc9713061f9d7876428fb
-      size: 32872
+      md5: 9ee0d79fa9a4e69938eb7f2426be7873
+      size: 18903156
   rock_sample@factored_bamcp:
-    cmd: uv run python scripts/run_rock_sample.py --planner factored_bamcp --K 2
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner factored_bamcp --K 4
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/factored_bamcp.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: ec0e08de838b5f026313612c7b25e088.dir
-      size: 2757701
-      nfiles: 139
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: 7996fa8938dd4a417df33acfc6ca3887
-      size: 12148
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1274,52 +1348,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
-            ids_bamcp_n_simulations: 1024
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
             ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/factored_bamcp.json
       hash: md5
-      md5: a3a835efa6a7f9d8a922c5fbe73836f0
-      size: 32266
+      md5: 3eaf8cb89b163078fb57e001e9f5db65
+      size: 18822454
   rock_sample@boss:
-    cmd: uv run python scripts/run_rock_sample.py --planner boss --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner boss --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/boss.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: ec0e08de838b5f026313612c7b25e088.dir
-      size: 2757701
-      nfiles: 139
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: 7996fa8938dd4a417df33acfc6ca3887
-      size: 12148
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1327,52 +1406,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
-            ids_bamcp_n_simulations: 1024
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
             ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/boss.json
       hash: md5
-      md5: c68c84cce3f6d22f28dd162630b3ec2b
-      size: 31978
+      md5: b7bdede6db216a593d3c44d30a3c0029
+      size: 18683473
   rock_sample@vbp:
-    cmd: uv run python scripts/run_rock_sample.py --planner vbp --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner vbp --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/vbp.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 1b7b13bc23d45b9132ec6cb1af627edd.dir
-      size: 2731957
-      nfiles: 137
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: bc91be8dd1af4c81f3453b71d89a5d83
-      size: 11118
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1380,50 +1464,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/vbp.json
       hash: md5
-      md5: 1639b50c89df8401a3b431dbeaafb41c
-      size: 32297
+      md5: a738f3a6373bef339c7ac0b625b929b7
+      size: 18753272
   rock_sample@psrl:
-    cmd: uv run python scripts/run_rock_sample.py --planner psrl --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner psrl --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/psrl.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: aa29f8678fc1eb50342647c22da2e502.dir
-      size: 2744155
-      nfiles: 138
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: 7996fa8938dd4a417df33acfc6ca3887
-      size: 12148
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1431,52 +1522,57 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
-            ids_bamcp_n_simulations: 1024
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
             ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/psrl.json
       hash: md5
-      md5: e99f1398214fa27dce0fa7e5125c517c
-      size: 32314
+      md5: 752428f43d6d1284e5b8827cf71352a4
+      size: 18738970
   rock_sample@bamcp:
-    cmd: uv run python scripts/run_rock_sample.py --planner bamcp --K 2 
-      --grid-size 3 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
-      --bad-logit 4.0 --layout-seed 0 --n-seeds 8 --n-episodes 10 --max-steps 10
-      --horizon 10 --seed 0 --clip-horizon true --planner-iterations 70 
-      --planner-damping 0.9 --bamcp-n-simulations 1024 --bamcp-depth 6 
-      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 4 --workers 4 
+    cmd: uv run python scripts/run_rock_sample.py --planner bamcp --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
       --output output/rock_sample/bamcp.json
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: ec0e08de838b5f026313612c7b25e088.dir
-      size: 2757701
-      nfiles: 139
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
     - path: scripts/run_rock_sample.py
       hash: md5
-      md5: 7996fa8938dd4a417df33acfc6ca3887
-      size: 12148
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
     params:
       params.yaml:
         rock_sample:
           env:
-            K: 2
-            grid_size: 3
+            K: 4
+            grid_size: 5
             sensor_noise_eta: 0.3
             sample_reward: 1.0
             good_logit: 2.0
             bad_logit: 4.0
             layout_seed: 0
           runner:
-            n_seeds: 8
+            n_seeds: 50
             n_episodes: 10
-            max_steps: 10
-            horizon: 10
+            max_steps: 30
+            horizon: 15
             clip_horizon: true
             seed: 0
             use_numba: 'true'
@@ -1484,60 +1580,2610 @@ stages:
           planner:
             iterations: 70
             damping: 0.9
-            bamcp_n_simulations: 1024
+            bamcp_n_simulations: 10000
             bamcp_depth: 6
             bamcp_ucb_c: 1.0
             bamcp_gamma: 0.99
-            boss_n_samples: 4
-            ids_bamcp_n_simulations: 1024
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
             ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
     outs:
     - path: output/rock_sample/bamcp.json
       hash: md5
-      md5: 7fb2cb5d6d4401833ec867163079fa38
-      size: 32245
+      md5: e8cd3ee0a2f7231b0d6fa93d75d1283f
+      size: 18821960
   plot_rock_sample:
     cmd: uv run python scripts/plot_rock_sample.py --input-dir 
       output/rock_sample --output output/rock_sample/figure.pdf
     deps:
     - path: output/rock_sample/aif.json
       hash: md5
-      md5: a3bea5be813cc9713061f9d7876428fb
-      size: 32872
+      md5: 9ee0d79fa9a4e69938eb7f2426be7873
+      size: 18903156
     - path: output/rock_sample/bamcp.json
       hash: md5
-      md5: 7fb2cb5d6d4401833ec867163079fa38
-      size: 32245
+      md5: e8cd3ee0a2f7231b0d6fa93d75d1283f
+      size: 18821960
     - path: output/rock_sample/boss.json
       hash: md5
-      md5: c68c84cce3f6d22f28dd162630b3ec2b
-      size: 31978
+      md5: b7bdede6db216a593d3c44d30a3c0029
+      size: 18683473
     - path: output/rock_sample/factored_bamcp.json
       hash: md5
-      md5: a3a835efa6a7f9d8a922c5fbe73836f0
-      size: 32266
+      md5: 3eaf8cb89b163078fb57e001e9f5db65
+      size: 18822454
+    - path: output/rock_sample/ids.json
+      hash: md5
+      md5: a525e4a1abe73d7d24376291c9ef6e5f
+      size: 18829591
     - path: output/rock_sample/oracle.json
       hash: md5
-      md5: ba1e5b77ea10cf90f20c93475b71d312
-      size: 31935
+      md5: 019240032e66b535ac12191a44643ca3
+      size: 18745720
     - path: output/rock_sample/psrl.json
       hash: md5
-      md5: e99f1398214fa27dce0fa7e5125c517c
-      size: 32314
+      md5: 752428f43d6d1284e5b8827cf71352a4
+      size: 18738970
     - path: output/rock_sample/random.json
       hash: md5
-      md5: b48c624ce441d815ebb68649879ce037
-      size: 28989
+      md5: 3518b8dcc8a9e9f67f5e4d46b0fe2bdd
+      size: 18783998
     - path: output/rock_sample/vbp.json
       hash: md5
-      md5: 1639b50c89df8401a3b431dbeaafb41c
-      size: 32297
+      md5: a738f3a6373bef339c7ac0b625b929b7
+      size: 18753272
     - path: scripts/plot_rock_sample.py
       hash: md5
-      md5: d9e13ad831947b5ac05f97c6335f1f99
-      size: 7018
+      md5: 0a5ce50faf32d59aa2f538ba07156bf7
+      size: 10282
     outs:
     - path: output/rock_sample/figure.pdf
       hash: md5
-      md5: c0857253f9eaebf2bdbb76ea0f09d9e1
-      size: 34967
+      md5: 9ec333444beeb9994c3173c6ad3658b8
+      size: 44945
+  plot_door_code_simscaling:
+    cmd: uv run python scripts/plot_door_code_simscaling.py --input-dir 
+      output/door_code_simscaling --output 
+      output/door_code_simscaling/figure.pdf
+    deps:
+    - path: output/door_code_simscaling/sims1000/bamcp.json
+      hash: md5
+      md5: b58c89a35d6be5d249b8c4e380ce6ff3
+      size: 34505407
+    - path: output/door_code_simscaling/sims10000/bamcp.json
+      hash: md5
+      md5: 7f0bbd9cfebb4b48980d257f4cf7a5cb
+      size: 34500297
+    - path: output/door_code_simscaling/sims40000/bamcp.json
+      hash: md5
+      md5: da62e8e7d8c78d85f586e5e160c81432
+      size: 34491880
+    - path: scripts/plot_door_code_simscaling.py
+      hash: md5
+      md5: e3af2cb6d93218d29dec337dcea1ee1c
+      size: 4864
+    params:
+      params.yaml:
+        door_code_simscaling.sims_sweep:
+        - 1000
+        - 10000
+        - 40000
+    outs:
+    - path: output/door_code_simscaling/figure.pdf
+      hash: md5
+      md5: 7003ab5a0b32257d7729bba0a80d3413
+      size: 21811
+  rock_sample_kscaling@2-random:
+    cmd: uv run python scripts/run_rock_sample.py --planner random --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/random.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/random.json
+      hash: md5
+      md5: 01e2edaef9a6624bc548a66a538c05c8
+      size: 9478787
+  rock_sample_kscaling@3-random:
+    cmd: uv run python scripts/run_rock_sample.py --planner random --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/random.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/random.json
+      hash: md5
+      md5: f656afa7ef6d4377ace214134bcaf9d9
+      size: 11780451
+  rock_sample_kscaling@4-random:
+    cmd: uv run python scripts/run_rock_sample.py --planner random --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/random.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/random.json
+      hash: md5
+      md5: 47839c38eae9b672c6053b0a0d00ad1a
+      size: 18787950
+  plot_rock_sample_kscaling:
+    cmd: uv run python scripts/plot_rock_sample_kscaling.py --input-dir 
+      output/rock_sample_kscaling --output 
+      output/rock_sample_kscaling/figure.pdf
+    deps:
+    - path: output/rock_sample_kscaling/K2
+      hash: md5
+      md5: 54107eff3249f96ea3502b16e18afefb.dir
+      size: 161209059
+      nfiles: 57
+    - path: output/rock_sample_kscaling/K3
+      hash: md5
+      md5: f537774a218539526302787e36fad250.dir
+      size: 199956705
+      nfiles: 57
+    - path: output/rock_sample_kscaling/K4
+      hash: md5
+      md5: 2b06272247d5548dfca1df70262c992f.dir
+      size: 319938709
+      nfiles: 57
+    - path: scripts/plot_rock_sample_kscaling.py
+      hash: md5
+      md5: d387de8f297b7afbca1c291f73e7c480
+      size: 7553
+    params:
+      params.yaml:
+        rock_sample.k_sweep:
+        - 2
+        - 3
+        - 4
+    outs:
+    - path: output/rock_sample_kscaling/figure.pdf
+      hash: md5
+      md5: 053973feead35c1f621537ec2343d10b
+      size: 36462
+  rock_sample_viz:
+    cmd: uv run python scripts/visualize_rock_sample.py --input-dir 
+      output/rock_sample --output-dir output/rock_sample/viz --planners aif 
+      bamcp psrl oracle random --seed-idx 0 --fps 4
+    deps:
+    - path: output/rock_sample/aif.json
+      hash: md5
+      md5: 9ee0d79fa9a4e69938eb7f2426be7873
+      size: 18903156
+    - path: output/rock_sample/bamcp.json
+      hash: md5
+      md5: e8cd3ee0a2f7231b0d6fa93d75d1283f
+      size: 18821960
+    - path: output/rock_sample/oracle.json
+      hash: md5
+      md5: 019240032e66b535ac12191a44643ca3
+      size: 18745720
+    - path: output/rock_sample/psrl.json
+      hash: md5
+      md5: 752428f43d6d1284e5b8827cf71352a4
+      size: 18738970
+    - path: output/rock_sample/random.json
+      hash: md5
+      md5: 3518b8dcc8a9e9f67f5e4d46b0fe2bdd
+      size: 18783998
+    - path: scripts/visualize_rock_sample.py
+      hash: md5
+      md5: 1e09a2e4d6e84b028bd433bb452d4fb3
+      size: 11647
+    params:
+      params.yaml:
+        rock_sample.env.K: 4
+        rock_sample.env.grid_size: 5
+        rock_sample.env.layout_seed: 0
+    outs:
+    - path: output/rock_sample/viz
+      hash: md5
+      md5: f927cac7281b053fde27ba9ea8f67f2b.dir
+      size: 6628668
+      nfiles: 12
+  door_code@ids:
+    cmd: uv run python scripts/run_door_code.py --planner ids --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 100 --n-episodes 25 
+      --max-steps 16 --horizon 8 --seed 0 --planner-iterations 70 
+      --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 
+      --boss-n-samples 10 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 
+      --ids-epsilon-info 1e-06 --learn-on-failure false --clip-horizon true 
+      --output output/door_code/ids.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_door_code.py
+      hash: md5
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
+    params:
+      params.yaml:
+        env:
+          K: 6
+          lock_length: 4
+          probe_noise: 0.2
+        planner:
+          iterations: 70
+          damping: 0.9
+          q_lr: 0.2
+          q_epsilon: 0.2
+          q_gamma: 0.99
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
+          bamcp_depth: 6
+          bamcp_ucb_c: 1.0
+          bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
+        runner:
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
+          clip_horizon: true
+          seed: 0
+          learn_on_failure: false
+    outs:
+    - path: output/door_code/ids.json
+      hash: md5
+      md5: 42dcadcfda3ed9072592042330080046
+      size: 137947299
+  door_code_simscaling@1000:
+    cmd: uv run python scripts/run_door_code.py --planner bamcp --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 25 --n-episodes 25 --max-steps
+      16 --horizon 8 --seed 0 --planner-iterations 70 --planner-damping 0.9 
+      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 10 
+      --bamcp-n-simulations 1000 --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma
+      0.99 --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 
+      --learn-on-failure false --clip-horizon true --output 
+      output/door_code_simscaling/sims1000/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_door_code.py
+      hash: md5
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
+    params:
+      params.yaml:
+        door_code_simscaling:
+          sims_sweep:
+          - 1000
+          - 10000
+          - 40000
+          n_seeds: 25
+        env:
+          K: 6
+          lock_length: 4
+          probe_noise: 0.2
+        planner:
+          iterations: 70
+          damping: 0.9
+          q_lr: 0.2
+          q_epsilon: 0.2
+          q_gamma: 0.99
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
+          bamcp_depth: 6
+          bamcp_ucb_c: 1.0
+          bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
+        runner:
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
+          clip_horizon: true
+          seed: 0
+          learn_on_failure: false
+    outs:
+    - path: output/door_code_simscaling/sims1000/bamcp.json
+      hash: md5
+      md5: b58c89a35d6be5d249b8c4e380ce6ff3
+      size: 34505407
+  door_code_simscaling@10000:
+    cmd: uv run python scripts/run_door_code.py --planner bamcp --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 25 --n-episodes 25 --max-steps
+      16 --horizon 8 --seed 0 --planner-iterations 70 --planner-damping 0.9 
+      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 10 
+      --bamcp-n-simulations 10000 --bamcp-depth 6 --bamcp-ucb-c 1.0 
+      --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 --ids-epsilon-info 
+      1e-06 --learn-on-failure false --clip-horizon true --output 
+      output/door_code_simscaling/sims10000/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_door_code.py
+      hash: md5
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
+    params:
+      params.yaml:
+        door_code_simscaling:
+          sims_sweep:
+          - 1000
+          - 10000
+          - 40000
+          n_seeds: 25
+        env:
+          K: 6
+          lock_length: 4
+          probe_noise: 0.2
+        planner:
+          iterations: 70
+          damping: 0.9
+          q_lr: 0.2
+          q_epsilon: 0.2
+          q_gamma: 0.99
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
+          bamcp_depth: 6
+          bamcp_ucb_c: 1.0
+          bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
+        runner:
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
+          clip_horizon: true
+          seed: 0
+          learn_on_failure: false
+    outs:
+    - path: output/door_code_simscaling/sims10000/bamcp.json
+      hash: md5
+      md5: 7f0bbd9cfebb4b48980d257f4cf7a5cb
+      size: 34500297
+  door_code_simscaling@40000:
+    cmd: uv run python scripts/run_door_code.py --planner bamcp --K 6 
+      --lock-length 4 --probe-noise 0.2 --n-seeds 25 --n-episodes 25 --max-steps
+      16 --horizon 8 --seed 0 --planner-iterations 70 --planner-damping 0.9 
+      --q-lr 0.2 --q-epsilon 0.2 --q-gamma 0.99 --boss-n-samples 10 
+      --bamcp-n-simulations 40000 --bamcp-depth 6 --bamcp-ucb-c 1.0 
+      --bamcp-gamma 0.99 --ids-bamcp-n-simulations 10000 --ids-epsilon-info 
+      1e-06 --learn-on-failure false --clip-horizon true --output 
+      output/door_code_simscaling/sims40000/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_door_code.py
+      hash: md5
+      md5: 794333e42e354284146c7e8fa110c76a
+      size: 13886
+    params:
+      params.yaml:
+        door_code_simscaling:
+          sims_sweep:
+          - 1000
+          - 10000
+          - 40000
+          n_seeds: 25
+        env:
+          K: 6
+          lock_length: 4
+          probe_noise: 0.2
+        planner:
+          iterations: 70
+          damping: 0.9
+          q_lr: 0.2
+          q_epsilon: 0.2
+          q_gamma: 0.99
+          boss_n_samples: 10
+          bamcp_n_simulations: 10000
+          bamcp_depth: 6
+          bamcp_ucb_c: 1.0
+          bamcp_gamma: 0.99
+          ids_bamcp_n_simulations: 10000
+          ids_epsilon_info: 1e-06
+        runner:
+          n_seeds: 100
+          n_episodes: 25
+          max_steps: 16
+          horizon: 8
+          clip_horizon: true
+          seed: 0
+          learn_on_failure: false
+    outs:
+    - path: output/door_code_simscaling/sims40000/bamcp.json
+      hash: md5
+      md5: da62e8e7d8c78d85f586e5e160c81432
+      size: 34491880
+  minigrid_door_code@ids:
+    cmd: uv run python scripts/run_minigrid_door_code.py --planner ids --K 3 
+      --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
+      --agent-view-size 3 --n-seeds 100 --n-episodes 10 --max-steps 35 --horizon
+      25 --seed 0 --learn-on-failure false --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --q-lr 0.2 --q-epsilon 0.2 
+      --q-gamma 0.99 --boss-n-samples 10 --bamcp-n-simulations 10000 
+      --bamcp-depth 15 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --output 
+      output/minigrid_door_code/ids.json --video-dir 
+      output/minigrid_door_code/ids/videos --video-fps 4
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_minigrid_door_code.py
+      hash: md5
+      md5: cf29059519cdea8039f170cecd58f151
+      size: 14434
+    params:
+      params.yaml:
+        minigrid:
+          env:
+            K: 3
+            lock_length: 3
+            grid_size: 7
+            slip_prob: 0.1
+            probe_noise: 0.1
+            agent_view_size: 3
+          runner:
+            n_seeds: 100
+            n_episodes: 10
+            max_steps: 35
+            horizon: 25
+            clip_horizon: true
+            seed: 0
+            learn_on_failure: false
+            video_fps: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            q_lr: 0.2
+            q_epsilon: 0.2
+            q_gamma: 0.99
+            boss_n_samples: 10
+            bamcp_n_simulations: 10000
+            bamcp_depth: 15
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/minigrid_door_code/ids.json
+      hash: md5
+      md5: d7aff95e6f1dc1271daa207ad0af19f9
+      size: 46334508
+    - path: output/minigrid_door_code/ids/videos
+      hash: md5
+      md5: 31ae76876a13aeeceaf9f7981952f314.dir
+      size: 71381
+      nfiles: 10
+  rock_sample@ids:
+    cmd: uv run python scripts/run_rock_sample.py --planner ids --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample/ids.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample/ids.json
+      hash: md5
+      md5: a525e4a1abe73d7d24376291c9ef6e5f
+      size: 18829591
+  rock_sample_kscaling@2-aif:
+    cmd: uv run python scripts/run_rock_sample.py --planner aif --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/aif.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/aif.json
+      hash: md5
+      md5: 88d87aa8250ba3a143c1c93c9b480731
+      size: 9488679
+  rock_sample_kscaling@2-vbp:
+    cmd: uv run python scripts/run_rock_sample.py --planner vbp --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/vbp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/vbp.json
+      hash: md5
+      md5: b8c4f484381d43361f9a7c161e025b6a
+      size: 9472346
+  rock_sample_kscaling@2-psrl:
+    cmd: uv run python scripts/run_rock_sample.py --planner psrl --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/psrl.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/psrl.json
+      hash: md5
+      md5: 9c0ec1007ab56cfa179215b1d2acf79a
+      size: 9467229
+  rock_sample_kscaling@2-bamcp:
+    cmd: uv run python scripts/run_rock_sample.py --planner bamcp --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/bamcp.json
+      hash: md5
+      md5: b3dc657a6b59a62403096e96eabbcbf0
+      size: 9468926
+  rock_sample_kscaling@2-boss:
+    cmd: uv run python scripts/run_rock_sample.py --planner boss --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/boss.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/boss.json
+      hash: md5
+      md5: ea59d576b3c811032fd5686390e6640c
+      size: 9293023
+  rock_sample_kscaling@2-factored_bamcp:
+    cmd: uv run python scripts/run_rock_sample.py --planner factored_bamcp --K 2
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/factored_bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/factored_bamcp.json
+      hash: md5
+      md5: 7548e41660f7040c67fe5f9445bad069
+      size: 9469280
+  rock_sample_kscaling@2-ids:
+    cmd: uv run python scripts/run_rock_sample.py --planner ids --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/ids.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/ids.json
+      hash: md5
+      md5: a2d2536916ffea6d77282322c0ec6d12
+      size: 9469198
+  rock_sample_kscaling@2-oracle:
+    cmd: uv run python scripts/run_rock_sample.py --planner oracle --K 2 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K2/oracle.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K2/oracle.json
+      hash: md5
+      md5: c8ca284cfaad2328e60d515652b7fbab
+      size: 9467852
+  rock_sample_kscaling@3-aif:
+    cmd: uv run python scripts/run_rock_sample.py --planner aif --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/aif.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/aif.json
+      hash: md5
+      md5: 50b618663dfbebf5ae6632691718eeba
+      size: 11836202
+  rock_sample_kscaling@3-vbp:
+    cmd: uv run python scripts/run_rock_sample.py --planner vbp --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/vbp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/vbp.json
+      hash: md5
+      md5: 12332e2e03cc1dfdd72099ae2f6305f6
+      size: 11778092
+  rock_sample_kscaling@3-psrl:
+    cmd: uv run python scripts/run_rock_sample.py --planner psrl --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/psrl.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/psrl.json
+      hash: md5
+      md5: 844c02c11cc9cc9c9db40b7f02561eb8
+      size: 11772303
+  rock_sample_kscaling@3-bamcp:
+    cmd: uv run python scripts/run_rock_sample.py --planner bamcp --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/bamcp.json
+      hash: md5
+      md5: 9e9f972fccffc53f8b2392d581a50eb4
+      size: 11782691
+  rock_sample_kscaling@3-boss:
+    cmd: uv run python scripts/run_rock_sample.py --planner boss --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/boss.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/boss.json
+      hash: md5
+      md5: d72268130054e3f122c613f33fdea06d
+      size: 11302206
+  rock_sample_kscaling@3-factored_bamcp:
+    cmd: uv run python scripts/run_rock_sample.py --planner factored_bamcp --K 3
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/factored_bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/factored_bamcp.json
+      hash: md5
+      md5: 380a6d9ffc60c18fe5be92a22411b9f3
+      size: 11782618
+  rock_sample_kscaling@3-ids:
+    cmd: uv run python scripts/run_rock_sample.py --planner ids --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/ids.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/ids.json
+      hash: md5
+      md5: 022ef0259d77e035a73bad4b58f78339
+      size: 11782177
+  rock_sample_kscaling@3-oracle:
+    cmd: uv run python scripts/run_rock_sample.py --planner oracle --K 3 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K3/oracle.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K3/oracle.json
+      hash: md5
+      md5: 33d574362a2d96381829b432e7356225
+      size: 11777221
+  rock_sample_kscaling@4-aif:
+    cmd: uv run python scripts/run_rock_sample.py --planner aif --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/aif.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/aif.json
+      hash: md5
+      md5: 968d04c3b00cd75389a4076cdd0121a1
+      size: 18903160
+  rock_sample_kscaling@4-vbp:
+    cmd: uv run python scripts/run_rock_sample.py --planner vbp --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/vbp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/vbp.json
+      hash: md5
+      md5: ebfed84e60e5c3118ec6e7b6d1f02841
+      size: 18753276
+  rock_sample_kscaling@4-psrl:
+    cmd: uv run python scripts/run_rock_sample.py --planner psrl --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/psrl.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/psrl.json
+      hash: md5
+      md5: 0763e53a9bb929c22edb019a6cc776c3
+      size: 18738966
+  rock_sample_kscaling@4-bamcp:
+    cmd: uv run python scripts/run_rock_sample.py --planner bamcp --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/bamcp.json
+      hash: md5
+      md5: 45d2e779e2632c61de5024e2dd44472d
+      size: 18821975
+  rock_sample_kscaling@4-boss:
+    cmd: uv run python scripts/run_rock_sample.py --planner boss --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/boss.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/boss.json
+      hash: md5
+      md5: b77ae278973e789575f7fe0f0ec5a5d8
+      size: 18683463
+  rock_sample_kscaling@4-factored_bamcp:
+    cmd: uv run python scripts/run_rock_sample.py --planner factored_bamcp --K 4
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/factored_bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/factored_bamcp.json
+      hash: md5
+      md5: 4789df74462b477c816ba9a574489487
+      size: 18822459
+  rock_sample_kscaling@4-ids:
+    cmd: uv run python scripts/run_rock_sample.py --planner ids --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/ids.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/ids.json
+      hash: md5
+      md5: a03c214bb24903bcc722549b960c99db
+      size: 18829597
+  rock_sample_kscaling@4-oracle:
+    cmd: uv run python scripts/run_rock_sample.py --planner oracle --K 4 
+      --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
+      --bad-logit 4.0 --layout-seed 0 --n-seeds 50 --n-episodes 10 --max-steps 
+      30 --horizon 15 --seed 0 --clip-horizon true --planner-iterations 70 
+      --planner-damping 0.9 --bamcp-n-simulations 10000 --bamcp-depth 6 
+      --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/rock_sample_kscaling/K4/oracle.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_rock_sample.py
+      hash: md5
+      md5: a81a79f430e37e9eb8216b4c7f4718bb
+      size: 13872
+    params:
+      params.yaml:
+        rock_sample:
+          env:
+            K: 4
+            grid_size: 5
+            sensor_noise_eta: 0.3
+            sample_reward: 1.0
+            good_logit: 2.0
+            bad_logit: 4.0
+            layout_seed: 0
+          runner:
+            n_seeds: 50
+            n_episodes: 10
+            max_steps: 30
+            horizon: 15
+            clip_horizon: true
+            seed: 0
+            use_numba: 'true'
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+          k_sweep:
+          - 2
+          - 3
+          - 4
+    outs:
+    - path: output/rock_sample_kscaling/K4/oracle.json
+      hash: md5
+      md5: 46600c7acedc33babb94972fc733da27
+      size: 18745713
+  factored_tiger@aif:
+    cmd: uv run python scripts/run_factored_tiger.py --planner aif --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/aif.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/aif.json
+      hash: md5
+      md5: c7e6f5169a78b6c0d43236153176f7b8
+      size: 9593593
+  factored_tiger@vbp:
+    cmd: uv run python scripts/run_factored_tiger.py --planner vbp --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/vbp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/vbp.json
+      hash: md5
+      md5: f3343648db314640e1b50c2958d0ad8f
+      size: 9257242
+  factored_tiger@psrl:
+    cmd: uv run python scripts/run_factored_tiger.py --planner psrl --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/psrl.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/psrl.json
+      hash: md5
+      md5: 9dc572337cf39d1377ef8b7eb747b9d5
+      size: 9553554
+  factored_tiger@bamcp:
+    cmd: uv run python scripts/run_factored_tiger.py --planner bamcp --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/bamcp.json
+      hash: md5
+      md5: bd5df2a2742ee5bd63c0517bae5a5901
+      size: 9586331
+  factored_tiger@boss:
+    cmd: uv run python scripts/run_factored_tiger.py --planner boss --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/boss.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/boss.json
+      hash: md5
+      md5: 59aa513a3458887330e1d17cc05b5efd
+      size: 9570449
+  factored_tiger@factored_bamcp:
+    cmd: uv run python scripts/run_factored_tiger.py --planner factored_bamcp 
+      --K 6 --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 
+      100.0 --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/factored_bamcp.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/factored_bamcp.json
+      hash: md5
+      md5: e90596832d5ad7d01bab4813090dc5e1
+      size: 9586654
+  factored_tiger@ids:
+    cmd: uv run python scripts/run_factored_tiger.py --planner ids --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/ids.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/ids.json
+      hash: md5
+      md5: e7941ce738a1ec98e9b1e381e139a8db
+      size: 9585855
+  factored_tiger@oracle:
+    cmd: uv run python scripts/run_factored_tiger.py --planner oracle --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/oracle.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/oracle.json
+      hash: md5
+      md5: 09ed0e5bdffaec41a8ef3f7c0eb65181
+      size: 9464839
+  factored_tiger@random:
+    cmd: uv run python scripts/run_factored_tiger.py --planner random --K 6 
+      --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 
+      --listen-cost 0.0 --good-logit 2.0 --bad-logit 4.0 --n-seeds 100 
+      --n-episodes 5 --max-steps 25 --horizon 10 --seed 0 --clip-horizon true 
+      --planner-iterations 70 --planner-damping 0.9 --bamcp-n-simulations 10000 
+      --bamcp-depth 6 --bamcp-ucb-c 1.0 --bamcp-gamma 0.99 --boss-n-samples 10 
+      --ids-bamcp-n-simulations 10000 --ids-epsilon-info 1e-06 --workers 4 
+      --output output/factored_tiger/random.json
+    deps:
+    - path: learningpomdp/
+      hash: md5
+      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
+      size: 606903
+      nfiles: 61
+    - path: scripts/run_factored_tiger.py
+      hash: md5
+      md5: ff0ab082fd555a81815e105f5e38bdcd
+      size: 11686
+    params:
+      params.yaml:
+        factored_tiger:
+          env:
+            K: 6
+            listen_accuracy: 0.85
+            open_safe_reward: 10.0
+            open_tiger_penalty: 100.0
+            listen_cost: 0.0
+            good_logit: 2.0
+            bad_logit: 4.0
+          runner:
+            n_seeds: 100
+            n_episodes: 5
+            max_steps: 25
+            horizon: 10
+            clip_horizon: true
+            seed: 0
+            workers: 4
+          planner:
+            iterations: 70
+            damping: 0.9
+            bamcp_n_simulations: 10000
+            bamcp_depth: 6
+            bamcp_ucb_c: 1.0
+            bamcp_gamma: 0.99
+            boss_n_samples: 10
+            ids_bamcp_n_simulations: 10000
+            ids_epsilon_info: 1e-06
+    outs:
+    - path: output/factored_tiger/random.json
+      hash: md5
+      md5: 785276cfeccba97d0e5005195b3de025
+      size: 9575350
+  plot_factored_tiger:
+    cmd: uv run python scripts/plot_factored_tiger.py --input-dir 
+      output/factored_tiger --output output/factored_tiger/figure.pdf
+    deps:
+    - path: output/factored_tiger/aif.json
+      hash: md5
+      md5: c7e6f5169a78b6c0d43236153176f7b8
+      size: 9593593
+    - path: output/factored_tiger/bamcp.json
+      hash: md5
+      md5: bd5df2a2742ee5bd63c0517bae5a5901
+      size: 9586331
+    - path: output/factored_tiger/boss.json
+      hash: md5
+      md5: 59aa513a3458887330e1d17cc05b5efd
+      size: 9570449
+    - path: output/factored_tiger/factored_bamcp.json
+      hash: md5
+      md5: e90596832d5ad7d01bab4813090dc5e1
+      size: 9586654
+    - path: output/factored_tiger/ids.json
+      hash: md5
+      md5: e7941ce738a1ec98e9b1e381e139a8db
+      size: 9585855
+    - path: output/factored_tiger/oracle.json
+      hash: md5
+      md5: 09ed0e5bdffaec41a8ef3f7c0eb65181
+      size: 9464839
+    - path: output/factored_tiger/psrl.json
+      hash: md5
+      md5: 9dc572337cf39d1377ef8b7eb747b9d5
+      size: 9553554
+    - path: output/factored_tiger/random.json
+      hash: md5
+      md5: 785276cfeccba97d0e5005195b3de025
+      size: 9575350
+    - path: output/factored_tiger/vbp.json
+      hash: md5
+      md5: f3343648db314640e1b50c2958d0ad8f
+      size: 9257242
+    - path: scripts/plot_factored_tiger.py
+      hash: md5
+      md5: d649f931e790ae0bfb78abd736a489a4
+      size: 9116
+    outs:
+    - path: output/factored_tiger/figure.pdf
+      hash: md5
+      md5: 1993c57d8763abe943d2ce060a2fdc8c
+      size: 34923
