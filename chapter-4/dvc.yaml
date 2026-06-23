@@ -50,6 +50,59 @@ stages:
     outs:
       - data/stochastic_maze/nuijten/results.json
 
+  tmaze_bp_marginal:
+    cmd: >-
+      uv run python scripts/tmaze/experiment_bp.py
+      --n-episodes ${tmaze.bp_marginal.n_episodes}
+      --max-steps ${tmaze.bp_marginal.max_steps}
+      --planning-horizon ${tmaze.bp_marginal.planning_horizon}
+      --planning-iterations ${tmaze.bp_marginal.planning_iterations}
+      --goal-temperature ${tmaze.bp_marginal.goal_temperature}
+      --damping ${tmaze.bp_marginal.damping}
+      --receding-horizon
+      --no-terminal-goal-only
+      --seed ${tmaze.bp_marginal.seed}
+      --output-dir data/tmaze/bp_marginal
+    deps:
+      - scripts/tmaze/experiment_bp.py
+      - src/environments/tmaze.py
+      - src/adapters
+      - src/agents/bp_marginal_agent.py
+      - src/inference
+    params:
+      - tmaze.bp_marginal
+    metrics:
+      - data/tmaze/bp_marginal/stats.json:
+          cache: false
+    outs:
+      - data/tmaze/bp_marginal/results.json
+
+  stochastic_maze_bp_marginal:
+    cmd: >-
+      uv run python scripts/stochastic_maze/experiment_bp.py
+      --n-episodes ${stochastic_maze.bp_marginal.n_episodes}
+      --max-steps ${stochastic_maze.bp_marginal.max_steps}
+      --planning-horizon ${stochastic_maze.bp_marginal.planning_horizon}
+      --planning-iterations ${stochastic_maze.bp_marginal.planning_iterations}
+      --goal-temperature ${stochastic_maze.bp_marginal.goal_temperature}
+      --damping ${stochastic_maze.bp_marginal.damping}
+      --receding-horizon
+      --seed ${stochastic_maze.bp_marginal.seed}
+      --output-dir data/stochastic_maze/bp_marginal
+    deps:
+      - scripts/stochastic_maze/experiment_bp.py
+      - src/environments/stochastic_maze.py
+      - src/adapters
+      - src/agents/bp_marginal_agent.py
+      - src/inference
+    params:
+      - stochastic_maze.bp_marginal
+    metrics:
+      - data/stochastic_maze/bp_marginal/stats.json:
+          cache: false
+    outs:
+      - data/stochastic_maze/bp_marginal/results.json
+
   tmaze_convergence:
     cmd: >-
       uv run python scripts/convergence/run_convergence.py
@@ -109,3 +162,64 @@ stages:
       - data/stochastic_maze/nuijten/convergence.json
     outs:
       - data/convergence_plots
+
+  # Scaling study: Direct-prior MP (chapter 4) vs gradient VFE (chapter 3),
+  # timed per planning call across horizon (T-Maze) and state-space size
+  # (Stochastic Maze). Wall-clock metrics are machine-dependent (cache: false).
+  scaling_mp:
+    cmd: >-
+      uv run python scripts/scaling/run_mp_and_export.py
+      --horizons 2 3 4 5 6 8 10 12
+      --grids 5 7 9 11 13
+      --tmaze-iterations 20
+      --stochastic-iterations 40
+      --stochastic-horizon 10
+      --repeats 5
+      --out-dir data/scaling
+    deps:
+      - scripts/scaling/run_mp_and_export.py
+      - src/adapters
+      - src/inference
+      - src/environments/tmaze.py
+      - src/environments/stochastic_maze.py
+    outs:
+      - data/scaling/tensors
+    metrics:
+      - data/scaling/mp_timings.json:
+          cache: false
+
+  # Runs in chapter-3's env (has optax); times the gradient planner on the SAME
+  # tensors exported by scaling_mp. Tracked deps stay in-repo; the cmd shells into
+  # chapter-3 to use that planner + environment.
+  scaling_gradient:
+    cmd: >-
+      cd ../chapter-3 && uv run python scripts/scaling/run_gradient.py
+      --tensors-dir ../chapter-4/data/scaling/tensors
+      --mp-timings ../chapter-4/data/scaling/mp_timings.json
+      --out ../chapter-4/data/scaling/gradient_timings.json
+      --n-optimization-steps 2000
+      --learning-rate 0.01
+      --inference-mode planning
+      --repeats 3
+    deps:
+      - data/scaling/tensors
+      - data/scaling/mp_timings.json
+    metrics:
+      - data/scaling/gradient_timings.json:
+          cache: false
+
+  scaling_plot:
+    cmd: >-
+      uv run python scripts/scaling/plot_scaling.py --data-dir data/scaling
+    deps:
+      - scripts/scaling/plot_scaling.py
+      - data/scaling/mp_timings.json
+      - data/scaling/gradient_timings.json
+    outs:
+      - data/scaling/scaling_horizon.png
+      - data/scaling/scaling_horizon.pdf
+      - data/scaling/scaling_state_space.png
+      - data/scaling/scaling_state_space.pdf
+    metrics:
+      - data/scaling/scaling_summary.json:
+          cache: false

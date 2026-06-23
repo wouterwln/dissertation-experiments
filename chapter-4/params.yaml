@@ -19,6 +19,23 @@ tmaze:
     goal_temperature: 4.5
     terminal_goal_only: true
     seed: 42
+  # Within-MP ablation: same region-graph machinery, epistemics OFF (canonical
+  # undamped region-extended loopy BP, no EFE action prior). Per-step preference
+  # factor (terminal_goal_only = false) -- the canonical KL-control objective and
+  # the strongest goal signal the marginal planner can use. With no epistemic
+  # drive it never seeks the cue (cue_visit_rate ~ 0): under the unresolved theta
+  # the two arms are a perfect tie, so it commits to one and scores at chance,
+  # vs Nuijten-MP's cue-then-arm 100%. damping = 1.0 is canonical loopy BP.
+  bp_marginal:
+    n_episodes: 1000
+    max_steps: 5
+    planning_horizon: 5
+    planning_iterations: 20
+    receding_horizon: true
+    goal_temperature: 4.5
+    terminal_goal_only: false
+    damping: 1.0
+    seed: 42
 
 stochastic_maze:
   experiment:
@@ -33,6 +50,27 @@ stochastic_maze:
     # interior entirely -> ~100% success. goal_temperature is the terminal-goal
     # precision (peak logit on the goal state).
     goal_temperature: 10.0
+    seed: 42
+  # Within-MP ablation: same region-graph machinery, epistemics OFF. Plans with
+  # canonical (undamped) region-extended loopy BP instead of the Nuijten-MP EFE
+  # action prior. Uses a per-step preference factor (terminal_goal_only = false) --
+  # the canonical KL-control objective, and the *strongest* goal signal we can give
+  # the marginal planner. A terminal-only goal (Nuijten's config) is deliberately
+  # weak so the EFE drive can express the cue detour; without that drive the
+  # marginal planner has nothing to act on and merely stalls, which is an
+  # uninformative baseline. Given the strong per-step goal it still fails: with no
+  # ambiguity drive it never commits to the safe corridor, oscillating into the
+  # stochastic interior -> far below Nuijten-MP's ~100%.
+  # damping = 1.0 is canonical loopy BP (no damping); it is not a tuned knob.
+  bp_marginal:
+    n_episodes: 1000
+    max_steps: 10
+    planning_horizon: 10
+    planning_iterations: 40
+    receding_horizon: true
+    goal_temperature: 10.0
+    terminal_goal_only: false
+    damping: 1.0
     seed: 42
 
 # Bethe Free Energy convergence study for the Nuijten-MP planner.
