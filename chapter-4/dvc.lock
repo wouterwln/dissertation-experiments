@@ -200,3 +200,195 @@ stages:
       md5: 879031a83b0b09a67ab79ee919ed1a5b.dir
       size: 390759
       nfiles: 6
+  stochastic_maze_bp_marginal:
+    cmd: uv run python scripts/stochastic_maze/experiment_bp.py --n-episodes 
+      1000 --max-steps 10 --planning-horizon 10 --planning-iterations 40 
+      --goal-temperature 10.0 --damping 1.0 --receding-horizon --seed 42 
+      --output-dir data/stochastic_maze/bp_marginal
+    deps:
+    - path: scripts/stochastic_maze/experiment_bp.py
+      hash: md5
+      md5: 0bffe6db31a061850bf94bf54b8fef2b
+      size: 6406
+    - path: src/adapters
+      hash: md5
+      md5: b0a20ffad88bd8910c43aedffc12cb9b.dir
+      size: 20927
+      nfiles: 6
+    - path: src/agents/bp_marginal_agent.py
+      hash: md5
+      md5: 1c43d70f0402ff5fc55ab86de373f212
+      size: 4658
+    - path: src/environments/stochastic_maze.py
+      hash: md5
+      md5: 5a8c8262ffc168358f060d82fa200383
+      size: 11660
+    - path: src/inference
+      hash: md5
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
+      nfiles: 10
+    params:
+      params.yaml:
+        stochastic_maze.bp_marginal:
+          n_episodes: 1000
+          max_steps: 10
+          planning_horizon: 10
+          planning_iterations: 40
+          receding_horizon: true
+          goal_temperature: 10.0
+          terminal_goal_only: false
+          damping: 1.0
+          seed: 42
+    outs:
+    - path: data/stochastic_maze/bp_marginal/results.json
+      hash: md5
+      md5: f8a9d568ded8b51e78b18a4c07679781
+      size: 451855
+    - path: data/stochastic_maze/bp_marginal/stats.json
+      hash: md5
+      md5: be8f2afa38c2aa904e1473440eb9cd7a
+      size: 617
+  tmaze_bp_marginal:
+    cmd: uv run python scripts/tmaze/experiment_bp.py --n-episodes 1000 
+      --max-steps 5 --planning-horizon 5 --planning-iterations 20 
+      --goal-temperature 4.5 --damping 1.0 --receding-horizon 
+      --no-terminal-goal-only --seed 42 --output-dir data/tmaze/bp_marginal
+    deps:
+    - path: scripts/tmaze/experiment_bp.py
+      hash: md5
+      md5: 5ee68510193a7f827bd779ed99f743c3
+      size: 6939
+    - path: src/adapters
+      hash: md5
+      md5: b0a20ffad88bd8910c43aedffc12cb9b.dir
+      size: 20927
+      nfiles: 6
+    - path: src/agents/bp_marginal_agent.py
+      hash: md5
+      md5: 1c43d70f0402ff5fc55ab86de373f212
+      size: 4658
+    - path: src/environments/tmaze.py
+      hash: md5
+      md5: c32e0e0f9d51025b37dde083bd6b467f
+      size: 9903
+    - path: src/inference
+      hash: md5
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
+      nfiles: 10
+    params:
+      params.yaml:
+        tmaze.bp_marginal:
+          n_episodes: 1000
+          max_steps: 5
+          planning_horizon: 5
+          planning_iterations: 20
+          receding_horizon: true
+          goal_temperature: 4.5
+          terminal_goal_only: false
+          damping: 1.0
+          seed: 42
+    outs:
+    - path: data/tmaze/bp_marginal/results.json
+      hash: md5
+      md5: 8faf1a42bf445193f2236b6352a01798
+      size: 307975
+    - path: data/tmaze/bp_marginal/stats.json
+      hash: md5
+      md5: 2bf01da917a42efabd4f13c1f115eeba
+      size: 579
+  scaling_mp:
+    cmd: uv run python scripts/scaling/run_mp_and_export.py --horizons 2 3 4 5 6
+      8 10 12 --grids 5 7 9 11 13 --tmaze-iterations 20 --stochastic-iterations 
+      40 --stochastic-horizon 10 --repeats 5 --out-dir data/scaling
+    deps:
+    - path: scripts/scaling/run_mp_and_export.py
+      hash: md5
+      md5: 8fbd871f52f94d14a28f921fcdfeb480
+      size: 6363
+    - path: src/adapters
+      hash: md5
+      md5: b0a20ffad88bd8910c43aedffc12cb9b.dir
+      size: 20927
+      nfiles: 6
+    - path: src/environments/stochastic_maze.py
+      hash: md5
+      md5: 5a8c8262ffc168358f060d82fa200383
+      size: 11660
+    - path: src/environments/tmaze.py
+      hash: md5
+      md5: c32e0e0f9d51025b37dde083bd6b467f
+      size: 9903
+    - path: src/inference
+      hash: md5
+      md5: bfaaa81cefff023ec2cc01e21d09dd76.dir
+      size: 176558
+      nfiles: 10
+    outs:
+    - path: data/scaling/mp_timings.json
+      hash: md5
+      md5: 430e631845bd7f238899a9f034526442
+      size: 3782
+    - path: data/scaling/tensors
+      hash: md5
+      md5: 98e1f53fb682455ec25fe1aaacb5c3c0.dir
+      size: 1095592
+      nfiles: 13
+  scaling_gradient:
+    cmd: cd ../chapter-3 && uv run python scripts/scaling/run_gradient.py 
+      --tensors-dir ../chapter-4/data/scaling/tensors --mp-timings 
+      ../chapter-4/data/scaling/mp_timings.json --out 
+      ../chapter-4/data/scaling/gradient_timings.json --n-optimization-steps 
+      2000 --learning-rate 0.01 --inference-mode planning --repeats 3
+    deps:
+    - path: data/scaling/mp_timings.json
+      hash: md5
+      md5: 430e631845bd7f238899a9f034526442
+      size: 3782
+    - path: data/scaling/tensors
+      hash: md5
+      md5: 98e1f53fb682455ec25fe1aaacb5c3c0.dir
+      size: 1095592
+      nfiles: 13
+    outs:
+    - path: data/scaling/gradient_timings.json
+      hash: md5
+      md5: c17b23d38742246dfcb20c709d89496c
+      size: 3790
+  scaling_plot:
+    cmd: uv run python scripts/scaling/plot_scaling.py --data-dir data/scaling
+    deps:
+    - path: data/scaling/gradient_timings.json
+      hash: md5
+      md5: c17b23d38742246dfcb20c709d89496c
+      size: 3790
+    - path: data/scaling/mp_timings.json
+      hash: md5
+      md5: 430e631845bd7f238899a9f034526442
+      size: 3782
+    - path: scripts/scaling/plot_scaling.py
+      hash: md5
+      md5: 197851bccda969edcd24306fbc216747
+      size: 3309
+    outs:
+    - path: data/scaling/scaling_horizon.pdf
+      hash: md5
+      md5: 92617bdb5435c82ce74164dd7803d8c5
+      size: 17259
+    - path: data/scaling/scaling_horizon.png
+      hash: md5
+      md5: 364cd1d387e638dbfbb217f84c615039
+      size: 53345
+    - path: data/scaling/scaling_state_space.pdf
+      hash: md5
+      md5: 1bdc1786180062abe8b670ea9490086c
+      size: 17378
+    - path: data/scaling/scaling_state_space.png
+      hash: md5
+      md5: 45abfe91a8837dbe4f6c388b620a1464
+      size: 64808
+    - path: data/scaling/scaling_summary.json
+      hash: md5
+      md5: f5e286d33f208bf36417e13f2e19df73
+      size: 4200
