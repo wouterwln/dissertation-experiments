@@ -22,6 +22,7 @@ from environments.rocksample import (
     state_index,
     rc_to_pos,
     n_events_for,
+    n_actions_for,
     EVENT_OTHER,
     RockSampleEnv,
 )
@@ -34,14 +35,37 @@ def set_seed(seed: int):
     np.random.seed(seed)
 
 
-def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
-    """Run a single RockSample episode."""
+def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False,
+                record=True):
+    """Run a single RockSample episode.
+
+    Returns ``(summary, trajectory)``. The trajectory captures the full
+    per-timestep record needed to redraw any figure offline from the
+    DVC-tracked data without re-running the experiment: the true latent
+    config ``theta_true``, the executed ``actions``, the sampled
+    ``observations`` (one row per channel-outcome vector), per-step
+    ``rewards``, the true ``states_visited`` (flat index + decoded
+    ``positions``/``masks``), and the agent's posterior over rock-quality
+    configurations ``q_static`` after each inference step.
+    """
     result = env.reset(seed=seed)
     agent = agent.reset()
 
     total_reward = 0.0
     steps = 0
     max_steps = env.max_steps
+
+    # Per-timestep trajectory. *_visited / observations include the initial
+    # (pre-action) entry, so they are length steps+1; actions / rewards /
+    # q_static are length steps.
+    actions: list[int] = []
+    observations = [np.asarray(result.obs).round().astype(int).tolist()]
+    rewards: list[float] = []
+    states_visited = [int(env._state_idx)]
+    positions = [int(env._position)]
+    masks = [int(env._mask)]
+    q_static_hist: list[list[float]] = []
+    planning_time_s = 0.0
 
     while True:
         if receding_horizon:
@@ -50,7 +74,14 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
             time_remaining = agent.planning_horizon
 
         obs = jnp.array(result.obs)
+        t0 = time.perf_counter()
         action, agent = agent.step(obs, time_remaining)
+        planning_time_s += time.perf_counter() - t0
+
+        if record:
+            q_static_hist.append(
+                [float(v) for v in np.asarray(agent.q_static_state)]
+            )
 
         if verbose:
             print(f"Step {steps}: action={action}, time_remaining={time_remaining}")
@@ -60,6 +91,14 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
         result = env.step(action)
         total_reward += result.reward
         steps += 1
+
+        if record:
+            actions.append(int(action))
+            observations.append(np.asarray(result.obs).round().astype(int).tolist())
+            rewards.append(float(result.reward))
+            states_visited.append(int(env._state_idx))
+            positions.append(int(env._position))
+            masks.append(int(env._mask))
 
         if result.terminated or result.truncated:
             break
@@ -74,15 +113,31 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False):
             if env._mask & (1 << j):
                 n_good_collected += 1
 
-    return {
+    summary = {
         "total_reward": total_reward,
         "steps": steps,
-        "success": result.terminated and result.reward > 0,
-        "terminated": result.terminated,
-        "truncated": result.truncated,
+        "success": bool(result.terminated and result.reward > 0),
+        "terminated": bool(result.terminated),
+        "truncated": bool(result.truncated),
         "n_good_total": n_good_total,
         "n_good_collected": n_good_collected,
+        "theta_true": int(env.config_idx),
+        "planning_time_s": planning_time_s,
     }
+    trajectory = {
+        "theta_true": int(env.config_idx),
+        "actions": actions,
+        "observations": observations,
+        "rewards": rewards,
+        "states_visited": states_visited,
+        "positions": positions,
+        "masks": masks,
+        "q_static": q_static_hist,
+        "terminated": bool(result.terminated),
+        "truncated": bool(result.truncated),
+        "planning_time_s": planning_time_s,
+    }
+    return summary, trajectory
 
 
 def main():
@@ -222,17 +277,19 @@ def main():
     print("-" * 50)
 
     results = []
+    trajectories = []
     successes = 0
     t0 = time.time()
 
     pbar = tqdm(range(args.episodes), desc="Episodes")
     for i in pbar:
         seed = args.seed + i
-        episode_result = run_episode(
+        episode_result, trajectory = run_episode(
             agent, env, seed=seed, receding_horizon=args.receding_horizon,
             verbose=args.verbose,
         )
         results.append(episode_result)
+        trajectories.append(trajectory)
         if episode_result["success"]:
             successes += 1
         pbar.set_postfix({
@@ -291,6 +348,28 @@ def main():
                 "receding_horizon": args.receding_horizon,
                 "seed_start": args.seed,
             },
+            "env": {
+                "environment": "rocksample",
+                "grid_size": args.grid_size,
+                "n_rocks": args.n_rocks,
+                "n_configs": n_configs,
+                "n_pos": int(n_pos),
+                "n_states": int(n_pos * n_mask * n_events),
+                "n_actions": int(n_actions_for(args.n_rocks)),
+                "start_pos": int(start_state_idx),
+                "start_position": int(start_pos),
+                "rock_positions": rock_positions.tolist(),
+                "qualities": qualities.tolist(),
+            },
+            "n_episodes": args.episodes,
+            "per_episode": {
+                key: [r[key] for r in results]
+                for key in (
+                    "total_reward", "steps", "success", "terminated",
+                    "truncated", "n_good_total", "n_good_collected",
+                    "theta_true", "planning_time_s",
+                )
+            },
             "results": {
                 "success_rate": success_rate,
                 "avg_steps": avg_steps,
@@ -303,6 +382,7 @@ def main():
                 "successes": successes,
                 "total_time_s": elapsed,
             },
+            "trajectories": trajectories,
         }
         with open(output_path, "w") as f:
             json.dump(output_data, f, indent=2)

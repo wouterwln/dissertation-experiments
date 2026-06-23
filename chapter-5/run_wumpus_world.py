@@ -29,14 +29,19 @@ def set_seed(seed: int):
     np.random.seed(seed)
 
 
-def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False, record=False):
+def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False, record=True):
     """Run a single Wumpus World episode.
 
-    When ``record`` is True, also returns a trajectory dict with per-step
-    arrays (positions, sensed, actions, observations, rewards) plus the
-    active config index and termination flags. ``positions``/``sensed``/
-    ``observations`` are length T+1 (initial state plus post-step); ``actions``
-    and ``rewards`` are length T.
+    Returns ``(summary, trajectory)``. The trajectory captures the full
+    per-timestep record needed to redraw any figure offline from the
+    DVC-tracked data without re-running: the true latent config
+    ``theta_true``, executed ``actions``, sampled ``observations`` (raw
+    sensor vectors, one row per step), per-step ``rewards``, the true
+    ``states_visited`` (flat index + decoded ``positions``/``sensed``), and
+    the agent's posterior over configurations ``q_static`` after each
+    inference step. ``observations``/``positions``/``sensed``/
+    ``states_visited`` are length T+1 (initial + post-step); ``actions``/
+    ``rewards``/``q_static`` are length T.
     """
     result = env.reset(seed=seed)
     agent = agent.reset()
@@ -45,16 +50,14 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False, re
     steps = 0
     max_steps = env.max_steps
 
-    if record:
-        positions = [int(env._position)]
-        sensed = [int(env._sensed)]
-        observations = [np.asarray(result.obs, dtype=np.float32)]
-        actions = []
-        rewards = []
-        config_idx = int(env.config_idx)
-    else:
-        positions = sensed = observations = actions = rewards = None
-        config_idx = None
+    actions: list[int] = []
+    rewards: list[float] = []
+    observations = [np.asarray(result.obs, dtype=np.float32).tolist()]
+    states_visited = [int(env._state_idx)]
+    positions = [int(env._position)]
+    sensed = [int(env._sensed)]
+    q_static_hist: list[list[float]] = []
+    planning_time_s = 0.0
 
     while True:
         if receding_horizon:
@@ -63,7 +66,14 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False, re
             time_remaining = agent.planning_horizon
 
         obs = jnp.array(result.obs)
+        t0 = time.perf_counter()
         action, agent = agent.step(obs, time_remaining)
+        planning_time_s += time.perf_counter() - t0
+
+        if record:
+            q_static_hist.append(
+                [float(v) for v in np.asarray(agent.q_static_state)]
+            )
 
         if verbose:
             print(f"Step {steps}: action={action}, obs={result.obs}, time_remaining={time_remaining}")
@@ -75,9 +85,10 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False, re
         if record:
             actions.append(int(action))
             rewards.append(float(result.reward))
+            observations.append(np.asarray(result.obs, dtype=np.float32).tolist())
+            states_visited.append(int(env._state_idx))
             positions.append(int(env._position))
             sensed.append(int(env._sensed))
-            observations.append(np.asarray(result.obs, dtype=np.float32))
 
         if result.terminated or result.truncated:
             break
@@ -85,23 +96,24 @@ def run_episode(agent, env, seed=None, receding_horizon=False, verbose=False, re
     summary = {
         "total_reward": total_reward,
         "steps": steps,
-        "success": result.reward > 0,
-        "terminated": result.terminated,
-        "truncated": result.truncated,
-    }
-
-    if not record:
-        return summary, None
-
-    trajectory = {
-        "positions": np.asarray(positions, dtype=np.int32),
-        "sensed": np.asarray(sensed, dtype=np.int32),
-        "actions": np.asarray(actions, dtype=np.int32),
-        "observations": np.stack(observations, axis=0),
-        "rewards": np.asarray(rewards, dtype=np.float32),
+        "success": bool(result.reward > 0),
         "terminated": bool(result.terminated),
         "truncated": bool(result.truncated),
-        "config_idx": config_idx,
+        "theta_true": int(env.config_idx),
+        "planning_time_s": planning_time_s,
+    }
+    trajectory = {
+        "theta_true": int(env.config_idx),
+        "actions": actions,
+        "observations": observations,
+        "rewards": rewards,
+        "states_visited": states_visited,
+        "positions": positions,
+        "sensed": sensed,
+        "q_static": q_static_hist,
+        "terminated": bool(result.terminated),
+        "truncated": bool(result.truncated),
+        "planning_time_s": planning_time_s,
     }
     return summary, trajectory
 
@@ -132,10 +144,6 @@ def main():
     parser.add_argument("--seed", type=int, default=0, help="Starting seed")
     parser.add_argument("--verbose", action="store_true", help="Verbose output")
     parser.add_argument("--output", type=str, default=None, help="Output JSON file")
-    parser.add_argument("--record-trajectories", type=int, default=0,
-                        help="Number of leading episodes to dump as per-step NPZ trajectories")
-    parser.add_argument("--trajectory-dir", type=str, default=None,
-                        help="Directory for per-episode trajectory NPZ files")
     args = parser.parse_args()
 
     set_seed(args.seed)
@@ -208,49 +216,22 @@ def main():
     print(f"Running {args.episodes} episodes...")
     print("-" * 50)
 
-    record_n = max(0, int(args.record_trajectories))
-    trajectory_dir = None
-    if record_n > 0 and args.trajectory_dir:
-        trajectory_dir = Path(args.trajectory_dir)
-        trajectory_dir.mkdir(parents=True, exist_ok=True)
-        print(f"Recording trajectories for first {record_n} episodes -> {trajectory_dir}")
-
     results = []
+    trajectories = []
     successes = 0
     t0 = time.time()
 
     pbar = tqdm(range(args.episodes), desc="Episodes")
     for i in pbar:
         seed = args.seed + i
-        record_this = trajectory_dir is not None and i < record_n
         episode_result, trajectory = run_episode(
             agent, env, seed=seed, receding_horizon=args.receding_horizon,
-            verbose=args.verbose, record=record_this,
+            verbose=args.verbose,
         )
         results.append(episode_result)
+        trajectories.append(trajectory)
         if episode_result["success"]:
             successes += 1
-
-        if trajectory is not None:
-            theta = trajectory["config_idx"]
-            np.savez_compressed(
-                trajectory_dir / f"episode_{i:03d}.npz",
-                positions=trajectory["positions"],
-                sensed=trajectory["sensed"],
-                actions=trajectory["actions"],
-                observations=trajectory["observations"],
-                rewards=trajectory["rewards"],
-                terminated=np.bool_(trajectory["terminated"]),
-                truncated=np.bool_(trajectory["truncated"]),
-                config_idx=np.int32(theta),
-                pits=np.asarray(pits[theta], dtype=np.float32),
-                wumpus=np.asarray(wumpus_arr[theta], dtype=np.float32),
-                gold=np.asarray(gold[theta], dtype=np.float32),
-                grid_size=np.int32(args.grid_size),
-                seed=np.int32(seed),
-                method=np.str_(args.planning_method),
-            )
-
         pbar.set_postfix({
             "success": f"{successes / (i + 1):.1%}",
             "steps": episode_result["steps"],
@@ -290,6 +271,25 @@ def main():
                 "receding_horizon": args.receding_horizon,
                 "seed_start": args.seed,
             },
+            "env": {
+                "environment": "wumpus_world",
+                "grid_size": args.grid_size,
+                "n_configs": args.n_configs,
+                "n_pits": args.n_pits,
+                "n_pos": int(env.n_pos),
+                "start_pos": int(env.start_pos),
+                "pits": np.asarray(pits).tolist(),
+                "wumpus": np.asarray(wumpus_arr).tolist(),
+                "gold": np.asarray(gold).tolist(),
+            },
+            "n_episodes": args.episodes,
+            "per_episode": {
+                key: [r[key] for r in results]
+                for key in (
+                    "total_reward", "steps", "success", "terminated",
+                    "truncated", "theta_true", "planning_time_s",
+                )
+            },
             "results": {
                 "success_rate": success_rate,
                 "avg_steps": avg_steps,
@@ -297,6 +297,7 @@ def main():
                 "successes": successes,
                 "total_time_s": elapsed,
             },
+            "trajectories": trajectories,
         }
         with open(output_path, "w") as f:
             json.dump(output_data, f, indent=2)

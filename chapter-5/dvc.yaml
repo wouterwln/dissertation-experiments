@@ -134,9 +134,8 @@ stages:
       params:
         - frozen_lake
         - frozen_lake_methods.${key}
-      metrics:
-        - data/results/frozen_lake/${key}.json:
-            cache: false
+      outs:
+        - data/results/frozen_lake/${key}.json
 
   wumpus_world:
     foreach: ${wumpus_world_methods}
@@ -162,8 +161,6 @@ stages:
         --seed ${wumpus_world.seed}
         --output data/results/wumpus_world/${key}.json
         --receding-horizon
-        --record-trajectories ${wumpus_world.record_trajectories}
-        --trajectory-dir data/trajectories/wumpus_world/${key}
       deps:
         - run_wumpus_world.py
         - agents/wumpus_agent.py
@@ -172,12 +169,8 @@ stages:
       params:
         - wumpus_world
         - wumpus_world_methods.${key}
-      metrics:
-        - data/results/wumpus_world/${key}.json:
-            cache: false
       outs:
-        - data/trajectories/wumpus_world/${key}:
-            cache: false
+        - data/results/wumpus_world/${key}.json
 
   rocksample:
     foreach: ${rocksample_methods}
@@ -216,6 +209,5 @@ stages:
       params:
         - rocksample
         - rocksample_methods.${key}
-      metrics:
-        - data/results/rocksample/${key}.json:
-            cache: false
+      outs:
+        - data/results/rocksample/${key}.json
