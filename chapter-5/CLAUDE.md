@@ -20,8 +20,9 @@ tests/              # Unit & integration tests
 | Frozen Lake | `run_frozen_lake.py` | `frozen_lake` | Slippery gridworld with holes; configurable layouts |
 | Wumpus World | `run_wumpus_world.py` | `wumpus_world` | Gridworld with pits and wumpus; event-gated SENSE action for breeze/stench/glitter |
 | RockSample | `run_rocksample.py` | `rocksample` | Canonical RockSample; per-rock SENSE actions, event-gated distance-dependent observations |
+| Reactivity Maze | `run_reactivity_maze.py` | `reactivity_maze` | Chapter-3 Epistemic Maze ported to the AIF-MP contract; hidden goal identity θ revealed at a cue, reactivity knob gates action success. Terminal reward (`--terminal-goal-only --receding-horizon`) |
 
-Each environment also has `run_*_diagnostics.py` for single-episode inspection.
+Most environments also have a `run_*_diagnostics.py` for single-episode inspection.
 
 ## Key Files
 
@@ -39,10 +40,12 @@ Each environment also has `run_*_diagnostics.py` for single-episode inspection.
 - `agents/frozen_lake_agent.py` — Frozen Lake agents
 - `agents/wumpus_agent.py` — Wumpus World agents
 - `agents/rocksample_agent.py` — RockSample agents
+- `agents/reactivity_maze_agent.py` — Reactivity Maze agents
 - `environments/minigrid.py` — MiniGrid transition & observation tensor generation
 - `environments/frozen_lake.py` — Frozen Lake environment
 - `environments/wumpus_world.py` — Wumpus World environment
 - `environments/rocksample.py` — RockSample environment
+- `environments/reactivity_maze.py` — Reactivity Maze environment
 - `utils/tensors.py` — Index flattening, coordinate conversion, one-hot creation
 
 ## Planning Methods
