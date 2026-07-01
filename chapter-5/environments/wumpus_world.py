@@ -85,6 +85,30 @@ def get_neighbors(pos: int, grid_size: int) -> list[int]:
     return neighbors
 
 
+def has_path(start: int, goal: int, blocked_set: set, grid_size: int) -> bool:
+    """BFS check: is there a path from start to goal avoiding blocked cells?
+
+    Blocked cells are the absorbing-death cells (pits and the wumpus). The
+    goal (gold) itself is a valid destination even though the agent stops
+    there.
+    """
+    if start == goal:
+        return True
+    if start in blocked_set:
+        return False
+    visited = {start}
+    queue = [start]
+    while queue:
+        pos = queue.pop(0)
+        for nb in get_neighbors(pos, grid_size):
+            if nb == goal:
+                return True
+            if nb not in visited and nb not in blocked_set:
+                visited.add(nb)
+                queue.append(nb)
+    return False
+
+
 def sample_configs(
     grid_size: int,
     n_configs: int,
@@ -95,7 +119,12 @@ def sample_configs(
     """Sample random Wumpus World configurations.
 
     Each config has: pit positions, wumpus position, gold position.
-    Start position is always safe (no pit, no wumpus, no gold).
+    Start position is always safe (no pit, no wumpus, no gold). Every config
+    is guaranteed *viable*: there is a safe path from start to gold that does
+    not pass through any pit or the wumpus (both are absorbing-death cells in
+    the transition tensor). Without this guard the sampler can produce configs
+    where pits/wumpus wall off the gold, which no policy can solve and which
+    would depress the success rate for reasons unrelated to the planner.
 
     Args:
         grid_size: Grid size
@@ -135,6 +164,14 @@ def sample_configs(
         config_key = (pit_positions, wumpus_pos, gold_pos)
         if config_key in configs_seen:
             continue
+
+        # Viability: gold must be reachable from start without stepping on a
+        # pit or the wumpus (both are deadly / absorbing).
+        blocked = set(pit_positions)
+        blocked.add(wumpus_pos)
+        if not has_path(start_pos, gold_pos, blocked, grid_size):
+            continue
+
         configs_seen.add(config_key)
 
         for p in pit_positions:
@@ -145,7 +182,7 @@ def sample_configs(
 
     if idx < n_configs:
         raise ValueError(
-            f"Could only generate {idx}/{n_configs} unique configs. "
+            f"Could only generate {idx}/{n_configs} unique viable configs. "
             f"Reduce n_configs or increase grid_size/n_pits."
         )
 

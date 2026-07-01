@@ -172,6 +172,23 @@ stages:
       outs:
         - data/results/wumpus_world/${key}.json
 
+  # Per-config side-by-side trajectory comparison across planning methods.
+  # Reads the per-method result JSONs above (directory dep) and renders one
+  # themed figure per config. dissertation_theme.py is imported at runtime and
+  # is intentionally NOT a DVC dep (it lives above this chapter's DVC root).
+  wumpus_world_trajectory_plots:
+    cmd: >-
+      uv run python plot_wumpus_trajectory.py
+      --all-configs
+      --results-dir data/results/wumpus_world
+      --output-dir data/plots/wumpus_world
+    deps:
+      - plot_wumpus_trajectory.py
+      - environments/wumpus_world.py
+      - data/results/wumpus_world
+    outs:
+      - data/plots/wumpus_world
+
   rocksample:
     foreach: ${rocksample_methods}
     do:
