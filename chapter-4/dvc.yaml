@@ -188,9 +188,12 @@ stages:
       - data/scaling/mp_timings.json:
           cache: false
 
-  # Runs in chapter-3's env (has optax); times the gradient planner on the SAME
+  # Runs in chapter-3's env (has optax); times the gradient planners on the SAME
   # tensors exported by scaling_mp. Tracked deps stay in-repo; the cmd shells into
-  # chapter-3 to use that planner + environment.
+  # chapter-3 to use those planners + environment. T-Maze (horizon axis) is timed
+  # with the FACTORIZED planner -- O((S*A*n_obs)^H), capped at H=5 since enumeration
+  # is intractable beyond it; the Stochastic Maze (state-space axis) keeps the
+  # TEMPORAL planner -- O(H*S^2).
   scaling_gradient:
     cmd: >-
       cd ../chapter-3 && uv run python scripts/scaling/run_gradient.py
@@ -200,6 +203,10 @@ stages:
       --n-optimization-steps 2000
       --learning-rate 0.01
       --inference-mode planning
+      --factorized-opt-steps 1500
+      --factorized-lr 0.05
+      --factorized-mode planning
+      --factorized-max-horizon 5
       --repeats 3
     deps:
       - data/scaling/tensors
@@ -223,3 +230,58 @@ stages:
     metrics:
       - data/scaling/scaling_summary.json:
           cache: false
+
+  # Static figure of the Stochastic Maze layout (noise heatmap + cell types).
+  stochastic_maze_env_plot:
+    cmd: >-
+      uv run python scripts/stochastic_maze/plot_environment.py
+      --output-dir data/stochastic_maze/plots
+      --format both
+    deps:
+      - scripts/stochastic_maze/plot_environment.py
+      - scripts/stochastic_maze/maze_viz.py
+      - src/environments/stochastic_maze.py
+    outs:
+      - data/stochastic_maze/plots/environment.pdf
+      - data/stochastic_maze/plots/environment.png
+
+  # Representative AIF trajectory. REUSES stochastic_maze_nuijten's results.json
+  # (depends on it -> no re-simulation); only re-renders if the data/script change.
+  stochastic_maze_trajectory_aif:
+    cmd: >-
+      uv run python scripts/stochastic_maze/plot_trajectory.py
+      --results data/stochastic_maze/nuijten/results.json
+      --label "${stochastic_maze.plots.aif_label}"
+      --select ${stochastic_maze.plots.aif_select}
+      --output data/stochastic_maze/plots/trajectory_aif
+      --format both
+    deps:
+      - scripts/stochastic_maze/plot_trajectory.py
+      - scripts/stochastic_maze/maze_viz.py
+      - src/environments/stochastic_maze.py
+      - data/stochastic_maze/nuijten/results.json
+    params:
+      - stochastic_maze.plots
+    outs:
+      - data/stochastic_maze/plots/trajectory_aif.pdf
+      - data/stochastic_maze/plots/trajectory_aif.png
+
+  # Representative BP trajectory. REUSES stochastic_maze_bp_marginal's results.json.
+  stochastic_maze_trajectory_bp:
+    cmd: >-
+      uv run python scripts/stochastic_maze/plot_trajectory.py
+      --results data/stochastic_maze/bp_marginal/results.json
+      --label "${stochastic_maze.plots.bp_label}"
+      --select ${stochastic_maze.plots.bp_select}
+      --output data/stochastic_maze/plots/trajectory_bp
+      --format both
+    deps:
+      - scripts/stochastic_maze/plot_trajectory.py
+      - scripts/stochastic_maze/maze_viz.py
+      - src/environments/stochastic_maze.py
+      - data/stochastic_maze/bp_marginal/results.json
+    params:
+      - stochastic_maze.plots
+    outs:
+      - data/stochastic_maze/plots/trajectory_bp.pdf
+      - data/stochastic_maze/plots/trajectory_bp.png

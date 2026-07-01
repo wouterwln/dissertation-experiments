@@ -72,6 +72,16 @@ stochastic_maze:
     terminal_goal_only: false
     damping: 1.0
     seed: 42
+  # Visualization stages. The trajectory plots REUSE the trajectories computed by
+  # the stochastic_maze_nuijten / stochastic_maze_bp_marginal stages (they depend
+  # on those stages' results.json -- nothing is re-simulated). `*_select` picks the
+  # representative episode: "auto" = modal trajectory within the dominant outcome
+  # class. To pin a specific episode instead, add `--episode N` to the stage cmd.
+  plots:
+    aif_label: "Direct-prior MP"
+    aif_select: auto
+    bp_label: "Region-BP marginal"
+    bp_select: auto
 
 # Bethe Free Energy convergence study for the Nuijten-MP planner.
 # Records a per-iteration BFE trace at every planning step (fixed horizon),
