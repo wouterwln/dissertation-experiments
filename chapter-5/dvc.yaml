@@ -172,6 +172,23 @@ stages:
       outs:
         - data/results/wumpus_world/${key}.json
 
+  # Per-config side-by-side trajectory comparison across planning methods.
+  # Reads the per-method result JSONs above (directory dep) and renders one
+  # themed figure per config. dissertation_theme.py is imported at runtime and
+  # is intentionally NOT a DVC dep (it lives above this chapter's DVC root).
+  wumpus_world_trajectory_plots:
+    cmd: >-
+      uv run python plot_wumpus_trajectory.py
+      --all-configs
+      --results-dir data/results/wumpus_world
+      --output-dir data/plots/wumpus_world
+    deps:
+      - plot_wumpus_trajectory.py
+      - environments/wumpus_world.py
+      - data/results/wumpus_world
+    outs:
+      - data/plots/wumpus_world
+
   rocksample:
     foreach: ${rocksample_methods}
     do:
@@ -211,3 +228,37 @@ stages:
         - rocksample_methods.${key}
       outs:
         - data/results/rocksample/${key}.json
+
+  # Reactivity Maze ablation: the chapter-3 Epistemic Maze ported to the AIF-MP
+  # contract. Terminal reward (goal only at the final planning step) + receding
+  # horizon are intrinsic to this env, so both flags are baked into the command.
+  reactivity_maze:
+    foreach: ${reactivity_maze_methods}
+    do:
+      cmd: >-
+        uv run python run_reactivity_maze.py
+        --planning-method ${key}
+        --n-theta ${reactivity_maze.n_theta}
+        --cue-accuracy ${reactivity_maze.cue_accuracy}
+        --pos-noise ${reactivity_maze.pos_noise}
+        --goal-temperature ${reactivity_maze.goal_temperature}
+        --cue-cost ${reactivity_maze.cue_cost}
+        --episodes ${reactivity_maze.episodes}
+        --max-steps ${reactivity_maze.max_steps}
+        --planning-horizon ${reactivity_maze.planning_horizon}
+        --planning-iterations ${item.planning_iterations}
+        --damping ${item.damping}
+        --seed ${reactivity_maze.seed}
+        --terminal-goal-only
+        --receding-horizon
+        --output data/results/reactivity_maze/${key}.json
+      deps:
+        - run_reactivity_maze.py
+        - agents/reactivity_maze_agent.py
+        - environments/reactivity_maze.py
+        - inference/
+      params:
+        - reactivity_maze
+        - reactivity_maze_methods.${key}
+      outs:
+        - data/results/reactivity_maze/${key}.json

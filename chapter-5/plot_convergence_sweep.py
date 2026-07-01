@@ -14,6 +14,13 @@ import json
 
 sys.path.insert(0, str(Path(__file__).parent))
 
+# --- Repo-root dissertation theme (imported at runtime, not a DVC dep) -------
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
+
 import numpy as np
 
 ALL_ENVIRONMENTS = ["frozen-lake", "wumpus-world", "rocksample", "minigrid"]
@@ -29,7 +36,7 @@ METHOD_LABELS = {
     "loopy": "Loopy BP",
     "region-extended": "Region-Extended",
     "dyn-channel": "Dyn-Channel",
-    "nuijten": "Nuijten MP",
+    "nuijten": "Direct-prior MP",
     "vbp-channel": "VBP Channel",
     "precise-info-seeking": "Precise Info-Seeking",
     "active-inference": "Active Inference",
@@ -450,11 +457,8 @@ def main():
     try:
         import matplotlib
         matplotlib.use("Agg")
+        theme.apply_rcparams()  # shared serif/sizing across the dissertation
         matplotlib.rcParams.update({
-            "font.family": "serif",
-            "font.size": 10,
-            "axes.labelsize": 11,
-            "legend.fontsize": 9,
             "xtick.labelsize": 9,
             "ytick.labelsize": 9,
             "text.usetex": False,

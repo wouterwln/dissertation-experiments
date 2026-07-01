@@ -117,6 +117,39 @@ rocksample_methods:
     damping: 0.25
 
 
+reactivity_maze:
+  n_theta: 5
+  cue_accuracy: 1.0
+  pos_noise: 0.05
+  goal_temperature: 0.25
+  cue_cost: 0.5
+  episodes: 1000
+  max_steps: 6
+  planning_horizon: 6
+  seed: 0
+
+reactivity_maze_methods:
+  loopy:
+    planning_iterations: 150
+    damping: 1.0
+
+  dyn-channel:
+    planning_iterations: 150
+    damping: 0.25
+
+  nuijten:
+    planning_iterations: 150
+    damping: 1.0
+
+  vbp-channel:
+    planning_iterations: 150
+    damping: 0.6
+
+  active-inference:
+    planning_iterations: 150
+    damping: 0.6
+
+
 minigrid:
   grid_size: 5
   fov_size: 3
