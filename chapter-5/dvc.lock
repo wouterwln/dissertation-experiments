@@ -557,7 +557,7 @@ stages:
   wumpus_world@loopy:
     cmd: uv run python run_wumpus_world.py --planning-method loopy --grid-size 5
       --n-configs 25 --n-pits 4 --obs-noise 0.1 --pos-noise 0.05 --slip-prob 
-      0.01 --episodes 1000 --max-steps 16 --planning-horizon 8 
+      0.01 --episodes 1000 --max-steps 25 --planning-horizon 20 
       --planning-iterations 150 --damping 1.0 --sense-cost 0.7 --pit-penalty 1.0
       --wumpus-penalty 1.0 --goal-temperature 1.0 --seed 0 --output 
       data/results/wumpus_world/loopy.json --receding-horizon
@@ -589,8 +589,8 @@ stages:
           pos_noise: 0.05
           slip_prob: 0.01
           episodes: 1000
-          max_steps: 16
-          planning_horizon: 8
+          max_steps: 25
+          planning_horizon: 20
           sense_cost: 0.7
           pit_penalty: 1.0
           wumpus_penalty: 1.0
@@ -602,12 +602,12 @@ stages:
     outs:
     - path: data/results/wumpus_world/loopy.json
       hash: md5
-      md5: 0e38f8e192c2a655bc9401f6b410bad8
-      size: 17029351
+      md5: 38d3f09d4c3d96b4a308c32ae48067ce
+      size: 23115484
   wumpus_world@dyn-channel:
     cmd: uv run python run_wumpus_world.py --planning-method dyn-channel 
       --grid-size 5 --n-configs 25 --n-pits 4 --obs-noise 0.1 --pos-noise 0.05 
-      --slip-prob 0.01 --episodes 1000 --max-steps 16 --planning-horizon 8 
+      --slip-prob 0.01 --episodes 1000 --max-steps 25 --planning-horizon 20 
       --planning-iterations 150 --damping 0.25 --sense-cost 0.7 --pit-penalty 
       1.0 --wumpus-penalty 1.0 --goal-temperature 1.0 --seed 0 --output 
       data/results/wumpus_world/dyn-channel.json --receding-horizon
@@ -639,8 +639,8 @@ stages:
           pos_noise: 0.05
           slip_prob: 0.01
           episodes: 1000
-          max_steps: 16
-          planning_horizon: 8
+          max_steps: 25
+          planning_horizon: 20
           sense_cost: 0.7
           pit_penalty: 1.0
           wumpus_penalty: 1.0
@@ -652,12 +652,12 @@ stages:
     outs:
     - path: data/results/wumpus_world/dyn-channel.json
       hash: md5
-      md5: 3156dde550ecf2be55e3b8f7bbaba7d2
-      size: 14545737
+      md5: 524aefefcea3c6af7981605e4013b8fc
+      size: 28296428
   wumpus_world@nuijten:
     cmd: uv run python run_wumpus_world.py --planning-method nuijten --grid-size
       5 --n-configs 25 --n-pits 4 --obs-noise 0.1 --pos-noise 0.05 --slip-prob 
-      0.01 --episodes 1000 --max-steps 16 --planning-horizon 8 
+      0.01 --episodes 1000 --max-steps 25 --planning-horizon 20 
       --planning-iterations 150 --damping 1.0 --sense-cost 0.7 --pit-penalty 1.0
       --wumpus-penalty 1.0 --goal-temperature 1.0 --seed 0 --output 
       data/results/wumpus_world/nuijten.json --receding-horizon
@@ -689,8 +689,8 @@ stages:
           pos_noise: 0.05
           slip_prob: 0.01
           episodes: 1000
-          max_steps: 16
-          planning_horizon: 8
+          max_steps: 25
+          planning_horizon: 20
           sense_cost: 0.7
           pit_penalty: 1.0
           wumpus_penalty: 1.0
@@ -702,12 +702,12 @@ stages:
     outs:
     - path: data/results/wumpus_world/nuijten.json
       hash: md5
-      md5: 9937c33074cc7f0fc026864011cdb07f
-      size: 18517203
+      md5: 7b2a4e97033cefe31fc0eaa61b847583
+      size: 8230098
   wumpus_world@vbp-channel:
     cmd: uv run python run_wumpus_world.py --planning-method vbp-channel 
       --grid-size 5 --n-configs 25 --n-pits 4 --obs-noise 0.1 --pos-noise 0.05 
-      --slip-prob 0.01 --episodes 1000 --max-steps 16 --planning-horizon 8 
+      --slip-prob 0.01 --episodes 1000 --max-steps 25 --planning-horizon 20 
       --planning-iterations 150 --damping 0.6 --sense-cost 0.7 --pit-penalty 1.0
       --wumpus-penalty 1.0 --goal-temperature 1.0 --seed 0 --output 
       data/results/wumpus_world/vbp-channel.json --receding-horizon
@@ -739,8 +739,8 @@ stages:
           pos_noise: 0.05
           slip_prob: 0.01
           episodes: 1000
-          max_steps: 16
-          planning_horizon: 8
+          max_steps: 25
+          planning_horizon: 20
           sense_cost: 0.7
           pit_penalty: 1.0
           wumpus_penalty: 1.0
@@ -752,12 +752,12 @@ stages:
     outs:
     - path: data/results/wumpus_world/vbp-channel.json
       hash: md5
-      md5: 32b4b93d99dacd4941fe3a32e57e52a2
-      size: 17827075
+      md5: fb55872e33bf1ae2f7369c2b0f0e7397
+      size: 26960571
   wumpus_world@active-inference:
     cmd: uv run python run_wumpus_world.py --planning-method active-inference 
       --grid-size 5 --n-configs 25 --n-pits 4 --obs-noise 0.1 --pos-noise 0.05 
-      --slip-prob 0.01 --episodes 1000 --max-steps 16 --planning-horizon 8 
+      --slip-prob 0.01 --episodes 1000 --max-steps 25 --planning-horizon 20 
       --planning-iterations 150 --damping 0.6 --sense-cost 0.7 --pit-penalty 1.0
       --wumpus-penalty 1.0 --goal-temperature 1.0 --seed 0 --output 
       data/results/wumpus_world/active-inference.json --receding-horizon
@@ -789,8 +789,8 @@ stages:
           pos_noise: 0.05
           slip_prob: 0.01
           episodes: 1000
-          max_steps: 16
-          planning_horizon: 8
+          max_steps: 25
+          planning_horizon: 20
           sense_cost: 0.7
           pit_penalty: 1.0
           wumpus_penalty: 1.0
@@ -802,16 +802,16 @@ stages:
     outs:
     - path: data/results/wumpus_world/active-inference.json
       hash: md5
-      md5: 959a91b5ae96d8321ac5e525594c3740
-      size: 11636036
+      md5: 494b04d0ba7edd9163d6477efaad20cf
+      size: 8526395
   wumpus_world_trajectory_plots:
     cmd: uv run python plot_wumpus_trajectory.py --all-configs --results-dir 
       data/results/wumpus_world --output-dir data/plots/wumpus_world
     deps:
     - path: data/results/wumpus_world
       hash: md5
-      md5: 83fc3c3d45fef19f5f766d3cf4dcc9ba.dir
-      size: 79555402
+      md5: 1eb08c5622ebbeabcb5d20cdc05aaed5.dir
+      size: 95128976
       nfiles: 5
     - path: environments/wumpus_world.py
       hash: md5
@@ -824,8 +824,8 @@ stages:
     outs:
     - path: data/plots/wumpus_world
       hash: md5
-      md5: b73da2e549a522c70841988038baa278.dir
-      size: 2605501
+      md5: 1a5d29e75450b1b99333fc01b25620d7.dir
+      size: 2647031
       nfiles: 50
   rocksample@loopy:
     cmd: uv run python run_rocksample.py --planning-method loopy --grid-size 4 
