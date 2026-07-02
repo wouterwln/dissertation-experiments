@@ -1112,7 +1112,7 @@ stages:
       size: 5669799
   reactivity_maze@loopy:
     cmd: uv run python run_reactivity_maze.py --planning-method loopy --n-theta 
-      5 --cue-accuracy 1.0 --pos-noise 0.05 --goal-temperature 0.25 --cue-cost 
+      5 --cue-accuracy 1.0 --pos-noise 0.0 --goal-temperature 0.25 --cue-cost 
       0.5 --episodes 1000 --max-steps 6 --planning-horizon 6 
       --planning-iterations 150 --damping 1.0 --seed 0 --terminal-goal-only 
       --receding-horizon --output data/results/reactivity_maze/loopy.json
@@ -1139,7 +1139,7 @@ stages:
         reactivity_maze:
           n_theta: 5
           cue_accuracy: 1.0
-          pos_noise: 0.05
+          pos_noise: 0.0
           goal_temperature: 0.25
           cue_cost: 0.5
           episodes: 1000
@@ -1152,11 +1152,11 @@ stages:
     outs:
     - path: data/results/reactivity_maze/loopy.json
       hash: md5
-      md5: f6d7609ff019099ce3d01782ad6c9347
-      size: 3207758
+      md5: f65e2b51b5f9571247a7972a4c667061
+      size: 3207651
   reactivity_maze@dyn-channel:
     cmd: uv run python run_reactivity_maze.py --planning-method dyn-channel 
-      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.05 --goal-temperature 0.25 
+      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.0 --goal-temperature 0.25 
       --cue-cost 0.5 --episodes 1000 --max-steps 6 --planning-horizon 6 
       --planning-iterations 150 --damping 0.25 --seed 0 --terminal-goal-only 
       --receding-horizon --output data/results/reactivity_maze/dyn-channel.json
@@ -1183,7 +1183,7 @@ stages:
         reactivity_maze:
           n_theta: 5
           cue_accuracy: 1.0
-          pos_noise: 0.05
+          pos_noise: 0.0
           goal_temperature: 0.25
           cue_cost: 0.5
           episodes: 1000
@@ -1196,11 +1196,11 @@ stages:
     outs:
     - path: data/results/reactivity_maze/dyn-channel.json
       hash: md5
-      md5: a5569762d662090b8231b913e9e1b1ff
-      size: 3201347
+      md5: 3e47bdc84b443f263485aababc1a3fcb
+      size: 3204289
   reactivity_maze@nuijten:
     cmd: uv run python run_reactivity_maze.py --planning-method nuijten 
-      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.05 --goal-temperature 0.25 
+      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.0 --goal-temperature 0.25 
       --cue-cost 0.5 --episodes 1000 --max-steps 6 --planning-horizon 6 
       --planning-iterations 150 --damping 1.0 --seed 0 --terminal-goal-only 
       --receding-horizon --output data/results/reactivity_maze/nuijten.json
@@ -1227,7 +1227,7 @@ stages:
         reactivity_maze:
           n_theta: 5
           cue_accuracy: 1.0
-          pos_noise: 0.05
+          pos_noise: 0.0
           goal_temperature: 0.25
           cue_cost: 0.5
           episodes: 1000
@@ -1240,11 +1240,11 @@ stages:
     outs:
     - path: data/results/reactivity_maze/nuijten.json
       hash: md5
-      md5: 6723ef4dd63325a20cf3790c26527c01
-      size: 3236003
+      md5: 88c1a773ece1cfbd214e1c019e3b7dd5
+      size: 3237143
   reactivity_maze@vbp-channel:
     cmd: uv run python run_reactivity_maze.py --planning-method vbp-channel 
-      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.05 --goal-temperature 0.25 
+      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.0 --goal-temperature 0.25 
       --cue-cost 0.5 --episodes 1000 --max-steps 6 --planning-horizon 6 
       --planning-iterations 150 --damping 0.6 --seed 0 --terminal-goal-only 
       --receding-horizon --output data/results/reactivity_maze/vbp-channel.json
@@ -1271,7 +1271,7 @@ stages:
         reactivity_maze:
           n_theta: 5
           cue_accuracy: 1.0
-          pos_noise: 0.05
+          pos_noise: 0.0
           goal_temperature: 0.25
           cue_cost: 0.5
           episodes: 1000
@@ -1284,11 +1284,11 @@ stages:
     outs:
     - path: data/results/reactivity_maze/vbp-channel.json
       hash: md5
-      md5: 6d3a43c63451a598763e593374a30ad8
-      size: 3207713
+      md5: 6691c849869595a588dfffaaf0750e8f
+      size: 3207308
   reactivity_maze@active-inference:
     cmd: uv run python run_reactivity_maze.py --planning-method active-inference
-      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.05 --goal-temperature 0.25 
+      --n-theta 5 --cue-accuracy 1.0 --pos-noise 0.0 --goal-temperature 0.25 
       --cue-cost 0.5 --episodes 1000 --max-steps 6 --planning-horizon 6 
       --planning-iterations 150 --damping 0.6 --seed 0 --terminal-goal-only 
       --receding-horizon --output 
@@ -1316,7 +1316,7 @@ stages:
         reactivity_maze:
           n_theta: 5
           cue_accuracy: 1.0
-          pos_noise: 0.05
+          pos_noise: 0.0
           goal_temperature: 0.25
           cue_cost: 0.5
           episodes: 1000
@@ -1329,5 +1329,5 @@ stages:
     outs:
     - path: data/results/reactivity_maze/active-inference.json
       hash: md5
-      md5: 7248fbf35a9ac96b8ab21181f560d59f
-      size: 3202020
+      md5: c3bad5d6044fd75472d124927812269e
+      size: 3204333
