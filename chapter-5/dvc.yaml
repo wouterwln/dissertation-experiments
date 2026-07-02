@@ -172,6 +172,45 @@ stages:
       outs:
         - data/results/wumpus_world/${key}.json
 
+  # Ablation: Active Inference with loopy backward messages to theta.
+  # Exactly the active-inference scheme (obs + dyn + action channels) but theta
+  # is inferred via cavity messages instead of clamped to its prior. Compare its
+  # success rate against the main active-inference stage above. Episodes are a
+  # GPU knob in params (wumpus_world_loopy_theta.episodes); Wumpus tensors are
+  # small so memory is not the constraint, only wall-clock.
+  wumpus_world_loopy_theta:
+    cmd: >-
+      uv run python run_wumpus_world.py
+      --planning-method active-inference-loopy
+      --grid-size ${wumpus_world.grid_size}
+      --n-configs ${wumpus_world.n_configs}
+      --n-pits ${wumpus_world.n_pits}
+      --obs-noise ${wumpus_world.obs_noise}
+      --pos-noise ${wumpus_world.pos_noise}
+      --slip-prob ${wumpus_world.slip_prob}
+      --episodes ${wumpus_world_loopy_theta.episodes}
+      --max-steps ${wumpus_world.max_steps}
+      --planning-horizon ${wumpus_world.planning_horizon}
+      --planning-iterations ${wumpus_world_loopy_theta.planning_iterations}
+      --damping ${wumpus_world_loopy_theta.damping}
+      --sense-cost ${wumpus_world.sense_cost}
+      --pit-penalty ${wumpus_world.pit_penalty}
+      --wumpus-penalty ${wumpus_world.wumpus_penalty}
+      --goal-temperature ${wumpus_world.goal_temperature}
+      --seed ${wumpus_world.seed}
+      --output data/results/wumpus_world_loopy/active-inference-loopy.json
+      --receding-horizon
+    deps:
+      - run_wumpus_world.py
+      - agents/wumpus_agent.py
+      - environments/wumpus_world.py
+      - inference/
+    params:
+      - wumpus_world
+      - wumpus_world_loopy_theta
+    outs:
+      - data/results/wumpus_world_loopy/active-inference-loopy.json
+
   # Per-config side-by-side trajectory comparison across planning methods.
   # Reads the per-method result JSONs above (directory dep) and renders one
   # themed figure per config. dissertation_theme.py is imported at runtime and
@@ -262,3 +301,40 @@ stages:
         - reactivity_maze_methods.${key}
       outs:
         - data/results/reactivity_maze/${key}.json
+
+  # Fixed-drop-off variant of the Reactivity Maze, run ONLY for the dyn-channel
+  # ablation to make a targeted point: the agent is deterministically dropped at
+  # a single nav state after the cue (fixed_dropoff_nav) instead of a uniform-
+  # random nav state. The drop-off applies to both the true env and the agent's
+  # transition model (--cue-dropoff threads into both). Isolated output dir so it
+  # never disturbs the canonical reactivity_maze results above. Uses the same
+  # dyn-channel hyperparameters (iterations/damping) as the canonical stage.
+  reactivity_maze_fixed_dropoff:
+    cmd: >-
+      uv run python run_reactivity_maze.py
+      --planning-method dyn-channel
+      --n-theta ${reactivity_maze.n_theta}
+      --cue-accuracy ${reactivity_maze.cue_accuracy}
+      --pos-noise ${reactivity_maze.pos_noise}
+      --goal-temperature ${reactivity_maze.goal_temperature}
+      --cue-cost ${reactivity_maze.cue_cost}
+      --episodes ${reactivity_maze.episodes}
+      --max-steps ${reactivity_maze.max_steps}
+      --planning-horizon ${reactivity_maze.planning_horizon}
+      --planning-iterations ${reactivity_maze_methods.dyn-channel.planning_iterations}
+      --damping ${reactivity_maze_methods.dyn-channel.damping}
+      --seed ${reactivity_maze.seed}
+      --cue-dropoff ${reactivity_maze.fixed_dropoff_nav}
+      --terminal-goal-only
+      --receding-horizon
+      --output data/results/reactivity_maze_fixed/dyn-channel.json
+    deps:
+      - run_reactivity_maze.py
+      - agents/reactivity_maze_agent.py
+      - environments/reactivity_maze.py
+      - inference/
+    params:
+      - reactivity_maze
+      - reactivity_maze_methods.dyn-channel
+    outs:
+      - data/results/reactivity_maze_fixed/dyn-channel.json

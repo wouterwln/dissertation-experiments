@@ -251,6 +251,63 @@ class WumpusRegionExtendedAgent(_WumpusAgentBase):
 
 
 @dataclass(frozen=True)
+class WumpusActiveInferenceLoopyAgent(_WumpusAgentBase):
+    """Active Inference scheme with loopy backward messages to θ (ablation).
+
+    Exactly the Active Inference scheme (obs channels + dyn channel + VBP action
+    channel), but instead of clamping θ to its prior it sends cavity messages
+    back to θ each iteration (theta_feedback=True). Baseline is `active-inference`
+    (theta_feedback=False); the only difference is θ handling.
+    """
+
+    @staticmethod
+    def create(transition_tensor, observation_tensor, goal,
+               planning_horizon=5, planning_iterations=3, action_prior=None,
+               damping=1.0):
+        return _create(WumpusActiveInferenceLoopyAgent, transition_tensor,
+                       observation_tensor, goal, planning_horizon,
+                       planning_iterations, action_prior, damping=damping)
+
+    def _plan(self, q_current, q_static, horizon):
+        action_dist, _, _ = region_extended_loopy_bp_planning(
+            q_current, q_static, self.transition_tensor,
+            self.observation_tensor, self.goal,
+            horizon=horizon, n_iterations=self.planning_iterations,
+            action_prior=self.action_prior, damping=self.damping,
+            action_channel=True, theta_feedback=True,
+        )
+        return action_dist
+
+
+@dataclass(frozen=True)
+class WumpusActiveInferenceRegionAgent(_WumpusAgentBase):
+    """Active Inference via the θ-explicit region path (θ=prior control).
+
+    action_channel=True, theta_feedback=False. Algebraically equal to
+    active_inference_planning; used as the matched control for the loopy-θ
+    ablation so the two differ only in θ handling.
+    """
+
+    @staticmethod
+    def create(transition_tensor, observation_tensor, goal,
+               planning_horizon=5, planning_iterations=3, action_prior=None,
+               damping=1.0):
+        return _create(WumpusActiveInferenceRegionAgent, transition_tensor,
+                       observation_tensor, goal, planning_horizon,
+                       planning_iterations, action_prior, damping=damping)
+
+    def _plan(self, q_current, q_static, horizon):
+        action_dist, _, _ = region_extended_loopy_bp_planning(
+            q_current, q_static, self.transition_tensor,
+            self.observation_tensor, self.goal,
+            horizon=horizon, n_iterations=self.planning_iterations,
+            action_prior=self.action_prior, damping=self.damping,
+            action_channel=True, theta_feedback=False,
+        )
+        return action_dist
+
+
+@dataclass(frozen=True)
 class WumpusDynChannelAgent(_WumpusAgentBase):
     """Dyn-channel loopy BP."""
 
@@ -368,6 +425,8 @@ AGENT_CLASSES = {
     "loopy_bp": WumpusLoopyBPAgent,
     "loopy_vbp": WumpusLoopyVBPAgent,
     "region_extended": WumpusRegionExtendedAgent,
+    "active_inference_region": WumpusActiveInferenceRegionAgent,
+    "active_inference_loopy": WumpusActiveInferenceLoopyAgent,
     "dyn_channel": WumpusDynChannelAgent,
     "nuijten": WumpusNuijtenMPAgent,
     "vbp_channel": WumpusVBPChannelAgent,

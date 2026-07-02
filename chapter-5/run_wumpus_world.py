@@ -136,6 +136,7 @@ def main():
     parser.add_argument("--planning-iterations", type=int, default=3, help="Planning iterations")
     parser.add_argument("--planning-method", type=str, default="loopy",
                         choices=["loopy-vbp", "loopy", "region-extended",
+                                 "active-inference-region", "active-inference-loopy",
                                  "dyn-channel", "nuijten", "vbp-channel",
                                  "precise-info-seeking", "active-inference"],
                         help="Planning method")
@@ -183,6 +184,8 @@ def main():
         "loopy-vbp": "loopy_vbp",
         "loopy": "loopy_bp",
         "region-extended": "region_extended",
+        "active-inference-region": "active_inference_region",
+        "active-inference-loopy": "active_inference_loopy",
         "dyn-channel": "dyn_channel",
         "nuijten": "nuijten",
         "vbp-channel": "vbp_channel",

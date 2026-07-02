@@ -409,7 +409,7 @@ def compute_marginal_obs_channels(log_region_beliefs):
 # =============================================================================
 
 
-@partial(jax.jit, static_argnums=(5, 6))
+@partial(jax.jit, static_argnums=(5, 6, 9, 10))
 def region_extended_loopy_bp_planning(
     q_current_state,      # (n_states,)
     q_static_state,       # (n_static,) prior on theta
@@ -420,6 +420,8 @@ def region_extended_loopy_bp_planning(
     n_iterations,         # int (static)
     damping=1.0,          # float - channel update damping (1.0 = no damping)
     action_prior=None,    # (n_actions,) prior over actions. If None, uniform.
+    theta_feedback=False, # bool (static) - loopy cavity messages to theta
+    action_channel=False, # bool (static) - VBP action channel r(u|x) in dyn numerator
 ) -> jnp.ndarray:
     """
     Plan actions via region-extended loopy BP with observation factors.
@@ -429,6 +431,26 @@ def region_extended_loopy_bp_planning(
 
     When goal is 2D (n_states, n_static), it is treated as a per-config
     preference factor C(x, θ) applied at every timestep.
+
+    theta_feedback (ablation switch):
+        False (default) -- θ is clamped to its prior p(θ); no cavity messages
+            are sent to θ (the documented AIF-MP design choice).
+        True -- fully loopy over θ: each iteration sends cavity messages from
+            the dyn, obs, and (when present) pref factors back to θ via
+            compute_theta_cavities_extended, and the resulting per-factor
+            cavities replace the prior broadcasts everywhere. The θ cavities are
+            geometrically damped with the same `damping` factor. The θ cavities
+            are initialized to the prior, so iteration 0 matches the θ=prior
+            path exactly; they only diverge as feedback accumulates.
+
+    action_channel (bool, static):
+        When True, adds the VBP action channel r(u|x) to the dynamics kernel
+        numerator (updated each iteration from the pair marginal q(x_{t-1},u)),
+        so the scheme becomes the full Active Inference scheme (obs channels +
+        dyn channel + action channel). With action_channel=True and
+        theta_feedback=False this reduces to active_inference_planning (θ=prior);
+        with both True it is Active Inference with loopy backward messages to θ.
+        Default False keeps the plain region-extended scheme (no action channel).
 
     Returns:
         action_dist: (n_actions,)
@@ -460,7 +482,9 @@ def region_extended_loopy_bp_planning(
         log_C = None
         log_goal = safe_log(goal)
 
-    # Precompute prior broadcasts (replacing theta cavity messages)
+    # Prior broadcasts. When theta_feedback is False these are used directly as
+    # the θ beliefs everywhere (θ clamped to prior). When True they seed the
+    # per-factor cavities, which then evolve via loopy messages to θ.
     log_prior_dyn = jnp.broadcast_to(log_prior_theta[None, :], (horizon, n_static))
     log_prior_obs = jnp.broadcast_to(log_prior_theta[None, :], (horizon + 1, n_static))
 
@@ -472,24 +496,36 @@ def region_extended_loopy_bp_planning(
     log_dyn_channels_init = jnp.full((horizon, n_states, n_states, n_actions), -jnp.log(n_states))
     log_obs_channels_init = jnp.full((horizon + 1, n_fov, n_obs_types, n_states, n_static), -jnp.log(n_obs_types))
     log_marginal_obs_channels_init = jnp.full((horizon + 1, n_fov, n_obs_types, n_states), -jnp.log(n_obs_types))
+    # Action channel r(u|x): uniform init. When action_channel is False it stays
+    # uniform (a per-(x,·) constant over u) and cancels in every normalization,
+    # so the dynamics kernel is unchanged. It is only updated when action_channel.
+    log_r_ux_init = jnp.full((horizon, n_states, n_actions), -jnp.log(n_actions))
+
+    # Initial θ cavities = prior (iteration 0 then matches the θ=prior scheme).
+    log_cavity_dyn_init = log_prior_dyn
+    log_cavity_obs_init = log_prior_obs
+    log_cavity_pref_init = log_prior_obs
 
     if has_pref:
         def body_fn(i, carry):
             (_, log_dyn_channels, log_obs_channels, log_marginal_obs_channels,
-             log_fwd_prev, log_bwd_prev) = carry
+             log_fwd_prev, log_bwd_prev,
+             log_cavity_dyn, log_cavity_obs, log_cavity_pref, log_r_ux) = carry
 
-            # Step 1: Inline kernels
-            log_dyn_kernels = safe_log_div(log_T_kernel[None], log_dyn_channels[:, :, :, None, :])
+            # Step 1: Inline kernels. r(u|x) enters the dyn numerator (uniform =
+            # no-op when action_channel is off); r(x'|x,u) is the denominator.
+            log_dyn_kernels = (safe_log_div(log_T_kernel[None], log_dyn_channels[:, :, :, None, :])
+                               + log_r_ux[:, :, None, None, :])
             log_obs_kernels = (log_B_flat[None] + log_obs_channels
                                + safe_log_div(log_obs_channels,
                                               log_marginal_obs_channels[:, :, :, :, None]))
 
-            # Step 2: Reduced tensors (use prior instead of cavity)
-            log_reduced_per_t = compute_log_reduced(log_dyn_kernels, log_prior_dyn)
+            # Step 2: Reduced tensors (θ via carried cavity; = prior when feedback off)
+            log_reduced_per_t = compute_log_reduced(log_dyn_kernels, log_cavity_dyn)
 
-            # Step 3: obs->x and pref->x messages (use prior instead of cavity)
-            log_obs_to_x = compute_obs_to_x_msgs(log_obs_kernels, log_prior_obs)
-            log_pref_to_x = compute_pref_to_x_msgs(log_C, log_prior_obs)
+            # Step 3: obs->x and pref->x messages (θ via carried cavities)
+            log_obs_to_x = compute_obs_to_x_msgs(log_obs_kernels, log_cavity_obs)
+            log_pref_to_x = compute_pref_to_x_msgs(log_C, log_cavity_pref)
             log_local_to_x = log_obs_to_x + log_pref_to_x
 
             # Step 4: Forward pass (with combined local messages + inertial damping)
@@ -505,18 +541,18 @@ def region_extended_loopy_bp_planning(
                 log_prev_bwd=log_bwd_prev, msg_damping=damping
             )
 
-            # Step 6: Region beliefs (using combined local_to_x, prior instead of cavity)
+            # Step 6: Region beliefs (using combined local_to_x, θ via carried cavities)
             log_dyn_regions = compute_dyn_region_beliefs(
                 log_dyn_kernels, log_fwd_msgs, log_bwd_msgs, log_local_to_x,
-                log_prior_dyn, log_action_prior
+                log_cavity_dyn, log_action_prior
             )
             log_obs_regions = compute_obs_region_beliefs(
                 log_obs_kernels, log_fwd_msgs, log_bwd_msgs, log_local_to_x,
-                log_prior_obs
+                log_cavity_obs
             )
 
             # Step 7: Channels from region beliefs (with geometric damping)
-            raw_log_dyn_channels = compute_dyn_channels(log_dyn_regions)
+            raw_log_dyn_channels, log_pair_marginal = compute_dyn_channels_and_pair_marginal(log_dyn_regions)
             raw_log_obs_channels = compute_obs_channels(log_obs_regions)
             raw_log_marginal_obs_channels = compute_marginal_obs_channels(log_obs_regions)
 
@@ -527,33 +563,76 @@ def region_extended_loopy_bp_planning(
             new_log_marginal_obs_channels = damp_log_channel(
                 log_marginal_obs_channels, raw_log_marginal_obs_channels, damping, cond_axis=2)
 
+            # Step 7b: (AIF only) action channel r(u|x) from pair marginal q(x_{t-1},u)
+            if action_channel:
+                raw_log_r_ux = log_pair_marginal - logsumexp(
+                    log_pair_marginal, axis=2, keepdims=True)
+                new_log_r_ux = damp_log_channel(log_r_ux, raw_log_r_ux, damping, cond_axis=2)
+            else:
+                new_log_r_ux = log_r_ux
+
+            # Step 8: (loopy only) messages back to θ -> refreshed per-factor cavities.
+            # Correct cavities: each factor's x-belief excludes its own message to x.
+            #   dyn→θ  uses fwd/bwd augmented by log_local_to_x (obs+pref)
+            #   obs→θ  uses fwd+bwd + pref_to_x (excludes obs's own message)
+            #   pref→θ uses fwd+bwd + obs_to_x  (excludes pref's own message)
+            if theta_feedback:
+                log_dyn_to_theta = compute_dyn_to_theta_msgs(
+                    log_dyn_kernels, log_fwd_msgs, log_bwd_msgs, log_local_to_x,
+                    log_action_prior, horizon)
+                log_obs_to_theta = compute_obs_to_theta_msgs(
+                    log_obs_kernels, log_fwd_msgs, log_bwd_msgs, log_obs_to_x,
+                    log_extra_to_x=log_pref_to_x)
+                log_pref_to_theta = compute_pref_to_theta_msgs(
+                    log_C, log_fwd_msgs, log_bwd_msgs, log_obs_to_x)
+                raw_cav_dyn, raw_cav_obs, raw_cav_pref = compute_theta_cavities_extended(
+                    log_prior_theta, log_dyn_to_theta, log_obs_to_theta,
+                    log_pref_to_theta)
+                new_log_cavity_dyn = damp_log_channel(
+                    log_cavity_dyn, raw_cav_dyn, damping, cond_axis=1)
+                new_log_cavity_obs = damp_log_channel(
+                    log_cavity_obs, raw_cav_obs, damping, cond_axis=1)
+                new_log_cavity_pref = damp_log_channel(
+                    log_cavity_pref, raw_cav_pref, damping, cond_axis=1)
+            else:
+                new_log_cavity_dyn = log_cavity_dyn
+                new_log_cavity_obs = log_cavity_obs
+                new_log_cavity_pref = log_cavity_pref
+
             return (q_u, new_log_dyn_channels, new_log_obs_channels,
                     new_log_marginal_obs_channels,
-                    log_fwd_msgs, log_bwd_msgs)
+                    log_fwd_msgs, log_bwd_msgs,
+                    new_log_cavity_dyn, new_log_cavity_obs, new_log_cavity_pref,
+                    new_log_r_ux)
 
         result = lax.fori_loop(
             0, n_iterations, body_fn,
             (q_u_init, log_dyn_channels_init, log_obs_channels_init,
              log_marginal_obs_channels_init,
-             log_fwd_prev_init, log_bwd_prev_init)
+             log_fwd_prev_init, log_bwd_prev_init,
+             log_cavity_dyn_init, log_cavity_obs_init, log_cavity_pref_init,
+             log_r_ux_init)
         )
-        q_u, log_dyn_channels, log_obs_channels, _, _, _ = result
+        q_u, log_dyn_channels, log_obs_channels = result[0], result[1], result[2]
     else:
         def body_fn(i, carry):
             (_, log_dyn_channels, log_obs_channels, log_marginal_obs_channels,
-             log_fwd_prev, log_bwd_prev) = carry
+             log_fwd_prev, log_bwd_prev,
+             log_cavity_dyn, log_cavity_obs, log_r_ux) = carry
 
-            # Step 1: Inline kernels
-            log_dyn_kernels = safe_log_div(log_T_kernel[None], log_dyn_channels[:, :, :, None, :])
+            # Step 1: Inline kernels. r(u|x) enters the dyn numerator (uniform =
+            # no-op when action_channel is off); r(x'|x,u) is the denominator.
+            log_dyn_kernels = (safe_log_div(log_T_kernel[None], log_dyn_channels[:, :, :, None, :])
+                               + log_r_ux[:, :, None, None, :])
             log_obs_kernels = (log_B_flat[None] + log_obs_channels
                                + safe_log_div(log_obs_channels,
                                               log_marginal_obs_channels[:, :, :, :, None]))
 
-            # Step 2: Reduced tensors (use prior instead of cavity)
-            log_reduced_per_t = compute_log_reduced(log_dyn_kernels, log_prior_dyn)
+            # Step 2: Reduced tensors (θ via carried cavity; = prior when feedback off)
+            log_reduced_per_t = compute_log_reduced(log_dyn_kernels, log_cavity_dyn)
 
-            # Step 3: obs->x messages (use prior instead of cavity)
-            log_obs_to_x = compute_obs_to_x_msgs(log_obs_kernels, log_prior_obs)
+            # Step 3: obs->x messages (θ via carried cavity)
+            log_obs_to_x = compute_obs_to_x_msgs(log_obs_kernels, log_cavity_obs)
 
             # Step 4: Forward pass (with inertial damping)
             log_fwd_msgs = forward_pass(
@@ -568,18 +647,18 @@ def region_extended_loopy_bp_planning(
                 log_prev_bwd=log_bwd_prev, msg_damping=damping
             )
 
-            # Step 6: Region beliefs (use prior instead of cavity)
+            # Step 6: Region beliefs (θ via carried cavities)
             log_dyn_regions = compute_dyn_region_beliefs(
                 log_dyn_kernels, log_fwd_msgs, log_bwd_msgs, log_obs_to_x,
-                log_prior_dyn, log_action_prior
+                log_cavity_dyn, log_action_prior
             )
             log_obs_regions = compute_obs_region_beliefs(
                 log_obs_kernels, log_fwd_msgs, log_bwd_msgs, log_obs_to_x,
-                log_prior_obs
+                log_cavity_obs
             )
 
             # Step 7: Channels from region beliefs (with geometric damping)
-            raw_log_dyn_channels = compute_dyn_channels(log_dyn_regions)
+            raw_log_dyn_channels, log_pair_marginal = compute_dyn_channels_and_pair_marginal(log_dyn_regions)
             raw_log_obs_channels = compute_obs_channels(log_obs_regions)
             raw_log_marginal_obs_channels = compute_marginal_obs_channels(log_obs_regions)
 
@@ -590,17 +669,44 @@ def region_extended_loopy_bp_planning(
             new_log_marginal_obs_channels = damp_log_channel(
                 log_marginal_obs_channels, raw_log_marginal_obs_channels, damping, cond_axis=2)
 
+            # Step 7b: (AIF only) action channel r(u|x) from pair marginal q(x_{t-1},u)
+            if action_channel:
+                raw_log_r_ux = log_pair_marginal - logsumexp(
+                    log_pair_marginal, axis=2, keepdims=True)
+                new_log_r_ux = damp_log_channel(log_r_ux, raw_log_r_ux, damping, cond_axis=2)
+            else:
+                new_log_r_ux = log_r_ux
+
+            # Step 8: (loopy only) messages back to θ -> refreshed per-factor cavities.
+            if theta_feedback:
+                log_dyn_to_theta = compute_dyn_to_theta_msgs(
+                    log_dyn_kernels, log_fwd_msgs, log_bwd_msgs, log_obs_to_x,
+                    log_action_prior, horizon)
+                log_obs_to_theta = compute_obs_to_theta_msgs(
+                    log_obs_kernels, log_fwd_msgs, log_bwd_msgs, log_obs_to_x)
+                raw_cav_dyn, raw_cav_obs = compute_theta_cavities_extended(
+                    log_prior_theta, log_dyn_to_theta, log_obs_to_theta)
+                new_log_cavity_dyn = damp_log_channel(
+                    log_cavity_dyn, raw_cav_dyn, damping, cond_axis=1)
+                new_log_cavity_obs = damp_log_channel(
+                    log_cavity_obs, raw_cav_obs, damping, cond_axis=1)
+            else:
+                new_log_cavity_dyn = log_cavity_dyn
+                new_log_cavity_obs = log_cavity_obs
+
             return (q_u, new_log_dyn_channels, new_log_obs_channels,
                     new_log_marginal_obs_channels,
-                    log_fwd_msgs, log_bwd_msgs)
+                    log_fwd_msgs, log_bwd_msgs,
+                    new_log_cavity_dyn, new_log_cavity_obs, new_log_r_ux)
 
         result = lax.fori_loop(
             0, n_iterations, body_fn,
             (q_u_init, log_dyn_channels_init, log_obs_channels_init,
              log_marginal_obs_channels_init,
-             log_fwd_prev_init, log_bwd_prev_init)
+             log_fwd_prev_init, log_bwd_prev_init,
+             log_cavity_dyn_init, log_cavity_obs_init, log_r_ux_init)
         )
-        q_u, log_dyn_channels, log_obs_channels, _, _, _ = result
+        q_u, log_dyn_channels, log_obs_channels = result[0], result[1], result[2]
 
     action_dist = q_u[0]
     action_dist = action_dist / (action_dist.sum() + 1e-10)

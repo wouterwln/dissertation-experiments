@@ -140,6 +140,10 @@ def main():
     parser.add_argument("--n-theta", type=int, default=5, help="Number of goal identities (n_static, 1..5)")
     parser.add_argument("--cue-accuracy", type=float, default=1.0, help="Cue observation accuracy at the cue")
     parser.add_argument("--pos-noise", type=float, default=0.05, help="Location channel noise")
+    parser.add_argument("--cue-dropoff", type=str, default="random",
+                        help="Where the agent lands after the cue: 'random' (default, uniform "
+                             "over the 5 nav states) or a nav-state index 0..4 for a deterministic "
+                             "drop-off. Applies to both the true env and the agent's transition model.")
     parser.add_argument("--goal-temperature", type=float, default=0.25, help="Goal softmax temperature (lower = sharper)")
     parser.add_argument("--cue-cost", type=float, default=1.0,
                         help="VISIT_CUE action prior weight (<1 makes visiting the cue "
@@ -164,10 +168,17 @@ def main():
 
     set_seed(args.seed)
 
+    # Cue drop-off: 'random' -> None (uniform over nav states), else a fixed nav index.
+    if args.cue_dropoff == "random":
+        cue_dropoff = None
+    else:
+        cue_dropoff = int(args.cue_dropoff)
+
     print(f"JAX devices: {jax.devices()}")
     print(f"JAX default backend: {jax.default_backend()}")
     print(f"\nReactivity Maze (n_theta={args.n_theta})")
     print(f"  Cue accuracy: {args.cue_accuracy}, pos noise: {args.pos_noise}")
+    print(f"  Cue drop-off: {'uniform-random' if cue_dropoff is None else f'fixed nav {cue_dropoff}'}")
     print(f"  Goal temperature: {args.goal_temperature}")
     print(f"  Max steps: {args.max_steps}, planning horizon: {args.planning_horizon}")
     print()
@@ -175,7 +186,7 @@ def main():
     print("Generating tensors...")
     t0 = time.time()
     goals = sample_configs(args.n_theta)
-    T = generate_transition_tensor(args.n_theta)
+    T = generate_transition_tensor(args.n_theta, cue_dropoff=cue_dropoff)
     B = generate_observation_tensor(
         args.n_theta, cue_accuracy=args.cue_accuracy, pos_noise=args.pos_noise,
     )
@@ -225,7 +236,7 @@ def main():
     print(f"  Planning iterations: {args.planning_iterations}")
     print()
 
-    env = ReactivityMazeEnv(goals, obs_tensor=B, max_steps=args.max_steps)
+    env = ReactivityMazeEnv(goals, obs_tensor=B, max_steps=args.max_steps, cue_dropoff=cue_dropoff)
 
     print(f"Running {args.episodes} episodes...")
     print("-" * 50)
@@ -285,6 +296,7 @@ def main():
                 "n_theta": args.n_theta,
                 "cue_accuracy": args.cue_accuracy,
                 "pos_noise": args.pos_noise,
+                "cue_dropoff": ("random" if cue_dropoff is None else cue_dropoff),
                 "goal_temperature": args.goal_temperature,
                 "cue_cost": args.cue_cost,
                 "planning_method": args.planning_method,

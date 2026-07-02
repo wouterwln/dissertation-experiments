@@ -89,30 +89,45 @@ def sample_configs(n_theta: int) -> np.ndarray:
     return np.arange(n_theta, dtype=np.int32)
 
 
-def generate_transition_tensor(n_theta: int) -> np.ndarray:
+def generate_transition_tensor(n_theta: int, cue_dropoff: int | None = None) -> np.ndarray:
     """Generate transition tensor T(x_new, x_old, θ, action).
 
     Dynamics are θ-independent (θ only names the goal, it does not affect physics),
     so the tensor is broadcast across the static axis. Reproduces the chapter-3
     epistemic-maze dynamics exactly:
-      - cue: any action -> uniform over the 5 nav states (same knob)
+      - cue: any action -> nav-state drop-off (same knob), see ``cue_dropoff``
       - safe sink: absorbing
       - knob +/-: succeed w.p. knob/4 (stay, change knob); else fall to safe sink
       - visit cue: deterministic move to the cue
       - nav 0-4: succeed w.p. knob/4 to (loc+a) mod 5; else fall to safe sink
 
+    Args:
+        n_theta: number of goal identities (n_static)
+        cue_dropoff: where the agent lands after the cue. ``None`` (default) is the
+            canonical dynamics: uniform over the 5 nav states. An int in
+            ``0..N_NAV_STATES-1`` makes the drop-off deterministic to that nav
+            state (used by the fixed-drop-off ablation).
+
     Returns:
         T: (35, 35, n_theta, 8) float32
     """
+    if cue_dropoff is not None and not 0 <= cue_dropoff < N_NAV_STATES:
+        raise ValueError(f"cue_dropoff must be None or 0..{N_NAV_STATES - 1}, got {cue_dropoff}")
+
     T3 = np.zeros((N_STATES, N_STATES, N_ACTIONS), dtype=np.float32)
 
     for s in range(N_STATES):
         loc, knob = unpack_state(s)
         for a in range(N_ACTIONS):
-            # Cue: any action -> uniform over nav states (same knob)
+            # Cue: any action -> nav-state drop-off (same knob). Canonically this
+            # is uniform over the 5 nav states; with cue_dropoff set it is a
+            # deterministic move to that single nav state.
             if loc == CUE:
-                for nl in range(N_NAV_STATES):
-                    T3[state_index(nl, knob), s, a] += 1.0 / N_NAV_STATES
+                if cue_dropoff is None:
+                    for nl in range(N_NAV_STATES):
+                        T3[state_index(nl, knob), s, a] += 1.0 / N_NAV_STATES
+                else:
+                    T3[state_index(cue_dropoff, knob), s, a] += 1.0
                 continue
 
             # Safe sink: absorbing
@@ -311,6 +326,10 @@ class ReactivityMazeEnv:
         obs_tensor: (7 + n_theta, 2, 35, n_theta) observation tensor
         max_steps: number of steps per episode (terminal reward at the last step)
         start_location: fixed start navigation location (default 0)
+        cue_dropoff: where the agent lands after the cue. ``None`` (default) is the
+            canonical uniform-random drop-off over the 5 nav states; an int in
+            ``0..N_NAV_STATES-1`` makes it deterministic to that nav state. Must
+            match the ``cue_dropoff`` used to build the agent's transition tensor.
     """
 
     def __init__(
@@ -319,12 +338,16 @@ class ReactivityMazeEnv:
         obs_tensor: np.ndarray | None = None,
         max_steps: int = 5,
         start_location: int = 0,
+        cue_dropoff: int | None = None,
     ):
+        if cue_dropoff is not None and not 0 <= cue_dropoff < N_NAV_STATES:
+            raise ValueError(f"cue_dropoff must be None or 0..{N_NAV_STATES - 1}, got {cue_dropoff}")
         self.goals = np.asarray(goals)
         self.n_theta = int(self.goals.shape[0])
         self.obs_tensor = obs_tensor
         self._max_steps = max_steps
         self.start_location = start_location
+        self.cue_dropoff = cue_dropoff
         self.start_state_idx = state_index(start_location, MAX_KNOB)
 
         self._rng = np.random.default_rng(0)
@@ -375,9 +398,13 @@ class ReactivityMazeEnv:
     def _execute_transition(self, action: int) -> None:
         loc, knob = self._location, self._knob
 
-        # Cue: any action -> uniform random nav state (same knob)
+        # Cue: any action -> nav-state drop-off (same knob). Uniform random by
+        # default; deterministic to cue_dropoff when set (fixed-drop-off ablation).
         if loc == CUE:
-            self._location = int(self._rng.integers(0, N_NAV_STATES))
+            if self.cue_dropoff is None:
+                self._location = int(self._rng.integers(0, N_NAV_STATES))
+            else:
+                self._location = self.cue_dropoff
             return
 
         # Safe sink: absorbing
