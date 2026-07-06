@@ -170,8 +170,9 @@ def method_marker(method):
 
 # Chapter-6 planner slugs -> entity color (BA-POMDP bake-off plots). Unlike the
 # method chapters (which own the cool range), ch6 is its OWN full-spectrum world:
-# the AIF-MP hero keeps the cover teal and the BA-RL baseline slate spreads
-# across the wheel so up to 7 lines separate under CVD (validated: worst pair
+# AIF-MP and VBP keep their method-family colors (teal, azure) since they recur
+# in ch5; the ch6-specific BA-RL baselines spread across the wheel so up to 7
+# lines separate under CVD (validated: worst pair
 # dE 15.4, above the 12 target; all >= 3:1 on the page). POMCP + Factored
 # BA-POMCP are BAMCP variants, so they share its coral and are told apart by
 # linestyle. Only AIF's teal trips the chroma floor (accepted hero exception).
@@ -183,7 +184,8 @@ PLANNER_COLORS = {
     "factored_bamcp": "#C0442E",          # coral (BAMCP family; dash-dot)
     "boss":           "#4E8C57",          # green
     "ids":            "#8E4FA0",          # purple
-    "vbp":            "#C25B93",          # pink (dashboards only)
+    "vbp":            PALETTE["vbp"],     # azure -- entity-stable with the method
+                                          # family (same VBP as ch5), never pink
     "belief_q":       "#A15A2A",          # rust (dashboards only)
     "oracle":         PALETTE["ink"],     # charcoal bound (dashed)
     "random":         PALETTE["muted"],   # grey bound (dashed)

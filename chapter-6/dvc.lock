@@ -510,8 +510,8 @@ stages:
     outs:
     - path: output/door_code/figure.pdf
       hash: md5
-      md5: c4e7d3ff0cf51853a11824c5f3f3833b
-      size: 60639
+      md5: f01b627f35bc59242e704bd22630947e
+      size: 60636
   minigrid_door_code@aif:
     cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 3 
       --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
@@ -1130,8 +1130,8 @@ stages:
     outs:
     - path: output/minigrid_door_code/figure.pdf
       hash: md5
-      md5: 759000d114c112fb58a3ff65cd743b48
-      size: 53779
+      md5: 1d529a8934bc16840af2eaa1c52a2210
+      size: 53775
   rock_sample@random:
     cmd: uv run python scripts/run_rock_sample.py --planner random --K 4 
       --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
@@ -1643,8 +1643,8 @@ stages:
     outs:
     - path: output/rock_sample/figure.pdf
       hash: md5
-      md5: a3015410531b9ccd1495118f693c7df0
-      size: 68570
+      md5: 6f8bd14c55c62aa23bab09490570c236
+      size: 68572
   plot_door_code_simscaling:
     cmd: uv run python scripts/plot_door_code_simscaling.py --input-dir 
       output/door_code_simscaling --output 
@@ -1664,8 +1664,8 @@ stages:
       size: 34491880
     - path: scripts/plot_door_code_simscaling.py
       hash: md5
-      md5: e3af2cb6d93218d29dec337dcea1ee1c
-      size: 4864
+      md5: 68caa2052908db76f6dbf2e2801e23ce
+      size: 5211
     params:
       params.yaml:
         door_code_simscaling.sims_sweep:
@@ -1675,8 +1675,8 @@ stages:
     outs:
     - path: output/door_code_simscaling/figure.pdf
       hash: md5
-      md5: 7003ab5a0b32257d7729bba0a80d3413
-      size: 21811
+      md5: 9543f5a3ca8038e054d44ae04e86a3b2
+      size: 22678
   rock_sample_kscaling@2-random:
     cmd: uv run python scripts/run_rock_sample.py --planner random --K 2 
       --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
@@ -1884,8 +1884,8 @@ stages:
     outs:
     - path: output/rock_sample_kscaling/figure.pdf
       hash: md5
-      md5: 516ab93719626faa783f2531448004dd
-      size: 35368
+      md5: ebc7ae9b25cb4daad4c4b507fc28010b
+      size: 35363
   rock_sample_viz:
     cmd: uv run python scripts/visualize_rock_sample.py --input-dir 
       output/rock_sample --output-dir output/rock_sample/viz --planners aif 
@@ -4185,5 +4185,5 @@ stages:
     outs:
     - path: output/factored_tiger/figure.pdf
       hash: md5
-      md5: db547092702306215ed346adfffd627a
-      size: 52298
+      md5: 1097d48b1f8c85a5d6976387f201e733
+      size: 52300
