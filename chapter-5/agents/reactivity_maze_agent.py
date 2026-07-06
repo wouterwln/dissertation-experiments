@@ -100,7 +100,7 @@ def _infer_state(
 @dataclass(frozen=True)
 class _ReactivityMazeAgentBase:
     transition_tensor: jnp.ndarray   # (n_states, n_states, n_static, n_actions)
-    observation_tensor: jnp.ndarray  # (n_location_channels + n_theta, 2, n_states, n_static)
+    observation_tensor: jnp.ndarray  # (n_location_channels + 1, n_theta+1, n_states, n_static)
     goal: jnp.ndarray               # (n_states, n_static)
     n_location_channels: int        # number of θ-independent location channels (split point)
     q_current_state: jnp.ndarray    # (n_states,)

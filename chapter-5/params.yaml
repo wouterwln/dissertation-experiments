@@ -130,15 +130,15 @@ rocksample_methods:
 
 
 reactivity_maze:
-  n_theta: 5
+  n_theta: 2
   cue_accuracy: 1.0
-  pos_noise: 0.05
-  goal_temperature: 0.25
+  pos_noise: 0.0
+  goal_temperature: 0.2
   cue_cost: 0.5
   episodes: 1000
-  max_steps: 6
-  planning_horizon: 6
-  seed: 0
+  max_steps: 5
+  planning_horizon: 3
+  seed: 42
   # Nav state the agent is deterministically dropped at after the cue in the
   # fixed-drop-off ablation (reactivity_maze_fixed_dropoff stage). The canonical
   # reactivity_maze stage above always uses the uniform-random drop-off.

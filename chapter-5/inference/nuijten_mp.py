@@ -345,6 +345,11 @@ def nuijten_mp_planning(
     if action_prior is None:
         action_prior = jnp.ones(n_actions) / n_actions
     action_mask = (action_prior > 0).astype(jnp.float32)
+    # Base action prior p(a) (e.g. the VISIT_CUE cost). The per-timestep EFE action
+    # prior is recomputed every iteration and would otherwise overwrite p(a) entirely,
+    # dropping the cue cost. Keep it as a persistent additive message on the action
+    # edge, combined with the EFE prior wherever the per-timestep prior is used.
+    log_action_prior_base = safe_log(action_prior)
 
     # Log once at top
     if not use_sparse:
@@ -367,7 +372,9 @@ def nuijten_mp_planning(
     # Initialize carry
     log_dyn_to_theta = jnp.zeros((horizon, n_static))
     q_u_init = jnp.zeros((horizon, n_actions))
-    action_prior_init = jnp.tile(action_prior, (horizon, 1))
+    # EFE action prior starts uniform (no region beliefs yet); the base p(a) is added
+    # separately at each use site, so iteration 0's effective prior is exactly p(a).
+    action_prior_init = jnp.tile(jnp.ones(n_actions) / n_actions, (horizon, 1))
     if not use_sparse:
         log_dyn_regions_init = jnp.zeros((horizon, n_states, n_states, n_static, n_actions))
     obs_regions_init = jnp.zeros((horizon + 1, n_fov, n_obs_types, n_states, n_static))
@@ -378,7 +385,7 @@ def nuijten_mp_planning(
         def body_fn(_, carry):
             log_dyn_to_theta, _, action_prior_per_t, obs_regions, log_pref_to_theta = carry
 
-            log_action_prior_per_t = safe_log(action_prior_per_t)
+            log_action_prior_per_t = safe_log(action_prior_per_t) + log_action_prior_base[None, :]
 
             log_obs_to_x = compute_obs_efe_to_x(obs_regions)
             log_obs_to_theta = compute_obs_efe_to_theta(obs_regions)
@@ -433,7 +440,7 @@ def nuijten_mp_planning(
         def body_fn(_, carry):
             log_dyn_to_theta, _, action_prior_per_t, _, obs_regions, log_pref_to_theta = carry
 
-            log_action_prior_per_t = safe_log(action_prior_per_t)
+            log_action_prior_per_t = safe_log(action_prior_per_t) + log_action_prior_base[None, :]
 
             log_obs_to_x = compute_obs_efe_to_x(obs_regions)
             log_obs_to_theta = compute_obs_efe_to_theta(obs_regions)
@@ -488,7 +495,7 @@ def nuijten_mp_planning(
         def body_fn(_, carry):
             log_dyn_to_theta, _, action_prior_per_t, obs_regions = carry
 
-            log_action_prior_per_t = safe_log(action_prior_per_t)
+            log_action_prior_per_t = safe_log(action_prior_per_t) + log_action_prior_base[None, :]
 
             log_obs_to_x = compute_obs_efe_to_x(obs_regions)
             log_obs_to_theta = compute_obs_efe_to_theta(obs_regions)
@@ -532,7 +539,7 @@ def nuijten_mp_planning(
         def body_fn(_, carry):
             log_dyn_to_theta, _, action_prior_per_t, _, obs_regions = carry
 
-            log_action_prior_per_t = safe_log(action_prior_per_t)
+            log_action_prior_per_t = safe_log(action_prior_per_t) + log_action_prior_base[None, :]
 
             log_obs_to_x = compute_obs_efe_to_x(obs_regions)
             log_obs_to_theta = compute_obs_efe_to_theta(obs_regions)

@@ -23,10 +23,14 @@ Actions (8):
     5:   decrease knob   6: increase knob         (same knob/4 success dynamics)
     7:   visit cue                                 (deterministic move to the cue)
 
-Observation channels (all binary; shape (7 + n_theta, 2, 35, n_static)):
-    channels 0..6:        one per location, θ-independent, always informative
-    channels 7..7+n_theta: one per θ value, event-gated on the cue location — noisy
-                           informative at the cue, uninformative (0.5/0.5) elsewhere
+Observation channels (shape (7 + 1, n_theta + 1, 35, n_static)):
+    channels 0..6:  one per location, binary present/absent, θ-independent, always
+                    informative (only outcomes {0, 1} are used)
+    channel 7:      a SINGLE categorical θ modality over n_theta+1 outcomes (one
+                    signal per θ value + a deterministic neutral outcome at index
+                    n_theta), event-gated on the cue location — informative at the
+                    cue, deterministic neutral elsewhere. This matches chapter-3's
+                    theta_observation modality exactly.
 
 Reward (terminal only, exactly the chapter-3 structure):
     +1.00  correct goal (location == θ) with max reactivity (knob == 4)
@@ -171,56 +175,61 @@ def generate_observation_tensor(
 ) -> np.ndarray:
     """Generate observation tensor B(channel, obs_type, x, θ).
 
-    7 + n_theta binary channels:
-      - location channels 0..6: fire when the agent is at that location. θ- and
-        knob-independent (location is always observable).
-      - cue channels 7..7+n_theta-1: channel 7+j signals "θ == j". Event-gated on
-        the cue location — noisy-informative at the cue, and near-deterministically
-        OFF everywhere else. Off-cue the channels are θ-independent (all θ read
-        "off"), so they carry no information about θ away from the cue, while being
-        LOW-entropy: a 0.5/0.5 "uninformative" encoding would instead read as maximal
-        observation ambiguity and make the AIF ambiguity term flee every non-cue
-        state toward the cue forever, even after θ is resolved.
+    Chapter-3-EXACT θ observation: a SINGLE categorical θ channel with
+    ``n_theta + 1`` outcomes — one signal per θ value plus a deterministic
+    *neutral* outcome at index ``n_theta`` — event-gated on the cue location.
+    This mirrors chapter-3's ``theta_observation`` modality (Epistemic Maze,
+    ``create_epistemic_maze_tensors``) exactly, rather than the earlier
+    n_theta independent binary cue channels.
+
+    Channels (n_obs_types = n_theta + 1):
+      - location channels 0..6: binary present/absent (outcomes {0, 1} only),
+        θ- and knob-independent (location is always observable).
+      - θ channel (index 7): categorical over n_theta+1 outcomes. At the cue,
+        outcome j fires with p(j | cue, θ=j) = cue_accuracy and the wrong
+        signals share (1 - cue_accuracy)/(n_theta - 1); everywhere else the
+        deterministic neutral outcome (index n_theta) fires. The neutral outcome
+        makes the off-cue reading uninformative about θ AND low-entropy, and —
+        as in ch3 — a non-neutral θ reading also implies "at the cue" (its signal
+        outcomes have probability 0 in every non-cue state), which sharpens
+        location inference.
 
     Args:
         n_theta: number of goal identities (n_static)
-        cue_accuracy: probability the correct cue signal fires at the cue
+        cue_accuracy: probability the correct θ signal fires at the cue
         pos_noise: location channel noise
 
     Returns:
-        B: (7 + n_theta, 2, 35, n_theta) float32
+        B: (7 + 1, n_theta + 1, 35, n_theta) float32
     """
-    n_channels = N_LOCATIONS + n_theta
+    neutral = n_theta                    # index of the neutral θ outcome
+    n_obs_types = max(2, n_theta + 1)    # location uses {0,1}; θ uses 0..n_theta
+    n_channels = N_LOCATIONS + 1         # 7 location channels + 1 categorical θ channel
+    theta_ch = N_LOCATIONS
 
-    p_tp_loc = float(np.clip(1.0 - pos_noise, 0.01, 0.999))
-    p_fp_loc = float(np.clip(pos_noise * 0.1, 0.001, 0.99))
-    p_tp_cue = float(np.clip(cue_accuracy, 0.01, 0.99))
-    p_fp_cue = float(np.clip((1.0 - cue_accuracy) * 0.1, 0.001, 0.99))
+    p_tp_loc = float(np.clip(1.0 - pos_noise, 0.0, 1.0))
+    p_fp_loc = float(np.clip(pos_noise * 0.1, 0.0, 1.0))
 
-    B = np.zeros((n_channels, 2, N_STATES, n_theta), dtype=np.float32)
+    B = np.zeros((n_channels, n_obs_types, N_STATES, n_theta), dtype=np.float32)
 
     for x in range(N_STATES):
         loc, _ = unpack_state(x)
 
-        # Location channels (θ-independent)
+        # Location channels (θ-independent binary present/absent)
         for c in range(N_LOCATIONS):
             p = p_tp_loc if loc == c else p_fp_loc
             B[c, 1, x, :] = p
             B[c, 0, x, :] = 1.0 - p
 
-        # Cue channels (θ-dependent, event-gated on the cue location)
-        for j in range(n_theta):
-            ch = N_LOCATIONS + j
-            if loc == CUE:
-                for theta in range(n_theta):
-                    p = p_tp_cue if theta == j else p_fp_cue
-                    B[ch, 1, x, theta] = p
-                    B[ch, 0, x, theta] = 1.0 - p
-            else:
-                # Off-cue: near-deterministically OFF (θ-independent, low entropy).
-                # Uninformative about θ, but NOT maximally ambiguous (see docstring).
-                B[ch, 1, x, :] = p_fp_cue
-                B[ch, 0, x, :] = 1.0 - p_fp_cue
+        # Categorical θ channel (event-gated on the cue location)
+        if loc == CUE:
+            other = (1.0 - cue_accuracy) / (n_theta - 1) if n_theta > 1 else 0.0
+            for theta in range(n_theta):
+                for j in range(n_theta):
+                    B[theta_ch, j, x, theta] = cue_accuracy if j == theta else other
+        else:
+            # Off-cue: deterministic neutral outcome, θ-independent (matches ch3)
+            B[theta_ch, neutral, x, :] = 1.0
 
     return B
 
@@ -306,7 +315,7 @@ def get_final_reward(location: int, knob: int, theta: int) -> float:
 
 @dataclass
 class ReactivityStepResult:
-    obs: np.ndarray  # (7 + n_theta,) binary observations
+    obs: np.ndarray  # (7 + 1,) per-channel outcome indices (location binary; θ categorical)
     reward: float
     terminated: bool
     truncated: bool
@@ -323,7 +332,7 @@ class ReactivityMazeEnv:
 
     Args:
         goals: (n_theta,) config array (goals[θ] == θ)
-        obs_tensor: (7 + n_theta, 2, 35, n_theta) observation tensor
+        obs_tensor: (7 + 1, n_theta + 1, 35, n_theta) observation tensor
         max_steps: number of steps per episode (terminal reward at the last step)
         start_location: fixed start navigation location (default 0)
         cue_dropoff: where the agent lands after the cue. ``None`` (default) is the
@@ -461,13 +470,19 @@ class ReactivityMazeEnv:
         return self._has_seen_cue
 
     def _get_obs(self) -> np.ndarray:
-        """Sample binary observations from the observation model."""
+        """Sample per-channel categorical observations from the observation model.
+
+        Returns one outcome index per channel: location channels are binary
+        (0=absent, 1=present); the θ channel (last) is a categorical over
+        n_theta+1 outcomes (θ signals 0..n_theta-1 plus the neutral index n_theta).
+        """
         x = self._state_idx
-        n_channels = self.obs_tensor.shape[0]
+        n_channels, n_obs_types = self.obs_tensor.shape[0], self.obs_tensor.shape[1]
         obs = np.zeros(n_channels, dtype=np.float32)
         for c in range(n_channels):
-            p_fire = self.obs_tensor[c, 1, x, self._config_idx]
-            obs[c] = float(self._rng.random() < p_fire)
+            p = np.asarray(self.obs_tensor[c, :, x, self._config_idx], dtype=np.float64)
+            p = p / p.sum()
+            obs[c] = self._rng.choice(n_obs_types, p=p)
         return obs
 
     def render_ascii(self) -> str:
