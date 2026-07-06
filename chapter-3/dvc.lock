@@ -382,19 +382,19 @@ stages:
       size: 38255
     - path: scripts/tmaze/plot_convergence.py
       hash: md5
-      md5: 05dce82b2e0a34bf5c77f4d29ab7902d
-      size: 9337
+      md5: 611722e504041897616650392bce88b8
+      size: 9690
     params:
       params.yaml:
         colors:
-          active: '#1F78B4'
-          marginal: '#33A02C'
-          planning: '#FF7F00'
+          active: '#3A6F73'
+          marginal: '#4A46A3'
+          planning: '#2F97CE'
     outs:
     - path: data/tmaze/convergence/figures
       hash: md5
-      md5: 59fb73b99a848265e9b5cc7b8ae3b282.dir
-      size: 2098093
+      md5: 721fbb29d18d8f1591407486cfeb9c2f.dir
+      size: 2022673
       nfiles: 18
   tmaze_experiment_marginal:
     cmd: uv run python scripts/tmaze/experiment.py --inference-mode marginal 

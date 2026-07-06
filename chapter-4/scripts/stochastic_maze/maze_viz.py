@@ -137,7 +137,7 @@ def _draw_checkered_flag(ax, x, y, scale=1.0):
 
 
 def draw_maze_background(ax, env, *, vmax=None, show_markers=True,
-                         cell_fontsize=8, marker_scale=1.0):
+                         cell_fontsize=theme.CELL_LABEL_SIZE, marker_scale=1.0):
     """Draw the maze grid (light noise field + cell-type markers) onto `ax`.
 
     Returns the image handle so callers can attach a shared colorbar.
@@ -166,20 +166,18 @@ def draw_maze_background(ax, env, *, vmax=None, show_markers=True,
         for (x, y) in env.sink_states:
             _draw_sink(ax, x, y, scale=marker_scale)
 
-        # Reward cells.
+        # Reward cells: FULL green/coral cell fill + G/P letter, matching the
+        # wumpus-world convention (whole cell colored; contrast-chosen letter).
         for s, r in env.reward_states:
             x, y = state_to_xy(s, gx)
-            if r > 0:
-                _draw_checkered_flag(ax, x, y, scale=marker_scale)
-                ax.text(x, y - 0.40, "+1", ha="center", va="center",
-                        fontsize=cell_fontsize, color=GOAL_INK,
-                        fontweight="bold", zorder=7).set_path_effects(_HALO)
-            else:
-                ax.text(x, y, "−1", ha="center", va="center",
-                        fontsize=cell_fontsize + 1, color=CELL_COLOR,
-                        fontweight="bold", zorder=6,
-                        bbox=dict(boxstyle="round,pad=0.18", fc=PENALTY_COLOR,
-                                  ec=CELL_COLOR, lw=0.8))
+            label = "G" if r > 0 else "P"
+            fc = GOAL_COLOR if r > 0 else PENALTY_COLOR
+            fg = INK if r > 0 else CELL_COLOR  # dark on green, paper on coral
+            ax.add_patch(Rectangle((x - 0.5, y - 0.5), 1.0, 1.0, facecolor=fc,
+                                   edgecolor=GRID_COLOR, lw=0.8, zorder=2))
+            ax.text(x, y, label, ha="center", va="center",
+                    fontsize=cell_fontsize, color=fg,
+                    fontweight="bold", zorder=6)
 
         # Start state: colored ring, charcoal letter (text wears ink, not the
         # accent -- the ring carries the identity).
@@ -187,7 +185,7 @@ def draw_maze_background(ax, env, *, vmax=None, show_markers=True,
         ax.scatter([sx], [sy], marker="o", s=260 * marker_scale,
                    facecolors=CELL_COLOR, edgecolors=START_COLOR,
                    linewidths=2.4, zorder=6)
-        ax.text(sx, sy, "S", ha="center", va="center",
+        ax.text(sx, sy, "A", ha="center", va="center",
                 fontsize=cell_fontsize, color=INK,
                 fontweight="bold", zorder=7)
 
@@ -222,19 +220,18 @@ class _CheckerHandler(HandlerBase):
 def legend_handles():
     """Return (handles, handler_map) describing the maze cell types.
 
-    The goal entry is a proxy artist rendered by a custom handler so its legend
-    swatch matches the in-cell checkered flag. Observation noise is conveyed by
-    the colorbar, so it is not duplicated in the legend.
+    Goal and penalty are filled swatches matching their full green/coral cells.
+    Observation noise is conveyed by the colorbar, so it is not duplicated here.
     """
     start = Line2D([0], [0], marker="o", color="none", markerfacecolor=CELL_COLOR,
                    markeredgecolor=START_COLOR, markeredgewidth=2.2,
-                   markersize=11, label="Start")
-    goal = Line2D([], [], linestyle="none", label="Goal (+1)")
-    penalty = Patch(facecolor=PENALTY_COLOR, edgecolor=CELL_COLOR, label="Penalty (−1)")
+                   markersize=11, label="Agent (A)")
+    goal = Patch(facecolor=GOAL_COLOR, edgecolor=GRID_COLOR, label="G  goal (+1)")
+    penalty = Patch(facecolor=PENALTY_COLOR, edgecolor=GRID_COLOR, label="P  pit (−1)")
     stoch = Patch(facecolor="none", edgecolor=STOCH_COLOR, linewidth=2.2,
                   label="Stochastic transition")
     sink = Patch(facecolor="none", edgecolor=SINK_COLOR, linewidth=2.2,
                  label="Absorbing sink")
     handles = [start, goal, penalty, stoch, sink]
-    handler_map = {goal: _CheckerHandler()}
+    handler_map = {}
     return handles, handler_map

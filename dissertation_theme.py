@@ -5,13 +5,16 @@ of small plotting helpers, so the whole dissertation can be re-skinned from one
 place: edit `PALETTE` (or the colormap endpoints) here and every chapter's plots
 pick up the change on the next render.
 
-The palette is cover-aligned: it derives from the thesis LaTeX color macros
-(muted teal `thesisPrimary #3A6F73`, dusty blue `thesisSecondary #8FAFC2`,
-`thesisCharcoal #2A2A2A`, warm off-white `thesisBackground #F7F5F2`,
-`thesisLightGrey #D8D4CE`), extended with a muted amber (gold/goal) and a
-desaturated terracotta (pit/penalty/baseline) at the same saturation level so
-figures and text read as one system. Figures are saved with a transparent
-background (the thesis pages are white) so they sit directly on the page.
+The palette works in two registers. Algorithm lines use a COOL method family:
+the BP -> VBP -> RM-MP -> AIF-MP progression sweeps violet-indigo -> azure ->
+cyan-teal and resolves on the cover teal (`thesisPrimary #3A6F73`), which AIF-MP
+wears as the deep, low-chroma hero while the earlier steps carry real chroma so
+nothing reads faded. Warm hues (amber goal, terracotta pit) are reserved for
+MAZE/GRID semantics only -- methods and grids never share a plot, so the cool
+family owns the whole cool range. Other thesis neutrals mirror the LaTeX macros
+(dusty blue `thesisSecondary #8FAFC2`, `thesisCharcoal #2A2A2A`, warm off-white
+`thesisBackground #F7F5F2`, `thesisLightGrey #D8D4CE`). Figures are saved with a
+transparent background (the thesis pages are white) so they sit directly on the page.
 
 Each chapter is its own DVC project (its own `.dvc/`), so this file lives ABOVE
 every chapter's DVC root and is imported at *runtime* rather than tracked as a
@@ -55,39 +58,46 @@ THESIS = {
 # ---------------------------------------------------------------------------
 PALETTE = {
     # -- Planners / methods (entity-stable across chapters) ------------------
-    # The mainline result of the dissertation is AIF-MP: it wears the primary
-    # cover teal. Direct-prior MP (the `nuijten` scheme, chapter 4's planner)
-    # keeps its own steel blue everywhere so the two are never conflated.
-    # Hexes below were tuned with the CVD/contrast validator against the page
-    # surface; the low chroma of the brand teal is an accepted deviation
-    # (mitigated by per-method markers + legends), everything else passes.
-    "aif_mp":          THESIS["primary"],  # AIF-MP (hero)
-    "bp":              "#B4553F",          # loopy BP baseline (terracotta)
-    "direct_prior_mp": "#4679B5",          # Direct-prior MP (steel blue)
-    "gradient":        "#B4553F",          # gradient VFE baseline (ch3/4; the
-                                           # "baseline" terracotta -- never
-                                           # co-plotted with loopy BP)
-    "vbp":             "#A67E24",          # VBP action-channel scheme (dark
-                                           # amber: a line-weight step of the
-                                           # gold hue, >= 3:1 on the page)
-    "rm_mp":           "#6E3D75",          # dyn-channel / RM-MP (plum; dark
-                                           # enough to separate from the teal
-                                           # under deuteranopia)
-    "bp_marginal":     "#6E3D75",          # ch4 region-BP marginal ablation
-    "region_extended": "#85925E",          # region-extended BP (moss; light
-                                           # enough to separate from the
-                                           # terracotta under protanopia)
+    # One COOL family: the BP -> VBP -> RM-MP -> AIF-MP progression sweeps
+    # violet-indigo -> azure -> cyan-teal and resolves on the cover teal, which
+    # AIF-MP wears as the deep low-chroma hero. The three blue-ish steps are
+    # pushed wide (violet <-> cyan) so they hold apart under CVD; Direct-prior MP
+    # is a cornflower satellite off the arc. Tuned with the CVD/contrast
+    # validator: worst adjacent pair ~dE 12.6 (deutan, passes). The brand teal's
+    # low chroma is the one accepted deviation, mitigated by per-method markers.
+    "aif_mp":          THESIS["primary"],  # AIF-MP (hero; cover teal, deep anchor)
+    "bp":              "#4A46A3",          # loopy BP (violet-indigo; cold origin)
+    "direct_prior_mp": "#3F6FCB",          # Direct-prior MP (cornflower satellite)
+    "gradient":        "#6E839A",          # gradient VFE baseline (ch3/4; recessive
+                                           # cool slate -- never co-plotted with
+                                           # loopy BP; flip to warm if you'd rather
+                                           # it contrast the cool method line)
+    "vbp":             "#2F97CE",          # VBP action-channel scheme (azure)
+    "rm_mp":           "#12A6AE",          # dyn-channel / RM-MP (cyan-teal; the
+                                           # bright step just before AIF)
+    "bp_marginal":     "#4A46A3",          # marginal inference -> shares BP
+    "region_extended": "#85925E",          # region-extended BP (moss; an extra
+                                           # method, not in the cool progression
+                                           # -- revisit if it needs to harmonize)
 
     # -- Maze / grid-world semantics -----------------------------------------
-    "goal":       "#C49A3A",            # +1 reward / gold (muted amber)
-    "goal_ink":   "#8A6A1E",            # dark amber for small goal text
-    "penalty":    "#B4553F",            # -1 reward / pit (desat. terracotta)
-    "start":      THESIS["primary"],    # start-state ring (teal)
-    "sense":      THESIS["secondary"],  # SENSE / cue ring (dusty blue)
-    "stochastic": "#7195AC",            # stochastic-transition border (a
-                                        # deeper step of the dusty blue so the
-                                        # rounded border clears 3:1 on cells)
-    "sink":       THESIS["charcoal"],   # absorbing sink / wumpus
+    # Vibrant + position-coded: warm and cool coexist here because grid marks
+    # never overlap the way method lines do. Green good / coral bad / teal
+    # agent / amber-orange navigation, with blue reserved for env stochasticity.
+    "goal":       "#2FA25E",            # +1 reward / goal (clean green)
+    "goal_ink":   "#1F7A45",            # dark green: small goal text / good actions
+    "penalty":    "#D8452F",            # -1 reward / pit (coral-red)
+    "start":      THESIS["primary"],    # start-state / agent ring (teal)
+    "sense":      "#3AA5C4",            # SENSE / cue ring (cyan)
+    "stochastic": "#6B7076",            # stochastic-transition border (cool slate
+                                        # grey; blue is now the noise fog, so the
+                                        # border goes neutral -- lighter than the
+                                        # charcoal sink, which also carries chevrons)
+    "arrow":      "#EF9A24",            # navigation / trajectory arrows (amber-
+                                        # orange; warm pop vs green/red/blue)
+    "sink":       THESIS["charcoal"],   # absorbing sink (ch4; charcoal)
+    "wumpus":     "#35283F",            # wumpus monster (ch5; aubergine -- off
+                                        # the black/gold/red "flag")
     "cell":       "#FBFAF8",            # empty cell fill (just off the page)
     "grid":       THESIS["light_grey"], # cell gridlines
     "ink":        THESIS["charcoal"],   # text drawn inside figures
@@ -99,12 +109,13 @@ PALETTE = {
     "path_hi":  "#22474A",
     "path":     THESIS["primary"],      # single-color path uses (legends)
 
-    # -- Observation-noise heatmap endpoints (low -> high noise). A warm-grey
-    # field (not a hue) so the dusty-blue/teal accents stay reserved for
-    # semantics; capped light so even the noisiest cell reads as soft ambient
-    # shading, never a dark "wall".
+    # -- Observation-noise heatmap endpoints (low -> high noise): a cool dusty-
+    # blue haze reads as uncertainty (ch4 has no cue/sense channel competing for
+    # blue). Capped light so even the noisiest cell is soft ambient shading, never
+    # a dark "wall". NB the ch4 convergence plot uses PALETTE["muted"] for its
+    # faint traces, not this ramp -- so this can be blue without affecting it.
     "fog_lo": "#FBFAF8",
-    "fog_hi": "#ABA49B",
+    "fog_hi": "#8CA9C6",
 }
 
 # Fixed categorical order for un-keyed multi-series plots (axes.prop_cycle).
@@ -113,6 +124,12 @@ CYCLE = [
     PALETTE["vbp"], PALETTE["rm_mp"], PALETTE["region_extended"],
     PALETTE["muted"],
 ]
+
+# Shared in-cell label sizing for the grid/maze renderers, so every chapter
+# labels cells at one weight instead of ad-hoc per-figure sizes. Glyph
+# convention across chapters: "A" = agent, "S" = SENSE (never start).
+CELL_LABEL_SIZE = 10   # primary in-cell letter/number (goal, pit, terrain, agent)
+CELL_BADGE_SIZE = 8    # small corner / step-number badges
 
 # Chapter-5 planning-method slugs -> entity color (used by the sweep plots).
 METHOD_COLORS = {
@@ -151,24 +168,25 @@ def method_marker(method):
     return METHOD_MARKERS.get(method, "")
 
 
-# Chapter-6 planner slugs -> entity color (BA-POMDP bake-off plots). The slate
-# reuses the validated method slots (planners from different chapters never
-# co-plot): AIF keeps the hero teal, VBP its ch5 amber. POMCP and Factored
-# BA-POMCP are BAMCP variants, so they share its plum and are told apart by
-# linestyle -- variant-by-style keeps the palette at 7 hues, the most the
-# muted brand can separate under CVD (validated: worst pair De 12.0).
+# Chapter-6 planner slugs -> entity color (BA-POMDP bake-off plots). Unlike the
+# method chapters (which own the cool range), ch6 is its OWN full-spectrum world:
+# the AIF-MP hero keeps the cover teal and the BA-RL baseline slate spreads
+# across the wheel so up to 7 lines separate under CVD (validated: worst pair
+# dE 15.4, above the 12 target; all >= 3:1 on the page). POMCP + Factored
+# BA-POMCP are BAMCP variants, so they share its coral and are told apart by
+# linestyle. Only AIF's teal trips the chroma floor (accepted hero exception).
 PLANNER_COLORS = {
-    "aif":            PALETTE["aif_mp"],
-    "vbp":            PALETTE["vbp"],
-    "psrl":           PALETTE["direct_prior_mp"],   # steel
-    "ids":            PALETTE["bp"],                # terracotta
-    "bamcp":          PALETTE["rm_mp"],             # plum
-    "pomcp":          PALETTE["rm_mp"],             # plum (BAMCP variant)
-    "factored_bamcp": PALETTE["rm_mp"],             # plum (BAMCP variant)
-    "boss":           PALETTE["region_extended"],   # moss
-    "belief_q":       "#7E3B47",                    # maroon
-    "oracle":         PALETTE["ink"],               # bound (dashed)
-    "random":         PALETTE["muted"],             # bound (dashed)
+    "aif":            PALETTE["aif_mp"],  # cover teal (hero, entity-stable)
+    "psrl":           "#BE851F",          # amber
+    "bamcp":          "#C0442E",          # coral (BAMCP family)
+    "pomcp":          "#C0442E",          # coral (BAMCP family; dotted)
+    "factored_bamcp": "#C0442E",          # coral (BAMCP family; dash-dot)
+    "boss":           "#4E8C57",          # green
+    "ids":            "#8E4FA0",          # purple
+    "vbp":            "#C25B93",          # pink (dashboards only)
+    "belief_q":       "#A15A2A",          # rust (dashboards only)
+    "oracle":         PALETTE["ink"],     # charcoal bound (dashed)
+    "random":         PALETTE["muted"],   # grey bound (dashed)
 }
 PLANNER_LINESTYLES = {
     "oracle": "--", "random": "--",       # bounds

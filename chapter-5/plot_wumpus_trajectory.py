@@ -53,19 +53,19 @@ DEFAULT_METHODS = ["loopy", "vbp-channel", "dyn-channel", "nuijten", "active-inf
 EMPTY, PIT, WUMPUS, GOLD = 0, 1, 2, 3
 
 # Terrain colors drawn from the shared palette so the whole dissertation can be
-# re-skinned from one place: gold is the reward target (muted amber), pits are a
-# hazard (desaturated terracotta), the wumpus is the second, deadlier hazard
-# (thesis charcoal). Empty cells take the off-white cell fill so the light-grey
-# grid lines and arrows read.
+# re-skinned from one place: gold is the reward target (clean green), pits are a
+# hazard (coral-red), the wumpus is the second, deadlier hazard (aubergine, off
+# the black/gold/red "flag"). Empty cells take the off-white cell fill so the
+# light-grey grid lines and arrows read.
 TERRAIN_COLORS = [
     theme.PALETTE["cell"],     # EMPTY
     theme.PALETTE["penalty"],  # PIT
-    theme.PALETTE["sink"],     # WUMPUS
+    theme.PALETTE["wumpus"],   # WUMPUS
     theme.PALETTE["goal"],     # GOLD
 ]
 TERRAIN_LETTERS = {PIT: "P", WUMPUS: "W", GOLD: "G"}
 # Letter ink per terrain: paper-white on the dark hazard fills, charcoal on the
-# lighter amber gold cell (white would fall below readable contrast there).
+# green gold cell (dark ink out-contrasts white on the mid-green there).
 TERRAIN_LETTER_COLORS = {
     PIT: theme.PALETTE["cell"],
     WUMPUS: theme.PALETTE["cell"],
@@ -79,9 +79,9 @@ CELL_COLOR = theme.PALETTE["cell"]
 START_COLOR = theme.PALETTE["start"]   # thesis-primary teal ring
 SENSE_COLOR = theme.PALETTE["sense"]   # dusty-blue ring
 
-# Arrow color encodes step order (early -> late) on the theme's teal
-# trajectory ramp so it matches the other dissertation figures.
-PATH_CMAP = theme.path_cmap()
+# Navigation arrows use a single amber-orange (matching the other dissertation
+# figures); numbered badges at each step carry the order.
+ARROW_COLOR = theme.PALETTE["arrow"]
 
 
 # =============================================================================
@@ -188,11 +188,9 @@ def draw_panel(ax, traj, method_label):
             if cell in TERRAIN_LETTERS:
                 ax.text(c, r, TERRAIN_LETTERS[cell],
                         ha="center", va="center",
-                        fontsize=13, fontweight="bold",
+                        fontsize=theme.CELL_LABEL_SIZE, fontweight="bold",
                         color=TERRAIN_LETTER_COLORS[cell])
 
-    n_moves = max(len(actions), 1)
-    norm = Normalize(vmin=0, vmax=max(n_moves - 1, 1))
     for t in range(len(actions)):
         p_from = int(positions[t])
         p_to = int(positions[t + 1])
@@ -200,18 +198,27 @@ def draw_panel(ax, traj, method_label):
             continue
         r_from, c_from = pos_to_rc(p_from, g)
         r_to, c_to = pos_to_rc(p_to, g)
-        color = PATH_CMAP(norm(t))
         ax.annotate(
             "",
             xy=(c_to, r_to), xytext=(c_from, r_from),
             arrowprops=dict(
                 arrowstyle="-|>",
-                color=color,
+                color=ARROW_COLOR,
                 lw=2.0,
                 mutation_scale=14,
                 shrinkA=14, shrinkB=14,
             ),
         )
+        # Step number along the move (perpendicular offset) — carries the order
+        # now that the arrows are a single flat color.
+        mx, my = (c_from + c_to) / 2, (r_from + r_to) / 2
+        dx, dy = c_to - c_from, r_to - r_from
+        dnorm = (dx * dx + dy * dy) ** 0.5 or 1.0
+        lx, ly = mx + (-dy / dnorm) * 0.20, my + (dx / dnorm) * 0.20
+        ax.text(lx, ly, str(t + 1), ha="center", va="center",
+                fontsize=theme.CELL_BADGE_SIZE, fontweight="bold", color=INK, zorder=9,
+                bbox=dict(boxstyle="circle,pad=0.10", fc=CELL_COLOR,
+                          ec=ARROW_COLOR, lw=0.8))
 
     # Badge letters wear ink; the colored ring carries the identity (the dusty
     # blue ring is too light to double as text ink).
@@ -219,7 +226,7 @@ def draw_panel(ax, traj, method_label):
     r0, c0 = pos_to_rc(p0, g)
     ax.text(c0 + 0.3, r0 - 0.3, "A",
             ha="center", va="center",
-            fontsize=8, fontweight="bold", color=INK,
+            fontsize=theme.CELL_BADGE_SIZE, fontweight="bold", color=INK,
             bbox=dict(boxstyle="circle,pad=0.12", fc=CELL_COLOR, ec=START_COLOR, lw=1.2))
 
     sense_steps = find_sense_steps(traj)
@@ -228,7 +235,7 @@ def draw_panel(ax, traj, method_label):
         r_s, c_s = pos_to_rc(p_sense, g)
         ax.text(c_s - 0.3, r_s - 0.3, "S",
                 ha="center", va="center",
-                fontsize=8, fontweight="bold", color=INK,
+                fontsize=theme.CELL_BADGE_SIZE, fontweight="bold", color=INK,
                 bbox=dict(boxstyle="circle,pad=0.12", fc=CELL_COLOR, ec=SENSE_COLOR, lw=1.2))
 
     ax.set_xticks([])
@@ -244,7 +251,7 @@ def draw_panel(ax, traj, method_label):
 
 
 def add_legend(fig):
-    """Place a shared legend and a step-gradient colorbar below the row of panels."""
+    """Place a shared legend below the row of panels."""
     handles = [
         mpatches.Patch(facecolor=TERRAIN_COLORS[PIT], edgecolor=GRID_COLOR, label="P  pit"),
         mpatches.Patch(facecolor=TERRAIN_COLORS[WUMPUS], edgecolor=GRID_COLOR, label="W  wumpus"),
@@ -255,25 +262,17 @@ def add_legend(fig):
         Line2D([0], [0], marker="o", markerfacecolor=CELL_COLOR, markeredgecolor=SENSE_COLOR,
                markersize=10, markeredgewidth=1.8, linestyle="None",
                label="S  SENSE action"),
+        Line2D([0], [0], color=ARROW_COLOR, lw=2.0, marker=">", markersize=6,
+               label="trajectory (numbered)"),
     ]
     fig.legend(
         handles=handles,
         loc="lower center",
-        ncol=5,
+        ncol=6,
         frameon=False,
         fontsize=10,
         bbox_to_anchor=(0.5, 0.02),
     )
-
-    # Gradient colorbar showing step order (early -> late)
-    cbar_ax = fig.add_axes([0.35, -0.01, 0.30, 0.018])
-    sm = ScalarMappable(norm=Normalize(0, 1), cmap=PATH_CMAP)
-    cbar = fig.colorbar(sm, cax=cbar_ax, orientation="horizontal")
-    cbar.set_ticks([0, 1])
-    cbar.set_ticklabels(["early", "late"])
-    cbar.ax.tick_params(labelsize=8, length=0, pad=2)
-    cbar.outline.set_visible(False)
-    cbar_ax.set_title("arrow color = step order", fontsize=8, pad=2)
 
 
 def render_figure(method_data, methods, config_idx, out_prefix, suptitle=True):

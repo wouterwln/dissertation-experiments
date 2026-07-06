@@ -27,7 +27,7 @@ import dissertation_theme as theme  # noqa: E402
 # The traces are the Direct-prior MP (`nuijten`) planner's BFE, so the median
 # line wears that method's entity color.
 MP_COLOR = theme.PALETTE["direct_prior_mp"]
-TRACE_COLOR = theme.PALETTE["fog_hi"]
+TRACE_COLOR = theme.PALETTE["muted"]  # faint individual BFE traces (neutral grey)
 
 ENV_LABELS = {
     "tmaze": "T-Maze",

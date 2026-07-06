@@ -58,9 +58,9 @@ def load_colors():
     with open(params_path) as f:
         params = yaml.safe_load(f)
     return params.get("colors", {
-        "active": "#3A6F73",
-        "marginal": "#B4553F",
-        "planning": "#A67E24",
+        "active": _theme.PALETTE["aif_mp"],
+        "marginal": _theme.PALETTE["bp"],
+        "planning": _theme.PALETTE["vbp"],
     })
 
 

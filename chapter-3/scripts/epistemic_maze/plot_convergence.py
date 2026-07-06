@@ -85,7 +85,11 @@ def load_json(path):
 def load_colors(project_root):
     """Load color scheme from params.yaml."""
     params_path = project_root / "params.yaml"
-    defaults = {"active": "#3A6F73", "marginal": "#B4553F", "planning": "#A67E24"}
+    defaults = {
+        "active": _theme.PALETTE["aif_mp"],
+        "marginal": _theme.PALETTE["bp"],
+        "planning": _theme.PALETTE["vbp"],
+    }
     if not params_path.exists():
         return defaults
     with open(params_path) as f:

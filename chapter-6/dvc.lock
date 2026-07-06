@@ -505,13 +505,13 @@ stages:
       size: 129248410
     - path: scripts/plot_door_code.py
       hash: md5
-      md5: feef52609dc7a4cb22894939aaf5df77
-      size: 13874
+      md5: bdfec8ee4660934b9acca1c1fc702f7c
+      size: 14617
     outs:
     - path: output/door_code/figure.pdf
       hash: md5
-      md5: cda9c22e26efea51dc3715d1db17280d
-      size: 46560
+      md5: c4e7d3ff0cf51853a11824c5f3f3833b
+      size: 60639
   minigrid_door_code@aif:
     cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 3 
       --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
@@ -1125,13 +1125,13 @@ stages:
       size: 23807235
     - path: scripts/plot_minigrid_door_code.py
       hash: md5
-      md5: 471926170a3e4461fb07423244f2c1af
-      size: 11812
+      md5: ba12844af0a64c5776f1f842cb0cc856
+      size: 12555
     outs:
     - path: output/minigrid_door_code/figure.pdf
       hash: md5
-      md5: e6d96517147880b39c62ce6e4821a24c
-      size: 39691
+      md5: 759000d114c112fb58a3ff65cd743b48
+      size: 53779
   rock_sample@random:
     cmd: uv run python scripts/run_rock_sample.py --planner random --K 4 
       --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
@@ -1638,13 +1638,13 @@ stages:
       size: 18753272
     - path: scripts/plot_rock_sample.py
       hash: md5
-      md5: 0a5ce50faf32d59aa2f538ba07156bf7
-      size: 10282
+      md5: a947abc1c036b5b3c6be0e6014b5aa66
+      size: 11095
     outs:
     - path: output/rock_sample/figure.pdf
       hash: md5
-      md5: 9ec333444beeb9994c3173c6ad3658b8
-      size: 44945
+      md5: a3015410531b9ccd1495118f693c7df0
+      size: 68570
   plot_door_code_simscaling:
     cmd: uv run python scripts/plot_door_code_simscaling.py --input-dir 
       output/door_code_simscaling --output 
@@ -1873,8 +1873,8 @@ stages:
       nfiles: 57
     - path: scripts/plot_rock_sample_kscaling.py
       hash: md5
-      md5: d387de8f297b7afbca1c291f73e7c480
-      size: 7553
+      md5: c3b3f553a98cc21481822ab9a711d070
+      size: 8120
     params:
       params.yaml:
         rock_sample.k_sweep:
@@ -1884,8 +1884,8 @@ stages:
     outs:
     - path: output/rock_sample_kscaling/figure.pdf
       hash: md5
-      md5: 053973feead35c1f621537ec2343d10b
-      size: 36462
+      md5: 516ab93719626faa783f2531448004dd
+      size: 35368
   rock_sample_viz:
     cmd: uv run python scripts/visualize_rock_sample.py --input-dir 
       output/rock_sample --output-dir output/rock_sample/viz --planners aif 
@@ -4180,10 +4180,10 @@ stages:
       size: 9257242
     - path: scripts/plot_factored_tiger.py
       hash: md5
-      md5: d649f931e790ae0bfb78abd736a489a4
-      size: 9116
+      md5: 389dd61727beda0a233cb0cb9baeab7d
+      size: 9907
     outs:
     - path: output/factored_tiger/figure.pdf
       hash: md5
-      md5: 1993c57d8763abe943d2ce060a2fdc8c
-      size: 34923
+      md5: db547092702306215ed346adfffd627a
+      size: 52298

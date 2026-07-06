@@ -38,7 +38,7 @@ def _rock_quality(theta_true: int, K: int) -> np.ndarray:
 _MOVE_LABELS = ["↑", "↓", "→", "←"]
 _ACTION_COLORS = {
     "move": theme.PALETTE["muted"],
-    "sense": theme.PALETTE["stochastic"],
+    "sense": theme.PALETTE["sense"],
     "sample": theme.PALETTE["goal_ink"],
 }
 
@@ -85,7 +85,7 @@ def _draw_grid(ax, pos, mask, action, quality, K, grid_size, rock_cells,
                 good = bool(quality[ri])
                 color = theme.PALETTE["goal"] if good else theme.PALETTE["penalty"]
                 label = f"r{ri}"
-                # Charcoal ink on the lighter amber, paper on the terracotta.
+                # Charcoal ink on the green good rock, paper on the coral bad rock.
                 label_color = theme.PALETTE["ink"] if good else theme.PALETTE["cell"]
         else:
             color, label, label_color = theme.PALETTE["cell"], "", ""
@@ -95,7 +95,7 @@ def _draw_grid(ax, pos, mask, action, quality, K, grid_size, rock_cells,
         ))
         if label:
             ax.text(col + 0.5, row + 0.5, label, ha="center", va="center",
-                    fontsize=7, color=label_color, fontweight="bold")
+                    fontsize=theme.CELL_BADGE_SIZE, color=label_color, fontweight="bold")
 
     # Dashed sense beam from agent to targeted rock.
     if 4 <= action < 4 + K:
@@ -108,12 +108,12 @@ def _draw_grid(ax, pos, mask, action, quality, K, grid_size, rock_cells,
         if rc == pos:
             # Agent is on the rock — draw a small "pulse" circle instead.
             ax.add_patch(mpatches.Circle((ax_c, ax_r), 0.42, lw=1.5,
-                                          edgecolor=theme.PALETTE["stochastic"],
+                                          edgecolor=theme.PALETTE["sense"],
                                           facecolor="none",
                                           linestyle="dashed", zorder=4))
         else:
             ax.plot([ax_c, rx_c], [ax_r, rx_r],
-                    "--", color=theme.PALETTE["stochastic"], lw=1.5, alpha=0.85,
+                    "--", color=theme.PALETTE["sense"], lw=1.5, alpha=0.85,
                     zorder=4)
 
     # Agent as a filled teal circle.

@@ -31,10 +31,10 @@ sys.path.insert(0, str(Path(__file__).parent))
 from maze_viz import draw_maze_background, legend_handles  # noqa: E402
 import dissertation_theme as theme  # noqa: E402  (repo root put on path by maze_viz)
 
-# Arrow color encodes step order (early light teal -> late dark teal), matching
-# the chapter-5 trajectory figures; the numbered badges make the order exact.
-PATH_CMAP = theme.path_cmap()
-PATH_COLOR = theme.PALETTE["path"]  # single-color uses (legend swatch)
+# Navigation arrows use a single amber-orange (a warm pop against the green/red
+# reward cells and the blue stochastic tint); the numbered badges carry the
+# exact step order, so the arrows no longer need to ramp by step.
+ARROW_COLOR = theme.PALETTE["arrow"]
 INK = theme.PALETTE["ink"]
 CELL_COLOR = theme.PALETTE["cell"]
 
@@ -79,7 +79,6 @@ def select_episode(episodes, select, episode_idx):
 
 def draw_path(ax, env, trajectory):
     """Overlay the trajectory as numbered, arrowed, revisit-aware curved edges."""
-    from matplotlib.colors import Normalize
     from matplotlib.patches import FancyArrowPatch
 
     gx = env.grid_size_x
@@ -90,12 +89,11 @@ def draw_path(ax, env, trajectory):
     edges = [(trajectory[i], trajectory[i + 1]) for i in range(len(trajectory) - 1)]
     edge_set = set(edges)
 
-    norm = Normalize(vmin=0, vmax=max(len(trajectory) - 2, 1))
     for i, (p0, p1) in enumerate(zip(pts[:-1], pts[1:])):
         a, b = trajectory[i], trajectory[i + 1]
         if a == b:
             continue  # stayed put (wall / sink); no visible move
-        step_color = PATH_CMAP(norm(i))
+        step_color = ARROW_COLOR
         rad = 0.22 if (b, a) in edge_set else 0.0
         arrow = FancyArrowPatch(
             p0, p1, connectionstyle=f"arc3,rad={rad}",
@@ -159,9 +157,9 @@ def main():
     cbar.set_label("Observation noise  (1 − p correct)")
 
     handles, handler_map = legend_handles()
-    handles.append(plt.Line2D([0], [0], color=PATH_COLOR, lw=2.0,
+    handles.append(plt.Line2D([0], [0], color=ARROW_COLOR, lw=2.0,
                               marker=">", markersize=6,
-                              label="Trajectory (numbered, light→dark)"))
+                              label="Trajectory (numbered)"))
     ax.legend(handles=handles, handler_map=handler_map, loc="upper center",
               bbox_to_anchor=(0.5, -0.10), ncol=4, frameon=False,
               handletextpad=0.5, columnspacing=1.0)

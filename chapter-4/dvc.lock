@@ -192,13 +192,13 @@ stages:
       size: 612539
     - path: scripts/convergence/plot_convergence.py
       hash: md5
-      md5: 4ab517700ebc1bc1577b51c4bca1fd92
-      size: 3738
+      md5: 0719c55da97d04387c554572bd7505f7
+      size: 4175
     outs:
     - path: data/convergence_plots
       hash: md5
-      md5: ae913e80d0dd3f08e583c2c99697fbee.dir
-      size: 408685
+      md5: a620bced488ed6239c264c5b335de878.dir
+      size: 389009
       nfiles: 6
   stochastic_maze_bp_marginal:
     cmd: uv run python scripts/stochastic_maze/experiment_bp.py --n-episodes 
@@ -363,45 +363,45 @@ stages:
     deps:
     - path: data/scaling/gradient_timings.json
       hash: md5
-      md5: 0bd1d829ff585379a331961a5f44e82c
-      size: 3751
+      md5: 744fa8b311c2d98e2d560451385a506c
+      size: 3750
     - path: data/scaling/mp_timings.json
       hash: md5
-      md5: a6c21a4a8a732c00a7e5b54437ee79c3
-      size: 3783
+      md5: 430e631845bd7f238899a9f034526442
+      size: 3782
     - path: scripts/scaling/plot_scaling.py
       hash: md5
-      md5: 8790eca3dd91321786586d1e5c6a3397
-      size: 4662
+      md5: 063d85fdb78a8e58869b7e86ec6c687a
+      size: 5076
     outs:
     - path: data/scaling/scaling_horizon.pdf
       hash: md5
-      md5: 1b3379ad58f1354bf7946c97adba19cb
-      size: 18468
+      md5: 1270c82a7101958ea96f8a277f2ca47b
+      size: 19531
     - path: data/scaling/scaling_horizon.png
       hash: md5
-      md5: 5d2e84fcf24b29f0067f7168eac86d78
-      size: 65545
+      md5: e10fcec6df7780629160df8231982e29
+      size: 56819
     - path: data/scaling/scaling_state_space.pdf
       hash: md5
-      md5: 8b560b142038d9f3104c557ffd6baff8
-      size: 16930
+      md5: 59a82913f16805242bbcdf18fe9f25d6
+      size: 17828
     - path: data/scaling/scaling_state_space.png
       hash: md5
-      md5: 67e3a03a928ef7e6901527438e03f026
-      size: 62222
+      md5: 4f5be118b3db28f594577987d607c6a0
+      size: 57046
     - path: data/scaling/scaling_summary.json
       hash: md5
-      md5: 550df4e4865ca7d1125bd02c1d3fd439
-      size: 4537
+      md5: f23b3a6f0485f96721b10d002d94a47f
+      size: 4535
   stochastic_maze_env_plot:
     cmd: uv run python scripts/stochastic_maze/plot_environment.py --output-dir 
       data/stochastic_maze/plots --format both
     deps:
     - path: scripts/stochastic_maze/maze_viz.py
       hash: md5
-      md5: 274351516707419399f0337a07332f1a
-      size: 10251
+      md5: d3c47c490fc49ff00bea89314c3fd147
+      size: 10478
     - path: scripts/stochastic_maze/plot_environment.py
       hash: md5
       md5: 8352acc5522c161e93653421dfb8c037
@@ -413,12 +413,12 @@ stages:
     outs:
     - path: data/stochastic_maze/plots/environment.pdf
       hash: md5
-      md5: ac57ad188d9249ea8dc7d4dbdaf33fee
-      size: 86407
+      md5: 32dad0aaf2c4f318039e26dd86bbc6c7
+      size: 24278
     - path: data/stochastic_maze/plots/environment.png
       hash: md5
-      md5: 1782322bc4145c2f2d3e65388be0765e
-      size: 83091
+      md5: d407ebc7178fe8bd6961360ef71842a5
+      size: 60991
   stochastic_maze_trajectory_aif:
     cmd: uv run python scripts/stochastic_maze/plot_trajectory.py --results 
       data/stochastic_maze/nuijten/results.json --label "Direct-prior MP" 
@@ -431,12 +431,12 @@ stages:
       size: 408447
     - path: scripts/stochastic_maze/maze_viz.py
       hash: md5
-      md5: 274351516707419399f0337a07332f1a
-      size: 10251
+      md5: d3c47c490fc49ff00bea89314c3fd147
+      size: 10478
     - path: scripts/stochastic_maze/plot_trajectory.py
       hash: md5
-      md5: 5f9fbb42d64fda691c2a7ff21e3106da
-      size: 6706
+      md5: 099d98b6677319e6e6df0be490c11d82
+      size: 7004
     - path: src/environments/stochastic_maze.py
       hash: md5
       md5: 5a8c8262ffc168358f060d82fa200383
@@ -451,12 +451,12 @@ stages:
     outs:
     - path: data/stochastic_maze/plots/trajectory_aif.pdf
       hash: md5
-      md5: 9788a6e7808601d5622a9e9b54c4804f
-      size: 92311
+      md5: d6fe8d1ea0eb8ee4fc2966ae1bb1b2df
+      size: 30227
     - path: data/stochastic_maze/plots/trajectory_aif.png
       hash: md5
-      md5: 7d5a92643278ed3498ef05b4616c5a6f
-      size: 103270
+      md5: a46c91130bd83f141418a37796184c56
+      size: 79984
   stochastic_maze_trajectory_bp:
     cmd: uv run python scripts/stochastic_maze/plot_trajectory.py --results 
       data/stochastic_maze/bp_marginal/results.json --label "Region-BP marginal"
@@ -469,12 +469,12 @@ stages:
       size: 451047
     - path: scripts/stochastic_maze/maze_viz.py
       hash: md5
-      md5: 274351516707419399f0337a07332f1a
-      size: 10251
+      md5: d3c47c490fc49ff00bea89314c3fd147
+      size: 10478
     - path: scripts/stochastic_maze/plot_trajectory.py
       hash: md5
-      md5: 5f9fbb42d64fda691c2a7ff21e3106da
-      size: 6706
+      md5: 099d98b6677319e6e6df0be490c11d82
+      size: 7004
     - path: src/environments/stochastic_maze.py
       hash: md5
       md5: 5a8c8262ffc168358f060d82fa200383
@@ -489,9 +489,9 @@ stages:
     outs:
     - path: data/stochastic_maze/plots/trajectory_bp.pdf
       hash: md5
-      md5: c864cd1e1169fd0a6eb8d2282215192f
-      size: 94015
+      md5: db494a7ee104c424a454c908d60a79b6
+      size: 31927
     - path: data/stochastic_maze/plots/trajectory_bp.png
       hash: md5
-      md5: 3b4abbebc0ab07fdb4f8176d33ec536d
-      size: 115037
+      md5: 61913dc6d7a45a90fc72332594d12526
+      size: 91756
