@@ -12,9 +12,9 @@ subfigures:
 
 Panels carry no titles; environment names go in LaTeX subcaptions.
 Only the paper's baseline slate is plotted (no VBP / Belief-Q).
-Colors follow the paper palette (figures/colors.tex, ColorBrewer Paired):
-hue = method family (greens: posterior sampling, reds: tree search,
-orange: factored tree search), shade = variant.
+Colors come from the repo-root dissertation theme (thesis cover palette):
+one hue per planner entity; BAMCP variants (POMCP, Factored BA-POMCP)
+share BAMCP's plum and are told apart by linestyle.
 
 Usage:
     uv run python scripts/plot_paper_figures.py \\
@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -33,6 +34,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
+
+# Repo-root dissertation theme (single source of truth for figure colors).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
 
 
 PLANNER_LABELS = {
@@ -46,19 +54,10 @@ PLANNER_LABELS = {
     "oracle": "Oracle",
     "random": "Random",
 }
-# ColorBrewer Paired_9 (figures/colors.tex). Same hue = same family.
-PLANNER_COLORS = {
-    "aif": "#1F78B4",             # pairedblue
-    "psrl": "#33A02C",            # pairedgreen
-    "boss": "#B2DF8A",            # pairedlightgreen (posterior-sampling family)
-    "bamcp": "#E31A1C",           # pairedred
-    "pomcp": "#FB9A99",           # pairedlightred (non-BA ablation of BAMCP)
-    "factored_bamcp": "#FF7F00",  # paireddarkorange
-    "ids": "#CAB2D6",             # pairedpurple
-    "oracle": "#000000",
-    "random": "#7F7F7F",
-}
-PLANNER_LINESTYLES = {"oracle": "--", "random": "--"}
+PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
+# Bounds dashed; the BAMCP variants (POMCP, Factored BA-POMCP) share its plum
+# and are told apart by dotted / dash-dot linestyles.
+PLANNER_LINESTYLES = dict(theme.PLANNER_LINESTYLES)
 PLANNER_ORDER = (
     "aif", "psrl", "bamcp", "pomcp", "boss", "factored_bamcp", "ids",
     "oracle", "random",
@@ -217,6 +216,7 @@ def main() -> None:
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    theme.apply_rcparams()
     with plt.rc_context(RC):
         plot_envs(args.input_root, args.output_dir)
         plot_legend(args.output_dir / "results_legend.pdf")

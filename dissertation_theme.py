@@ -74,7 +74,9 @@ PALETTE = {
                                            # enough to separate from the teal
                                            # under deuteranopia)
     "bp_marginal":     "#6E3D75",          # ch4 region-BP marginal ablation
-    "region_extended": "#6F7D4E",          # region-extended BP (moss)
+    "region_extended": "#85925E",          # region-extended BP (moss; light
+                                           # enough to separate from the
+                                           # terracotta under protanopia)
 
     # -- Maze / grid-world semantics -----------------------------------------
     "goal":       "#C49A3A",            # +1 reward / gold (muted amber)
@@ -147,6 +149,51 @@ def method_color(method):
 def method_marker(method):
     """Line marker for a chapter-5 planning-method slug ('' fallback)."""
     return METHOD_MARKERS.get(method, "")
+
+
+# Chapter-6 planner slugs -> entity color (BA-POMDP bake-off plots). The slate
+# reuses the validated method slots (planners from different chapters never
+# co-plot): AIF keeps the hero teal, VBP its ch5 amber. POMCP and Factored
+# BA-POMCP are BAMCP variants, so they share its plum and are told apart by
+# linestyle -- variant-by-style keeps the palette at 7 hues, the most the
+# muted brand can separate under CVD (validated: worst pair De 12.0).
+PLANNER_COLORS = {
+    "aif":            PALETTE["aif_mp"],
+    "vbp":            PALETTE["vbp"],
+    "psrl":           PALETTE["direct_prior_mp"],   # steel
+    "ids":            PALETTE["bp"],                # terracotta
+    "bamcp":          PALETTE["rm_mp"],             # plum
+    "pomcp":          PALETTE["rm_mp"],             # plum (BAMCP variant)
+    "factored_bamcp": PALETTE["rm_mp"],             # plum (BAMCP variant)
+    "boss":           PALETTE["region_extended"],   # moss
+    "belief_q":       "#7E3B47",                    # maroon
+    "oracle":         PALETTE["ink"],               # bound (dashed)
+    "random":         PALETTE["muted"],             # bound (dashed)
+}
+PLANNER_LINESTYLES = {
+    "oracle": "--", "random": "--",       # bounds
+    "pomcp": ":", "factored_bamcp": "-.",  # BAMCP variants (share its plum)
+}
+# Secondary (non-color) encoding for CVD readers / greyscale print.
+PLANNER_MARKERS = {
+    "aif": "o", "vbp": "D", "psrl": "^", "ids": "s", "bamcp": "v",
+    "pomcp": "X", "factored_bamcp": "*", "boss": "P", "belief_q": "h",
+}
+
+
+def planner_color(name):
+    """Entity color for a chapter-6 planner slug (muted fallback)."""
+    return PLANNER_COLORS.get(name, PALETTE["muted"])
+
+
+def planner_linestyle(name):
+    """Linestyle for a chapter-6 planner slug (solid fallback)."""
+    return PLANNER_LINESTYLES.get(name, "-")
+
+
+def planner_marker(name):
+    """Line marker for a chapter-6 planner slug ('' fallback)."""
+    return PLANNER_MARKERS.get(name, "")
 
 
 def noise_cmap():

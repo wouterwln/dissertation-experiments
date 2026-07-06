@@ -6,6 +6,7 @@ Comparison: one GIF+MP4 showing all planners side-by-side at the same step.
 """
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import imageio
@@ -15,7 +16,16 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 
-from learningpomdp.environments.rock_sample import decode_state, sample_layout
+# Repo-root dissertation theme: colors only. Do NOT apply_rcparams() here --
+# frames are read from the canvas buffer as RGB, so a transparent figure
+# background would come out black in the GIF/MP4.
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
+
+from learningpomdp.environments.rock_sample import decode_state, sample_layout  # noqa: E402
 
 
 # --- Drawing helpers ---------------------------------------------------------
@@ -26,7 +36,11 @@ def _rock_quality(theta_true: int, K: int) -> np.ndarray:
 
 
 _MOVE_LABELS = ["↑", "↓", "→", "←"]
-_ACTION_COLORS = {"move": "#888888", "sense": "#e6842a", "sample": "#2ca02c"}
+_ACTION_COLORS = {
+    "move": theme.PALETTE["muted"],
+    "sense": theme.PALETTE["stochastic"],
+    "sample": theme.PALETTE["goal_ink"],
+}
 
 
 def _action_label(action: int, K: int) -> str:
@@ -64,20 +78,24 @@ def _draw_grid(ax, pos, mask, action, quality, K, grid_size, rock_cells,
             ri = cell_to_rock[cell]
             sampled = bool((mask >> ri) & 1)
             if sampled:
-                color = "#aaaaaa"
+                color = theme.PALETTE["muted"]
                 label = "✓" if quality[ri] else "✗"
+                label_color = theme.PALETTE["cell"]
             else:
-                color = "#4daf4a" if quality[ri] else "#e41a1c"
+                good = bool(quality[ri])
+                color = theme.PALETTE["goal"] if good else theme.PALETTE["penalty"]
                 label = f"r{ri}"
+                # Charcoal ink on the lighter amber, paper on the terracotta.
+                label_color = theme.PALETTE["ink"] if good else theme.PALETTE["cell"]
         else:
-            color, label = "#f0f0f0", ""
+            color, label, label_color = theme.PALETTE["cell"], "", ""
 
         ax.add_patch(mpatches.Rectangle(
-            (col, row), 1, 1, lw=0.5, edgecolor="#888888", facecolor=color,
+            (col, row), 1, 1, lw=0.5, edgecolor=theme.PALETTE["grid"], facecolor=color,
         ))
         if label:
             ax.text(col + 0.5, row + 0.5, label, ha="center", va="center",
-                    fontsize=7, color="white", fontweight="bold")
+                    fontsize=7, color=label_color, fontweight="bold")
 
     # Dashed sense beam from agent to targeted rock.
     if 4 <= action < 4 + K:
@@ -90,17 +108,19 @@ def _draw_grid(ax, pos, mask, action, quality, K, grid_size, rock_cells,
         if rc == pos:
             # Agent is on the rock — draw a small "pulse" circle instead.
             ax.add_patch(mpatches.Circle((ax_c, ax_r), 0.42, lw=1.5,
-                                          edgecolor="orange", facecolor="none",
+                                          edgecolor=theme.PALETTE["stochastic"],
+                                          facecolor="none",
                                           linestyle="dashed", zorder=4))
         else:
             ax.plot([ax_c, rx_c], [ax_r, rx_r],
-                    "--", color="orange", lw=1.5, alpha=0.85, zorder=4)
+                    "--", color=theme.PALETTE["stochastic"], lw=1.5, alpha=0.85,
+                    zorder=4)
 
-    # Agent as a filled blue circle.
+    # Agent as a filled teal circle.
     ax.plot(
         pos % grid_size + 0.5,
         grid_size - 1 - pos // grid_size + 0.5,
-        "o", ms=12, color="#377eb8", mec="white", mew=1.5, zorder=5,
+        "o", ms=12, color=theme.PALETTE["start"], mec="white", mew=1.5, zorder=5,
     )
 
     # Per-frame title: episode + step only.
@@ -116,7 +136,8 @@ def _draw_grid(ax, pos, mask, action, quality, K, grid_size, rock_cells,
             ha="left", va="top", clip_on=False)
 
     # Reward badge (bottom-right).
-    r_color = "#2ca02c" if cum_r > 0 else ("#d62728" if cum_r < 0 else "#666666")
+    r_color = (theme.PALETTE["goal_ink"] if cum_r > 0
+               else (theme.PALETTE["penalty"] if cum_r < 0 else theme.PALETTE["muted"]))
     ax.text(0.97, -0.03, f"R = {cum_r:+.0f}",
             transform=ax.transAxes, fontsize=7.5, color=r_color,
             ha="right", va="top", fontweight="bold", clip_on=False)
@@ -165,7 +186,7 @@ def _build_single(episodes, planner, K, grid_size, rock_cells, sample_reward):
     fig.subplots_adjust(left=0.01, right=0.99, top=0.86, bottom=0.09)
     # Planner name shown once at figure level — not repeated per frame.
     fig.text(0.5, 0.99, planner, ha="center", va="top",
-             fontsize=12, fontweight="bold", color="#222222")
+             fontsize=12, fontweight="bold", color=theme.PALETTE["ink"])
     frames = []
 
     for ep, ep_data in enumerate(episodes):

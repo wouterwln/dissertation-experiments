@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -30,6 +31,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Repo-root dissertation theme (single source of truth for figure colors).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
 
 
 def _discover_sims_values(input_dir: Path) -> list[int]:
@@ -81,14 +89,12 @@ def main() -> None:
         with path.open() as f:
             runs[sims] = json.load(f)
 
+    theme.apply_rcparams()
     cfg = runs[sims_values[0]]["config"]
     n_episodes = cfg["n_episodes"]
     eps = np.arange(n_episodes)
-    cmap = plt.get_cmap("viridis")
-    colors = {
-        sims: cmap(i / max(len(sims_values) - 1, 1))
-        for i, sims in enumerate(sims_values)
-    }
+    # Simulation budget is ordered, so it wears the theme's ordinal teal ramp.
+    colors = dict(zip(sims_values, theme.ordinal_colors(len(sims_values))))
 
     fig, (ax_reward, ax_succ, ax_probe) = plt.subplots(1, 3, figsize=(15, 5))
     title = (
@@ -117,7 +123,7 @@ def main() -> None:
     ax_reward.set_xlabel("episode within block")
     ax_reward.set_ylabel("terminal reward")
     ax_reward.set_title("Terminal reward (mean ± 90% CI)")
-    ax_reward.axhline(0, color="black", lw=0.5, alpha=0.4)
+    ax_reward.axhline(0, color=theme.PALETTE["ink"], lw=0.5, alpha=0.4)
     ax_reward.legend(loc="best", fontsize=9)
     ax_reward.grid(True, alpha=0.3)
 

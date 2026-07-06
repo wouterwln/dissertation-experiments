@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -49,6 +50,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Repo-root dissertation theme (single source of truth for figure colors).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
 
 
 PLANNER_LABELS = {
@@ -62,18 +70,11 @@ PLANNER_LABELS = {
     "oracle": "Oracle",
     "random": "Random",
 }
-PLANNER_COLORS = {
-    "aif": "#1f77b4",
-    "vbp": "#ff7f0e",
-    "psrl": "#2ca02c",
-    "bamcp": "#d62728",
-    "boss": "#9467bd",
-    "factored_bamcp": "#8c564b",
-    "ids": "#17becf",
-    "oracle": "#000000",
-    "random": "#7f7f7f",
-}
-PLANNER_LINESTYLES = {name: "--" for name in ("oracle", "random")}
+PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
+PLANNER_MARKERS = {name: theme.planner_marker(name) for name in PLANNER_LABELS}
+# Bounds dashed; Factored BA-POMCP shares BAMCP's plum (it is a BAMCP
+# variant) and is told apart by a dash-dot linestyle.
+PLANNER_LINESTYLES = dict(theme.PLANNER_LINESTYLES)
 PLANNER_ORDER = (
     "aif", "vbp", "psrl", "bamcp", "boss", "factored_bamcp", "ids",
     "oracle", "random",
@@ -93,14 +94,16 @@ def _load(input_dir: Path) -> dict[str, dict]:
 
 def _curve_with_band(
     ax, summary: dict, metric: str, color: str, label: str,
-    linestyle: str = "-", group: str = "curves",
+    linestyle: str = "-", group: str = "curves", marker: str = "",
 ):
     curve = summary[group][metric]
     mean = np.array(curve["mean"])
     p05 = np.array(curve["p05"])
     p95 = np.array(curve["p95"])
     eps = np.arange(len(mean))
-    ax.plot(eps, mean, color=color, label=label, lw=2, linestyle=linestyle)
+    # Sparse markers double as a non-color encoding (CVD / greyscale print).
+    ax.plot(eps, mean, color=color, label=label, lw=2, linestyle=linestyle,
+            marker=marker, markevery=max(len(mean) // 10, 1), ms=4)
     if linestyle == "-":
         ax.fill_between(eps, p05, p95, color=color, alpha=0.15)
 
@@ -132,6 +135,7 @@ def main() -> None:
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    theme.apply_rcparams()
 
     runs = _load(args.input_dir)
     cfg = runs[PLANNER_ORDER[0]]["config"]
@@ -164,15 +168,16 @@ def main() -> None:
         c = PLANNER_COLORS[name]
         lab = PLANNER_LABELS[name]
         ls = PLANNER_LINESTYLES.get(name, "-")
-        _curve_with_band(ax_reward, s, "cumulative_reward", c, lab, linestyle=ls)
-        _curve_with_band(ax_norm, s, "reward_normalised", c, lab, linestyle=ls)
+        mk = PLANNER_MARKERS.get(name, "")
+        _curve_with_band(ax_reward, s, "cumulative_reward", c, lab, linestyle=ls, marker=mk)
+        _curve_with_band(ax_norm, s, "reward_normalised", c, lab, linestyle=ls, marker=mk)
         _curve_with_band(
             ax_persistent, s, "posterior_entropy_persistent", c, lab,
-            linestyle=ls,
+            linestyle=ls, marker=mk,
         )
         _curve_with_band(
             ax_episodic, s, "posterior_entropy_episodic", c, lab,
-            linestyle=ls,
+            linestyle=ls, marker=mk,
         )
         # Oracle is excluded from the identification panels (mass, Brier):
         # it plans on a one-hot at theta-star, so the logged filter mass
@@ -182,24 +187,26 @@ def main() -> None:
         if name != "oracle":
             _curve_with_band(
                 ax_mass, s, "posterior_mass_on_persistent_theta", c, lab,
-                linestyle=ls,
+                linestyle=ls, marker=mk,
             )
-        _curve_with_band(ax_good, s, "n_good_sampled", c, lab, linestyle=ls)
-        _curve_with_band(ax_bad, s, "n_bad_sampled", c, lab, linestyle=ls)
+        _curve_with_band(ax_good, s, "n_good_sampled", c, lab, linestyle=ls, marker=mk)
+        _curve_with_band(ax_bad, s, "n_bad_sampled", c, lab, linestyle=ls, marker=mk)
         _curve_with_band(
-            ax_samples, s, "n_samples_successful", c, lab, linestyle=ls,
+            ax_samples, s, "n_samples_successful", c, lab, linestyle=ls, marker=mk,
         )
 
         regret = _cumulative_regret(s, oracle_run)
         regret_mean = regret.mean(axis=0)
         regret_p05 = np.percentile(regret, 5, axis=0)
         regret_p95 = np.percentile(regret, 95, axis=0)
-        ax_regret.plot(eps_axis, regret_mean, color=c, label=lab, lw=2, linestyle=ls)
+        ax_regret.plot(eps_axis, regret_mean, color=c, label=lab, lw=2, linestyle=ls,
+                       marker=mk, markevery=max(len(eps_axis) // 10, 1), ms=4)
         if ls == "-":
             ax_regret.fill_between(eps_axis, regret_p05, regret_p95, color=c, alpha=0.15)
 
         if "derived" in s and name != "oracle":
-            _curve_with_band(ax_brier, s, "brier", c, lab, linestyle=ls, group="derived")
+            _curve_with_band(ax_brier, s, "brier", c, lab, linestyle=ls,
+                             marker=mk, group="derived")
 
     ax_reward.set_xlabel("episode within block")
     ax_reward.set_ylabel("cumulative reward / episode")
@@ -211,7 +218,7 @@ def main() -> None:
     ax_norm.set_ylabel("reward / max_possible")
     ax_norm.set_title("Normalised reward (1.0 = optimal play)")
     ax_norm.set_ylim(-0.1, 1.1)
-    ax_norm.axhline(1.0, color="black", lw=0.5, ls=":", alpha=0.5)
+    ax_norm.axhline(1.0, color=theme.PALETTE["ink"], lw=0.5, ls=":", alpha=0.5)
     ax_norm.grid(True, alpha=0.3)
 
     ax_persistent.set_xlabel("episode within block")
@@ -228,7 +235,7 @@ def main() -> None:
     ax_mass.set_ylabel("q(θ_sensor = truth)")
     ax_mass.set_title("Mass on TRUE persistent θ")
     ax_mass.set_ylim(-0.05, 1.05)
-    ax_mass.axhline(1.0, color="black", lw=0.5, ls=":", alpha=0.5)
+    ax_mass.axhline(1.0, color=theme.PALETTE["ink"], lw=0.5, ls=":", alpha=0.5)
     ax_mass.grid(True, alpha=0.3)
 
     ax_good.set_xlabel("episode within block")
@@ -249,7 +256,7 @@ def main() -> None:
     ax_regret.set_xlabel("episode within block")
     ax_regret.set_ylabel("cumulative regret vs oracle")
     ax_regret.set_title("Cumulative regret (mean ± 90% CI)")
-    ax_regret.axhline(0, color="black", lw=0.5, alpha=0.4)
+    ax_regret.axhline(0, color=theme.PALETTE["ink"], lw=0.5, alpha=0.4)
     ax_regret.grid(True, alpha=0.3)
 
     xs = np.arange(len(PLANNER_ORDER))

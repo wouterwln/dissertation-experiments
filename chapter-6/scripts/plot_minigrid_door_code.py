@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -26,6 +27,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Repo-root dissertation theme (single source of truth for figure colors).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
 
 
 PLANNER_LABELS = {
@@ -40,20 +48,11 @@ PLANNER_LABELS = {
     "oracle": "Oracle",
     "random": "Random",
 }
-PLANNER_COLORS = {
-    "aif": "#1f77b4",
-    "vbp": "#ff7f0e",
-    "psrl": "#2ca02c",
-    "belief_q": "#d62728",
-    "boss": "#9467bd",
-    "bamcp": "#8c564b",
-    "pomcp": "#e377c2",
-    "ids": "#17becf",
-    "oracle": "#000000",
-    "random": "#7f7f7f",
-}
-# Bounds (Oracle / Random) drawn as dashed lines; methods solid.
-PLANNER_LINESTYLES = {name: "--" for name in ("oracle", "random")}
+PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
+PLANNER_MARKERS = {name: theme.planner_marker(name) for name in PLANNER_LABELS}
+# Bounds (Oracle / Random) drawn as dashed lines; POMCP shares BAMCP's plum
+# (it is a BAMCP ablation) and is told apart by a dotted linestyle.
+PLANNER_LINESTYLES = dict(theme.PLANNER_LINESTYLES)
 PLANNER_ORDER = (
     "aif", "vbp", "psrl", "belief_q", "boss", "bamcp", "pomcp", "ids",
     "oracle", "random",
@@ -80,14 +79,16 @@ def _load(input_dir: Path) -> dict[str, dict]:
 
 def _curve_with_band(
     ax, summary: dict, metric: str, color: str, label: str,
-    linestyle: str = "-", group: str = "curves",
+    linestyle: str = "-", group: str = "curves", marker: str = "",
 ):
     curve = summary[group][metric]
     mean = np.array(curve["mean"])
     p05 = np.array(curve["p05"])
     p95 = np.array(curve["p95"])
     eps = np.arange(len(mean))
-    ax.plot(eps, mean, color=color, label=label, lw=2, linestyle=linestyle)
+    # Sparse markers double as a non-color encoding (CVD / greyscale print).
+    ax.plot(eps, mean, color=color, label=label, lw=2, linestyle=linestyle,
+            marker=marker, markevery=max(len(mean) // 10, 1), ms=4)
     # Bounds: skip the band (Oracle/Random are reference lines, not
     # methods we want to visually crowd against the comparator slate).
     if linestyle == "-":
@@ -137,6 +138,7 @@ def main() -> None:
         help="output figure path (PDF, PNG, or SVG)",
     )
     args = parser.parse_args()
+    theme.apply_rcparams()
 
     runs = _load(args.input_dir)
     available = [n for n in PLANNER_ORDER if n in runs]
@@ -178,22 +180,26 @@ def main() -> None:
         c = PLANNER_COLORS[name]
         lab = PLANNER_LABELS[name]
         ls = PLANNER_LINESTYLES.get(name, "-")
-        _curve_with_band(ax_succ, s, "success", c, lab, linestyle=ls)
+        mk = PLANNER_MARKERS.get(name, "")
+        _curve_with_band(ax_succ, s, "success", c, lab, linestyle=ls, marker=mk)
         if name in ident_names:
-            _curve_with_band(ax_mass, s, "posterior_mass_on_true_theta", c, lab, linestyle=ls)
-        _curve_with_band(ax_probe, s, "probe_visits", c, lab, linestyle=ls)
+            _curve_with_band(ax_mass, s, "posterior_mass_on_true_theta", c, lab,
+                             linestyle=ls, marker=mk)
+        _curve_with_band(ax_probe, s, "probe_visits", c, lab, linestyle=ls, marker=mk)
 
         if oracle_run is not None:
             regret = _cumulative_regret(s, oracle_run)
             regret_mean = regret.mean(axis=0)
             regret_p05 = np.percentile(regret, 5, axis=0)
             regret_p95 = np.percentile(regret, 95, axis=0)
-            ax_regret.plot(eps_axis, regret_mean, color=c, label=lab, lw=2, linestyle=ls)
+            ax_regret.plot(eps_axis, regret_mean, color=c, label=lab, lw=2, linestyle=ls,
+                           marker=mk, markevery=max(len(eps_axis) // 10, 1), ms=4)
             if ls == "-":
                 ax_regret.fill_between(eps_axis, regret_p05, regret_p95, color=c, alpha=0.15)
 
         if "derived" in s and name in ident_names:
-            _curve_with_band(ax_brier, s, "brier", c, lab, linestyle=ls, group="derived")
+            _curve_with_band(ax_brier, s, "brier", c, lab, linestyle=ls,
+                             marker=mk, group="derived")
 
     ax_succ.set_xlabel("episode within block")
     ax_succ.set_ylabel("success rate")
@@ -228,10 +234,10 @@ def main() -> None:
     xs = np.arange(len(available))
     width = 0.4
     ax_outcome.bar(xs - width / 2, deaths_means, width, yerr=deaths_stds,
-                   color="#d62728", alpha=0.9, capsize=3,
+                   color=theme.PALETTE["penalty"], alpha=0.9, capsize=3,
                    label="catastrophes (FAILURE)")
     ax_outcome.bar(xs + width / 2, truncs_means, width, yerr=truncs_stds,
-                   color="#7f7f7f", alpha=0.6, capsize=3,
+                   color=theme.PALETTE["muted"], alpha=0.6, capsize=3,
                    label="truncations (no commit)")
     ax_outcome.set_xticks(xs)
     ax_outcome.set_xticklabels(labs, rotation=30, ha="right")
@@ -243,7 +249,7 @@ def main() -> None:
     ax_regret.set_xlabel("episode within block")
     ax_regret.set_ylabel("cumulative regret vs oracle")
     ax_regret.set_title("Cumulative regret (mean ± 90% CI)")
-    ax_regret.axhline(0, color="black", lw=0.5, alpha=0.4)
+    ax_regret.axhline(0, color=theme.PALETTE["ink"], lw=0.5, alpha=0.4)
     ax_regret.grid(True, alpha=0.3)
 
     ptime_med = []
@@ -293,7 +299,7 @@ def main() -> None:
         bar_top = (med if np.isfinite(med) else 0.0) + (hi or 0.0)
         ax_identify.text(
             x, bar_top + _y_offset,
-            label, ha="center", fontsize=8, color="black",
+            label, ha="center", fontsize=8, color=theme.PALETTE["ink"],
         )
     ax_identify.set_xticks(ident_xs)
     ax_identify.set_xticklabels(

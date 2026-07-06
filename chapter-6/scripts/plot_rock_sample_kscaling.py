@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 import matplotlib
@@ -34,6 +35,13 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Repo-root dissertation theme (single source of truth for figure colors).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
 
 
 PLANNER_LABELS = {
@@ -47,18 +55,11 @@ PLANNER_LABELS = {
     "oracle": "Oracle",
     "random": "Random",
 }
-PLANNER_COLORS = {
-    "aif": "#1f77b4",
-    "vbp": "#ff7f0e",
-    "psrl": "#2ca02c",
-    "bamcp": "#d62728",
-    "boss": "#9467bd",
-    "factored_bamcp": "#8c564b",
-    "ids": "#17becf",
-    "oracle": "#000000",
-    "random": "#7f7f7f",
-}
-PLANNER_LINESTYLES = {name: "--" for name in ("oracle", "random")}
+PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
+PLANNER_MARKERS = {name: theme.planner_marker(name) for name in PLANNER_LABELS}
+# Bounds dashed; Factored BA-POMCP shares BAMCP's plum (it is a BAMCP
+# variant) and is told apart by a dash-dot linestyle.
+PLANNER_LINESTYLES = dict(theme.PLANNER_LINESTYLES)
 PLANNER_ORDER = (
     "aif", "vbp", "psrl", "bamcp", "boss", "factored_bamcp", "ids",
     "oracle", "random",
@@ -103,6 +104,7 @@ def main() -> None:
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    theme.apply_rcparams()
 
     k_values = _discover_K_values(args.input_dir)
     if not k_values:
@@ -150,7 +152,7 @@ def main() -> None:
         p95 = np.array(reward_p95[planner])
         ax_reward.plot(
             k_values, means, color=c, label=PLANNER_LABELS[planner],
-            lw=2, linestyle=ls, marker="o",
+            lw=2, linestyle=ls, marker=PLANNER_MARKERS.get(planner) or "o",
         )
         if ls == "-":
             ax_reward.fill_between(k_values, p05, p95, color=c, alpha=0.12)
@@ -158,7 +160,7 @@ def main() -> None:
     ax_reward.set_ylabel("block-mean reward / max_possible")
     ax_reward.set_title("Normalised reward vs K (mean ± 90% CI)")
     ax_reward.set_ylim(-0.1, 1.1)
-    ax_reward.axhline(1.0, color="black", lw=0.5, ls=":", alpha=0.5)
+    ax_reward.axhline(1.0, color=theme.PALETTE["ink"], lw=0.5, ls=":", alpha=0.5)
     ax_reward.legend(loc="lower left", fontsize=8, ncol=2)
     ax_reward.grid(True, alpha=0.3)
 
@@ -171,10 +173,12 @@ def main() -> None:
         c = PLANNER_COLORS[planner]
         gap = aif_means - np.array(reward_means[planner])
         ax_gap.plot(
-            k_values, gap, color=c, lw=2, marker="o",
+            k_values, gap, color=c, lw=2,
+            marker=PLANNER_MARKERS.get(planner) or "o",
+            linestyle=PLANNER_LINESTYLES.get(planner, "-"),
             label=f"AIF − {PLANNER_LABELS[planner]}",
         )
-    ax_gap.axhline(0.0, color="black", lw=0.5, ls=":", alpha=0.5)
+    ax_gap.axhline(0.0, color=theme.PALETTE["ink"], lw=0.5, ls=":", alpha=0.5)
     ax_gap.set_xlabel("K (number of rocks / θ factors)")
     ax_gap.set_ylabel("AIF − baseline (normalised reward)")
     ax_gap.set_title("Planning-time gap vs K")
@@ -187,7 +191,8 @@ def main() -> None:
         ls = PLANNER_LINESTYLES.get(planner, "-")
         ax_entropy.plot(
             k_values, entropy_terminal[planner], color=c,
-            label=PLANNER_LABELS[planner], lw=2, linestyle=ls, marker="o",
+            label=PLANNER_LABELS[planner], lw=2, linestyle=ls,
+            marker=PLANNER_MARKERS.get(planner) or "o",
         )
     ax_entropy.set_xlabel("K (number of rocks / θ factors)")
     ax_entropy.set_ylabel("H(q(θ_sensor)) at final episode")
