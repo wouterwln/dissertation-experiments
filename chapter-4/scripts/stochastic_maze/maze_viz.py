@@ -42,13 +42,17 @@ ACTION_DELTA = {0: (0, 1), 1: (1, 0), 2: (0, -1), 3: (-1, 0)}
 
 NOISE_CMAP = theme.noise_cmap()
 GOAL_COLOR = theme.PALETTE["goal"]
+GOAL_INK = theme.PALETTE["goal_ink"]
 PENALTY_COLOR = theme.PALETTE["penalty"]
 START_COLOR = theme.PALETTE["start"]
 STOCH_COLOR = theme.PALETTE["stochastic"]
 SINK_COLOR = theme.PALETTE["sink"]
+GRID_COLOR = theme.PALETTE["grid"]
+CELL_COLOR = theme.PALETTE["cell"]
+INK = theme.PALETTE["ink"]
 
-# A white outline so the goal "+1" label stays legible over shaded cells.
-_HALO = [pe.withStroke(linewidth=2.6, foreground="white")]
+# A paper-colored outline so the goal "+1" label stays legible over shaded cells.
+_HALO = [pe.withStroke(linewidth=2.6, foreground=CELL_COLOR)]
 
 
 def maze_noise_grid(env):
@@ -123,7 +127,7 @@ def _draw_checkered_flag(ax, x, y, scale=1.0):
     uc, vc = 0.5 * (u[:-1] + u[1:]), 0.5 * (v[:-1] + v[1:])
     UC, VC = np.meshgrid(uc, vc)
     checker = (np.floor(UC * nc) + np.floor(VC * nr)).astype(int) % 2
-    ax.pcolormesh(X, Y, checker, cmap=ListedColormap(["#f6f6f6", "#1d1d1d"]),
+    ax.pcolormesh(X, Y, checker, cmap=ListedColormap([CELL_COLOR, SINK_COLOR]),
                   shading="flat", edgecolors="none", antialiased=True, zorder=5)
     # Clean clipart-style silhouette outline (4 edges of the warped sheet).
     for xs, ys in [(X[0, :], Y[0, :]), (X[-1, :], Y[-1, :]),
@@ -149,9 +153,9 @@ def draw_maze_background(ax, env, *, vmax=None, show_markers=True,
 
     # Cell grid lines.
     for x in range(gx + 1):
-        ax.axvline(x - 0.5, color="0.6", lw=0.8, zorder=1)
+        ax.axvline(x - 0.5, color=GRID_COLOR, lw=0.8, zorder=1)
     for y in range(gy + 1):
-        ax.axhline(y - 0.5, color="0.6", lw=0.8, zorder=1)
+        ax.axhline(y - 0.5, color=GRID_COLOR, lw=0.8, zorder=1)
 
     if show_markers:
         # Stochastic-transition cells: a clean solid accent rounded border.
@@ -168,22 +172,23 @@ def draw_maze_background(ax, env, *, vmax=None, show_markers=True,
             if r > 0:
                 _draw_checkered_flag(ax, x, y, scale=marker_scale)
                 ax.text(x, y - 0.40, "+1", ha="center", va="center",
-                        fontsize=cell_fontsize, color=GOAL_COLOR,
+                        fontsize=cell_fontsize, color=GOAL_INK,
                         fontweight="bold", zorder=7).set_path_effects(_HALO)
             else:
                 ax.text(x, y, "−1", ha="center", va="center",
-                        fontsize=cell_fontsize + 1, color="white",
+                        fontsize=cell_fontsize + 1, color=CELL_COLOR,
                         fontweight="bold", zorder=6,
                         bbox=dict(boxstyle="round,pad=0.18", fc=PENALTY_COLOR,
-                                  ec="white", lw=0.8))
+                                  ec=CELL_COLOR, lw=0.8))
 
-        # Start state.
+        # Start state: colored ring, charcoal letter (text wears ink, not the
+        # accent -- the ring carries the identity).
         sx, sy = state_to_xy(int(env.agent_state), gx)
         ax.scatter([sx], [sy], marker="o", s=260 * marker_scale,
-                   facecolors="white", edgecolors=START_COLOR,
+                   facecolors=CELL_COLOR, edgecolors=START_COLOR,
                    linewidths=2.4, zorder=6)
         ax.text(sx, sy, "S", ha="center", va="center",
-                fontsize=cell_fontsize, color=START_COLOR,
+                fontsize=cell_fontsize, color=INK,
                 fontweight="bold", zorder=7)
 
     ax.set_xticks(range(gx))
@@ -206,9 +211,9 @@ class _CheckerHandler(HandlerBase):
         arts = []
         for i in range(ny):
             for j in range(nx):
-                c = "#222222" if (i + j) % 2 == 0 else "#f0f0f0"
+                c = SINK_COLOR if (i + j) % 2 == 0 else CELL_COLOR
                 r = Rectangle((xdescent + j * w, ydescent + i * h), w, h,
-                              facecolor=c, edgecolor="0.6", lw=0.3)
+                              facecolor=c, edgecolor=GRID_COLOR, lw=0.3)
                 r.set_transform(trans)
                 arts.append(r)
         return arts
@@ -221,11 +226,11 @@ def legend_handles():
     swatch matches the in-cell checkered flag. Observation noise is conveyed by
     the colorbar, so it is not duplicated in the legend.
     """
-    start = Line2D([0], [0], marker="o", color="none", markerfacecolor="white",
+    start = Line2D([0], [0], marker="o", color="none", markerfacecolor=CELL_COLOR,
                    markeredgecolor=START_COLOR, markeredgewidth=2.2,
                    markersize=11, label="Start")
     goal = Line2D([], [], linestyle="none", label="Goal (+1)")
-    penalty = Patch(facecolor=PENALTY_COLOR, edgecolor="white", label="Penalty (−1)")
+    penalty = Patch(facecolor=PENALTY_COLOR, edgecolor=CELL_COLOR, label="Penalty (−1)")
     stoch = Patch(facecolor="none", edgecolor=STOCH_COLOR, linewidth=2.2,
                   label="Stochastic transition")
     sink = Patch(facecolor="none", edgecolor=SINK_COLOR, linewidth=2.2,

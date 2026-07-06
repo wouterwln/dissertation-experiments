@@ -11,10 +11,21 @@ Reads `mp_timings.json` (chapter-4 MP side) and `gradient_timings.json`
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+# Repo-root dissertation theme (lives above the chapter's DVC root).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
+
+MP_COLOR = theme.PALETTE["direct_prior_mp"]
+GRAD_COLOR = theme.PALETTE["gradient"]
 
 
 # Gradient-curve label by which planner produced the timing (set per-environment
@@ -60,15 +71,15 @@ def plot_axis(rows, axis, xlabel, title, out_base):
     glabel = GRAD_LABELS.get(planner, "Gradient VFE (chapter 3)")
 
     fig, ax = plt.subplots(figsize=(6.4, 4.4))
-    ax.plot(gxs, gr, "o-", color="#c0392b", label=glabel)
-    ax.plot(xs, mp, "s-", color="#2c7fb8", label="Direct-prior MP")
+    ax.plot(gxs, gr, "o-", color=GRAD_COLOR, label=glabel)
+    ax.plot(xs, mp, "s-", color=MP_COLOR, label="Direct-prior MP")
     ax.set_yscale("log")
     # Mark where the gradient planner stops (enumeration intractable beyond it)
     # while MP keeps scaling.
     if gxs and xs and max(xs) > max(gxs):
-        ax.axvline(max(gxs), color="#c0392b", ls="--", alpha=0.35)
+        ax.axvline(max(gxs), color=GRAD_COLOR, ls="--", alpha=0.35)
         ax.text(max(gxs), gr[-1], "  enumeration\n  intractable →",
-                color="#c0392b", fontsize=8, va="center", ha="left", alpha=0.8)
+                color=GRAD_COLOR, fontsize=8, va="center", ha="left", alpha=0.8)
     ax.set_xlabel(xlabel)
     ax.set_ylabel("planning time per call (ms, log scale)")
     ax.set_title(title)
@@ -86,6 +97,7 @@ def main():
     p.add_argument("--data-dir", type=str, default="data/scaling")
     args = p.parse_args()
     data_dir = Path(args.data_dir)
+    theme.apply_rcparams()
 
     rows = load_merged(data_dir)
     plot_axis(rows, "horizon", "planning horizon",

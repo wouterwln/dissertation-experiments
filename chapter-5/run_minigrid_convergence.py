@@ -403,9 +403,16 @@ def main():
             import matplotlib
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
+            for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+                if (_p / "dissertation_theme.py").exists():
+                    sys.path.insert(0, str(_p))
+                    break
+            import dissertation_theme as theme
+            theme.apply_rcparams()
 
             fig, ax = plt.subplots(figsize=(8, 5))
-            ax.plot(range(n_iterations), vfe_values, "o-", markersize=4)
+            ax.plot(range(n_iterations), vfe_values, "o-", markersize=4,
+                    color=theme.method_color(args.planning_method))
             ax.set_xlabel("Iteration")
             ax.set_ylabel("VFE")
             damp_str = f" (damping={args.damping})" if args.damping < 1.0 else ""

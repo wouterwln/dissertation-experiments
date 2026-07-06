@@ -31,7 +31,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from maze_viz import draw_maze_background, legend_handles  # noqa: E402
 import dissertation_theme as theme  # noqa: E402  (repo root put on path by maze_viz)
 
-PATH_COLOR = theme.PALETTE["path"]  # vivid orange: pops on grey fog / green / red
+# Arrow color encodes step order (early light teal -> late dark teal), matching
+# the chapter-5 trajectory figures; the numbered badges make the order exact.
+PATH_CMAP = theme.path_cmap()
+PATH_COLOR = theme.PALETTE["path"]  # single-color uses (legend swatch)
+INK = theme.PALETTE["ink"]
+CELL_COLOR = theme.PALETTE["cell"]
 
 
 def outcome(ep):
@@ -74,6 +79,7 @@ def select_episode(episodes, select, episode_idx):
 
 def draw_path(ax, env, trajectory):
     """Overlay the trajectory as numbered, arrowed, revisit-aware curved edges."""
+    from matplotlib.colors import Normalize
     from matplotlib.patches import FancyArrowPatch
 
     gx = env.grid_size_x
@@ -84,15 +90,17 @@ def draw_path(ax, env, trajectory):
     edges = [(trajectory[i], trajectory[i + 1]) for i in range(len(trajectory) - 1)]
     edge_set = set(edges)
 
+    norm = Normalize(vmin=0, vmax=max(len(trajectory) - 2, 1))
     for i, (p0, p1) in enumerate(zip(pts[:-1], pts[1:])):
         a, b = trajectory[i], trajectory[i + 1]
         if a == b:
             continue  # stayed put (wall / sink); no visible move
+        step_color = PATH_CMAP(norm(i))
         rad = 0.22 if (b, a) in edge_set else 0.0
         arrow = FancyArrowPatch(
             p0, p1, connectionstyle=f"arc3,rad={rad}",
             arrowstyle="-|>", mutation_scale=14, lw=2.0,
-            color=PATH_COLOR, alpha=0.95, zorder=8,
+            color=step_color, alpha=0.95, zorder=8,
         )
         ax.add_patch(arrow)
 
@@ -104,9 +112,9 @@ def draw_path(ax, env, trajectory):
         off = 0.16 + 0.5 * rad
         lx, ly = mx + (-dy / dist) * off, my + (dx / dist) * off
         ax.text(lx, ly, str(i + 1), ha="center", va="center", fontsize=7.5,
-                color=PATH_COLOR, fontweight="bold", zorder=9,
-                bbox=dict(boxstyle="circle,pad=0.12", fc="white",
-                          ec=PATH_COLOR, lw=0.8))
+                color=INK, fontweight="bold", zorder=9,
+                bbox=dict(boxstyle="circle,pad=0.12", fc=CELL_COLOR,
+                          ec=step_color, lw=0.8))
 
 
 def main():
@@ -152,7 +160,8 @@ def main():
 
     handles, handler_map = legend_handles()
     handles.append(plt.Line2D([0], [0], color=PATH_COLOR, lw=2.0,
-                              marker=">", markersize=6, label="Trajectory (numbered)"))
+                              marker=">", markersize=6,
+                              label="Trajectory (numbered, light→dark)"))
     ax.legend(handles=handles, handler_map=handler_map, loc="upper center",
               bbox_to_anchor=(0.5, -0.10), ncol=4, frameon=False,
               handletextpad=0.5, columnspacing=1.0)

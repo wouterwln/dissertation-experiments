@@ -17,6 +17,18 @@ import sys
 
 import numpy as np
 
+# Repo-root dissertation theme (lives above the chapter's DVC root).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as theme  # noqa: E402
+
+# The traces are the Direct-prior MP (`nuijten`) planner's BFE, so the median
+# line wears that method's entity color.
+MP_COLOR = theme.PALETTE["direct_prior_mp"]
+TRACE_COLOR = theme.PALETTE["fog_hi"]
+
 ENV_LABELS = {
     "tmaze": "T-Maze",
     "stochastic_maze": "Stochastic Maze",
@@ -45,12 +57,12 @@ def plot_env(ax, arr, env):
     iters = np.arange(arr.shape[1])
     # Faint individual traces.
     for row in arr:
-        ax.plot(iters, row, color="0.8", linewidth=0.4, alpha=0.5, zorder=1)
+        ax.plot(iters, row, color=TRACE_COLOR, linewidth=0.4, alpha=0.5, zorder=1)
     median = np.nanmedian(arr, axis=0)
     q25 = np.nanpercentile(arr, 25, axis=0)
     q75 = np.nanpercentile(arr, 75, axis=0)
-    ax.fill_between(iters, q25, q75, alpha=0.25, color="C0", zorder=2)
-    ax.plot(iters, median, color="C0", linewidth=2.0, zorder=3,
+    ax.fill_between(iters, q25, q75, alpha=0.25, color=MP_COLOR, zorder=2)
+    ax.plot(iters, median, color=MP_COLOR, linewidth=2.0, zorder=3,
             label=f"median ({arr.shape[0]} traces)")
     ax.set_xlabel("Message-passing iteration")
     ax.set_ylabel("Bethe Free Energy")
@@ -70,10 +82,7 @@ def main():
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    matplotlib.rcParams.update({
-        "font.family": "serif", "font.size": 10,
-        "axes.labelsize": 11, "legend.fontsize": 9,
-    })
+    theme.apply_rcparams()
 
     exts = ["pdf", "png"] if args.format == "both" else [args.format]
     out_dir = Path(args.output_dir)

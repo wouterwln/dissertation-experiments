@@ -240,11 +240,13 @@ def main():
     try:
         import matplotlib
         matplotlib.use("Agg")
+        for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+            if (_p / "dissertation_theme.py").exists():
+                sys.path.insert(0, str(_p))
+                break
+        import dissertation_theme as theme
+        theme.apply_rcparams()
         matplotlib.rcParams.update({
-            "font.family": "serif",
-            "font.size": 10,
-            "axes.labelsize": 11,
-            "legend.fontsize": 9,
             "xtick.labelsize": 9,
             "ytick.labelsize": 9,
             "text.usetex": False,
@@ -254,9 +256,10 @@ def main():
 
         fig, ax = plt.subplots()
         iters = np.arange(1, n_iter + 1)
-        for d in args.damping:
+        damping_colors = theme.ordinal_colors(len(args.damping))
+        for d, dcolor in zip(args.damping, damping_colors):
             ax.plot(iters, results[d]["vfe"], "-", linewidth=1.2,
-                    label=f"$\\lambda = {d}$")
+                    label=f"$\\lambda = {d}$", color=dcolor)
         ax.set_xlabel("Iteration")
         ax.set_ylabel("VFE")
         ax.legend()

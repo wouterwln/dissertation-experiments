@@ -221,6 +221,12 @@ def main():
             import matplotlib
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
+            for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+                if (_p / "dissertation_theme.py").exists():
+                    sys.path.insert(0, str(_p))
+                    break
+            import dissertation_theme as theme
+            theme.apply_rcparams()
 
             if args.plot == "auto":
                 from datetime import datetime
@@ -232,9 +238,11 @@ def main():
             out_dir.mkdir(parents=True, exist_ok=True)
 
             fig, ax = plt.subplots(figsize=(10, 6))
-            for d in args.damping:
+            damping_colors = theme.ordinal_colors(len(args.damping))
+            for d, dcolor in zip(args.damping, damping_colors):
                 vfe = results[d]["vfe"]
-                ax.plot(range(len(vfe)), vfe, "o-", markersize=3, label=f"d={d}")
+                ax.plot(range(len(vfe)), vfe, "o-", markersize=3, label=f"d={d}",
+                        color=dcolor)
             ax.set_xlabel("Iteration")
             ax.set_ylabel("VFE")
             ax.set_title(f"VFE Convergence: {args.method} (Frozen Lake {grid_size}x{grid_size}, "

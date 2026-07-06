@@ -25,9 +25,11 @@ import numpy as np
 
 ALL_ENVIRONMENTS = ["frozen-lake", "wumpus-world", "rocksample", "minigrid"]
 
+# Canonical cross-figure method order: BP - VBP - RM-MP - Direct-prior MP -
+# AIF-MP (auxiliary variants trail).
 ALL_METHODS = [
-    "loopy", "region-extended", "dyn-channel",
-    "nuijten", "vbp-channel", "precise-info-seeking", "active-inference",
+    "loopy", "vbp-channel", "dyn-channel", "nuijten", "active-inference",
+    "region-extended", "precise-info-seeking",
 ]
 
 METHODS_WITH_DAMPING = {"region-extended", "dyn-channel", "vbp-channel", "precise-info-seeking", "active-inference"}
@@ -127,7 +129,10 @@ def plot_damping_sweep(results, env_name, output_dir, fmt, generate_tex):
 
         fig, ax = plt.subplots(figsize=(6, 4))
 
-        for damping in method_dampings:
+        # Damping is an ordered parameter, so it wears the theme's ordinal teal
+        # ramp (light = weak damping, dark = strong) rather than distinct hues.
+        damping_colors = theme.ordinal_colors(len(method_dampings))
+        for damping, dcolor in zip(method_dampings, damping_colors):
             traces = collect_vfe_traces(results, method, damping)
             if not traces:
                 continue
@@ -144,8 +149,8 @@ def plot_damping_sweep(results, env_name, output_dir, fmt, generate_tex):
             iters = np.arange(max_len)
 
             label = f"d={damping}"
-            line, = ax.plot(iters, median, linewidth=1.2, label=label)
-            ax.fill_between(iters, q25, q75, alpha=0.15, color=line.get_color())
+            line, = ax.plot(iters, median, linewidth=1.2, label=label, color=dcolor)
+            ax.fill_between(iters, q25, q75, alpha=0.15, color=dcolor)
 
         ax.set_xlabel("Iteration")
         ax.set_ylabel("VFE")
@@ -166,15 +171,20 @@ def plot_damping_sweep(results, env_name, output_dir, fmt, generate_tex):
 
 def _write_damping_tex(plot_dir, method, dampings, all_traces, env_name):
     """Generate pgfplots .tex for damping sweep."""
+    from matplotlib.colors import to_hex
+
     tex_path = plot_dir / f"{method}_damping.tex"
-    colors = ["blue", "red!80!black", "green!60!black", "orange", "purple"]
+    # Same ordinal teal ramp as the matplotlib version, emitted as \definecolor.
+    ramp = [to_hex(c).lstrip("#").upper() for c in theme.ordinal_colors(len(dampings))]
+    color_defs = "\n".join(
+        f"\\definecolor{{damping{i}}}{{HTML}}{{{hexval}}}" for i, hexval in enumerate(ramp)
+    )
 
     plot_lines = []
     legend_entries = []
     for i, d in enumerate(dampings):
-        c = colors[i % len(colors)]
         plot_lines.append(
-            f"    \\addplot[{c}, thick] table[col sep=comma, "
+            f"    \\addplot[damping{i}, thick] table[col sep=comma, "
             f"x=iteration, y=d{str(d).replace('.', '_')}] "
             f"{{{method}_damping.csv}};"
         )
@@ -184,6 +194,7 @@ def _write_damping_tex(plot_dir, method, dampings, all_traces, env_name):
 \\documentclass[tikz]{{standalone}}
 \\usepackage{{pgfplots}}
 \\pgfplotsset{{compat=newest}}
+{color_defs}
 \\begin{{document}}
 \\begin{{tikzpicture}}
 \\begin{{axis}}[
@@ -256,8 +267,12 @@ def plot_method_comparison(results, env_name, output_dir, fmt):
         label = f"{METHOD_LABELS.get(method, method)}"
         if best_damping != 1.0:
             label += f" (d={best_damping})"
-        line, = ax.plot(iters, median, linewidth=1.2, label=label)
-        ax.fill_between(iters, q25, q75, alpha=0.12, color=line.get_color())
+        mcolor = theme.method_color(method)
+        # Sparse markers double as a non-color encoding (CVD / greyscale print).
+        ax.plot(iters, median, linewidth=1.4, label=label, color=mcolor,
+                marker=theme.method_marker(method), markersize=4,
+                markevery=max(len(iters) // 12, 1))
+        ax.fill_between(iters, q25, q75, alpha=0.12, color=mcolor)
 
     ax.set_xlabel("Iteration")
     ax.set_ylabel("VFE")
@@ -281,7 +296,6 @@ def plot_method_comparison(results, env_name, output_dir, fmt):
 def plot_convergence_heatmap(results, env_name, output_dir, fmt):
     """Heatmap: rows=methods, cols=damping, color=fraction converged."""
     import matplotlib.pyplot as plt
-    from matplotlib.colors import LinearSegmentedColormap
 
     methods, dampings = get_methods_and_dampings(results)
     if not methods or not dampings:
@@ -315,19 +329,20 @@ def plot_convergence_heatmap(results, env_name, output_dir, fmt):
 
     fig, ax = plt.subplots(figsize=(max(4, n_dampings * 1.2), max(3, n_methods * 0.6)))
 
-    # Custom colormap: red → yellow → green
-    cmap = LinearSegmentedColormap.from_list("conv", ["#d32f2f", "#ffeb3b", "#4caf50"])
+    # Thesis diverging colormap: terracotta (diverges) → neutral → teal (converges).
+    cmap = theme.diverging_cmap()
     im = ax.imshow(conv_frac, cmap=cmap, vmin=0, vmax=1, aspect="auto")
 
-    # Cell annotations
+    # Cell annotations: paper ink on the dark pole cells, charcoal elsewhere.
     for mi in range(n_methods):
         for di in range(n_dampings):
             if np.isnan(conv_frac[mi, di]):
-                ax.text(di, mi, "—", ha="center", va="center", fontsize=8, color="gray")
+                ax.text(di, mi, "—", ha="center", va="center", fontsize=8,
+                        color=theme.PALETTE["muted"])
             else:
                 frac = conv_frac[mi, di]
                 iter_str = f"\n({int(med_iters[mi, di])})" if not np.isnan(med_iters[mi, di]) else ""
-                color = "white" if frac < 0.4 else "black"
+                color = theme.PALETTE["cell"] if (frac < 0.25 or frac > 0.75) else theme.PALETTE["ink"]
                 ax.text(di, mi, f"{frac:.0%}{iter_str}", ha="center", va="center",
                         fontsize=7, color=color, fontweight="bold")
 
@@ -368,6 +383,8 @@ def plot_final_vfe(results, env_name, output_dir, fmt):
     bar_width = 0.8 / max(len(dampings), 1)
     x = np.arange(len(methods))
 
+    # Damping is ordered, so the bars wear the ordinal teal ramp.
+    damping_colors = theme.ordinal_colors(len(dampings))
     for di, damping in enumerate(dampings):
         means = []
         stds = []
@@ -386,7 +403,8 @@ def plot_final_vfe(results, env_name, output_dir, fmt):
 
         offset = (di - len(dampings) / 2 + 0.5) * bar_width
         ax.bar(x + offset, means, bar_width * 0.9, yerr=stds,
-               label=f"d={damping}", capsize=2, alpha=0.85)
+               label=f"d={damping}", capsize=2, alpha=0.85,
+               color=damping_colors[di])
 
     ax.set_xticks(x)
     ax.set_xticklabels([METHOD_LABELS.get(m, m) for m in methods],

@@ -33,7 +33,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import matplotlib.patches as mpatches  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
-from matplotlib.colors import ListedColormap, LinearSegmentedColormap, Normalize  # noqa: E402
+from matplotlib.colors import ListedColormap, Normalize  # noqa: E402
 from matplotlib.cm import ScalarMappable  # noqa: E402
 
 from environments.wumpus_world import pos_to_rc  # noqa: E402
@@ -47,33 +47,41 @@ METHOD_LABELS = {
     "active-inference": "AIF-MP",
 }
 
-DEFAULT_METHODS = ["loopy", "dyn-channel", "nuijten", "vbp-channel", "active-inference"]
+# Canonical cross-figure method order: BP - VBP - RM-MP - Direct-prior MP - AIF-MP.
+DEFAULT_METHODS = ["loopy", "vbp-channel", "dyn-channel", "nuijten", "active-inference"]
 
 EMPTY, PIT, WUMPUS, GOLD = 0, 1, 2, 3
 
 # Terrain colors drawn from the shared palette so the whole dissertation can be
-# re-skinned from one place: gold is the reward target (goal green), pits are a
-# hazard (penalty red), the wumpus is the second, deadlier hazard (near-black
-# sink). Empty cells stay a light neutral so the grid lines and arrows read.
+# re-skinned from one place: gold is the reward target (muted amber), pits are a
+# hazard (desaturated terracotta), the wumpus is the second, deadlier hazard
+# (thesis charcoal). Empty cells take the off-white cell fill so the light-grey
+# grid lines and arrows read.
 TERRAIN_COLORS = [
-    "#f2f2f2",              # EMPTY
+    theme.PALETTE["cell"],     # EMPTY
     theme.PALETTE["penalty"],  # PIT
     theme.PALETTE["sink"],     # WUMPUS
     theme.PALETTE["goal"],     # GOLD
 ]
 TERRAIN_LETTERS = {PIT: "P", WUMPUS: "W", GOLD: "G"}
-# Letters sit on saturated/dark cells, so draw them white for contrast.
-TERRAIN_LETTER_COLOR = "white"
+# Letter ink per terrain: paper-white on the dark hazard fills, charcoal on the
+# lighter amber gold cell (white would fall below readable contrast there).
+TERRAIN_LETTER_COLORS = {
+    PIT: theme.PALETTE["cell"],
+    WUMPUS: theme.PALETTE["cell"],
+    GOLD: theme.PALETTE["ink"],
+}
 TERRAIN_CMAP = ListedColormap(TERRAIN_COLORS)
+GRID_COLOR = theme.PALETTE["grid"]
+INK = theme.PALETTE["ink"]
+CELL_COLOR = theme.PALETTE["cell"]
 
-START_COLOR = theme.PALETTE["start"]
-SENSE_COLOR = theme.PALETTE["sink"]
+START_COLOR = theme.PALETTE["start"]   # thesis-primary teal ring
+SENSE_COLOR = theme.PALETTE["sense"]   # dusty-blue ring
 
-# Arrow color gradient encodes step order (early -> late), anchored on the
-# theme's trajectory hue so it matches the other dissertation figures.
-PATH_CMAP = LinearSegmentedColormap.from_list(
-    "path_gradient", ["#f2b779", theme.PALETTE["path"]], N=256
-)
+# Arrow color encodes step order (early -> late) on the theme's teal
+# trajectory ramp so it matches the other dissertation figures.
+PATH_CMAP = theme.path_cmap()
 
 
 # =============================================================================
@@ -171,8 +179,8 @@ def draw_panel(ax, traj, method_label):
     ax.imshow(terrain, cmap=TERRAIN_CMAP, vmin=0, vmax=3, interpolation="nearest")
 
     for i in range(g + 1):
-        ax.axhline(i - 0.5, color="white", lw=1.2)
-        ax.axvline(i - 0.5, color="white", lw=1.2)
+        ax.axhline(i - 0.5, color=GRID_COLOR, lw=1.2)
+        ax.axvline(i - 0.5, color=GRID_COLOR, lw=1.2)
 
     for r in range(g):
         for c in range(g):
@@ -180,7 +188,8 @@ def draw_panel(ax, traj, method_label):
             if cell in TERRAIN_LETTERS:
                 ax.text(c, r, TERRAIN_LETTERS[cell],
                         ha="center", va="center",
-                        fontsize=13, fontweight="bold", color=TERRAIN_LETTER_COLOR)
+                        fontsize=13, fontweight="bold",
+                        color=TERRAIN_LETTER_COLORS[cell])
 
     n_moves = max(len(actions), 1)
     norm = Normalize(vmin=0, vmax=max(n_moves - 1, 1))
@@ -204,12 +213,14 @@ def draw_panel(ax, traj, method_label):
             ),
         )
 
+    # Badge letters wear ink; the colored ring carries the identity (the dusty
+    # blue ring is too light to double as text ink).
     p0 = int(positions[0])
     r0, c0 = pos_to_rc(p0, g)
     ax.text(c0 + 0.3, r0 - 0.3, "A",
             ha="center", va="center",
-            fontsize=8, fontweight="bold", color=START_COLOR,
-            bbox=dict(boxstyle="circle,pad=0.12", fc="white", ec=START_COLOR, lw=1))
+            fontsize=8, fontweight="bold", color=INK,
+            bbox=dict(boxstyle="circle,pad=0.12", fc=CELL_COLOR, ec=START_COLOR, lw=1.2))
 
     sense_steps = find_sense_steps(traj)
     for sense_step in sense_steps:
@@ -217,8 +228,8 @@ def draw_panel(ax, traj, method_label):
         r_s, c_s = pos_to_rc(p_sense, g)
         ax.text(c_s - 0.3, r_s - 0.3, "S",
                 ha="center", va="center",
-                fontsize=8, fontweight="bold", color=SENSE_COLOR,
-                bbox=dict(boxstyle="circle,pad=0.12", fc="white", ec=SENSE_COLOR, lw=1))
+                fontsize=8, fontweight="bold", color=INK,
+                bbox=dict(boxstyle="circle,pad=0.12", fc=CELL_COLOR, ec=SENSE_COLOR, lw=1.2))
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -235,14 +246,14 @@ def draw_panel(ax, traj, method_label):
 def add_legend(fig):
     """Place a shared legend and a step-gradient colorbar below the row of panels."""
     handles = [
-        mpatches.Patch(facecolor=TERRAIN_COLORS[PIT], edgecolor="black", label="P  pit"),
-        mpatches.Patch(facecolor=TERRAIN_COLORS[WUMPUS], edgecolor="black", label="W  wumpus"),
-        mpatches.Patch(facecolor=TERRAIN_COLORS[GOLD], edgecolor="black", label="G  gold"),
-        Line2D([0], [0], marker="o", markerfacecolor="white", markeredgecolor=START_COLOR,
-               markersize=9, markeredgewidth=1.2, linestyle="None",
+        mpatches.Patch(facecolor=TERRAIN_COLORS[PIT], edgecolor=GRID_COLOR, label="P  pit"),
+        mpatches.Patch(facecolor=TERRAIN_COLORS[WUMPUS], edgecolor=GRID_COLOR, label="W  wumpus"),
+        mpatches.Patch(facecolor=TERRAIN_COLORS[GOLD], edgecolor=GRID_COLOR, label="G  gold"),
+        Line2D([0], [0], marker="o", markerfacecolor=CELL_COLOR, markeredgecolor=START_COLOR,
+               markersize=10, markeredgewidth=1.8, linestyle="None",
                label="A  agent start"),
-        Line2D([0], [0], marker="o", markerfacecolor="white", markeredgecolor=SENSE_COLOR,
-               markersize=9, markeredgewidth=1.2, linestyle="None",
+        Line2D([0], [0], marker="o", markerfacecolor=CELL_COLOR, markeredgecolor=SENSE_COLOR,
+               markersize=10, markeredgewidth=1.8, linestyle="None",
                label="S  SENSE action"),
     ]
     fig.legend(
@@ -250,7 +261,7 @@ def add_legend(fig):
         loc="lower center",
         ncol=5,
         frameon=False,
-        fontsize=8,
+        fontsize=10,
         bbox_to_anchor=(0.5, 0.02),
     )
 
@@ -260,9 +271,9 @@ def add_legend(fig):
     cbar = fig.colorbar(sm, cax=cbar_ax, orientation="horizontal")
     cbar.set_ticks([0, 1])
     cbar.set_ticklabels(["early", "late"])
-    cbar.ax.tick_params(labelsize=7, length=0, pad=2)
+    cbar.ax.tick_params(labelsize=8, length=0, pad=2)
     cbar.outline.set_visible(False)
-    cbar_ax.set_title("arrow color = step order", fontsize=7, pad=2)
+    cbar_ax.set_title("arrow color = step order", fontsize=8, pad=2)
 
 
 def render_figure(method_data, methods, config_idx, out_prefix, suptitle=True):
@@ -322,12 +333,13 @@ def main():
                         help="Output path prefix (no extension) for single-config mode.")
     parser.add_argument("--output-dir", default="data/plots/wumpus_world",
                         help="Output directory for --all-configs mode.")
-    parser.add_argument("--no-suptitle", action="store_true",
-                        help="Omit the figure-level title (useful for paper inclusion).")
+    parser.add_argument("--suptitle", action="store_true",
+                        help="Add a figure-level config title (off by default; the "
+                             "dissertation captions carry that information).")
     args = parser.parse_args()
 
     theme.apply_rcparams()
-    suptitle = not args.no_suptitle
+    suptitle = args.suptitle
 
     # Load every requested method's results once; warn (don't fail) on missing.
     method_data = {}
