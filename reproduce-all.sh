@@ -21,9 +21,11 @@
 #
 # `--push` uploads the regenerated data to the DVC remote; `--commit` records
 # the matching dvc.lock (+ .gitignore) in git so the commit points at exactly
-# that pushed data. Use them together (`--push --commit`) to close the loop:
-# repro -> upload data -> commit the pointers. (`--commit` only stages the DVC
-# lockfiles, never source code; cache:false metric files are left untouched.)
+# that pushed data, then `git push`es once at the end if anything was
+# committed. Use them together (`--push --commit`) to close the loop:
+# repro -> upload data -> commit the pointers -> push. (`--commit` only stages
+# the DVC lockfiles, never source code; cache:false metric files are left
+# untouched.)
 #
 # Anything after a literal `--` is forwarded verbatim to each `dvc repro`
 # call (e.g. `-- --force`, `-- -s tmaze_experiment_marginal`, `-- --dry`).
@@ -85,11 +87,13 @@ commit_lock() {
   else
     git -C "$ROOT" commit -q -m "$ch: update dvc.lock (reproduce-all)" -- "${paths[@]}"
     echo "--- $ch: committed ${paths[*]}"
+    committed_any=1
   fi
 }
 
 # --- run --------------------------------------------------------------------
 failed=()
+committed_any=0
 for ch in "${CHAPTERS[@]}"; do
   dir="$ROOT/$ch"
   if [[ ! -f "$dir/dvc.yaml" ]]; then
@@ -130,6 +134,12 @@ for ch in "${CHAPTERS[@]}"; do
     failed+=("$ch"); echo "!! $ch FAILED" >&2
   fi
 done
+
+if [[ "$COMMIT" -eq 1 && "$committed_any" -eq 1 ]]; then
+  echo
+  echo "--- git push"
+  git -C "$ROOT" push
+fi
 
 # --- summary ----------------------------------------------------------------
 echo
