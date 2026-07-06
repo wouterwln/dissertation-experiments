@@ -10,7 +10,7 @@ from .tmaze_viz import (
     save_tmaze_reference,
     TikzTheme,
     get_tikz_color_definitions,
-    PAIRED_9,
+    TIKZ_COLORS,
     PlanData,
 )
 
@@ -24,6 +24,6 @@ __all__ = [
     "save_tmaze_reference",
     "TikzTheme",
     "get_tikz_color_definitions",
-    "PAIRED_9",
+    "TIKZ_COLORS",
     "PlanData",
 ]

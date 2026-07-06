@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 import io
+import sys
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -17,20 +18,25 @@ from matplotlib.patches import FancyArrowPatch
 from matplotlib.figure import Figure
 import numpy as np
 
+# Repo-root dissertation theme (lives above the chapter's DVC root): single
+# source of truth for the thesis cover palette used across all chapters.
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        if str(_p) not in sys.path:
+            sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as _theme  # noqa: E402
 
-# ColorBrewer Paired_9 palette (matching Julia ColorSchemes.jl)
-# Index: 1=#a6cee3, 2=#1f78b4, 3=#b2df8a, 4=#33a02c, 5=#fb9a99, 
-#        6=#e31a1c, 7=#fdbf6f, 8=#ff7f00, 9=#cab2d6
-PAIRED_9 = {
-    1: "#a6cee3",  # light blue
-    2: "#1f78b4",  # blue
-    3: "#b2df8a",  # light green
-    4: "#33a02c",  # green
-    5: "#fb9a99",  # light red/pink
-    6: "#e31a1c",  # red
-    7: "#fdbf6f",  # light orange
-    8: "#ff7f00",  # orange
-    9: "#cab2d6",  # light purple
+# TikZ color name -> thesis palette hex. Emitted by get_tikz_color_definitions()
+# and referenced by name in TikzTheme / the generated .tex frames.
+TIKZ_COLORS = {
+    "thesisteal":       _theme.PALETTE["start"],    # agent (thesis primary)
+    "thesisamber":      _theme.PALETTE["goal"],     # reward
+    "thesisterracotta": _theme.PALETTE["penalty"],  # loss
+    "thesisdustyblue":  _theme.PALETTE["sense"],    # cue (matches ch5 SENSE)
+    "thesischarcoal":   _theme.PALETTE["ink"],      # walls / text
+    "thesispaper":      _theme.PALETTE["cell"],     # corridor fill
+    "thesispathdark":   _theme.PALETTE["path_hi"],  # plan arrows
 }
 
 
@@ -78,52 +84,48 @@ VALID_ACTIONS = {
 class MazeTheme:
     """
     Color theme for T-maze visualization.
-    
-    Default colors use ColorBrewer Paired_9 palette for consistency
-    with academic publications.
+
+    Default colors come from the repo-root dissertation theme (thesis cover
+    palette), matching the maze semantics used in chapters 4 and 5.
     """
     background: str = "#ffffff"
-    corridor: str = "#ffffff"
-    wall: str = "#000000"
-    agent: str = PAIRED_9[2]           # blue
-    reward_positive: str = PAIRED_9[4]  # green
-    reward_negative: str = PAIRED_9[6]  # red
-    cue: str = PAIRED_9[7]              # light orange
+    corridor: str = _theme.PALETTE["cell"]
+    wall: str = _theme.PALETTE["ink"]
+    agent: str = _theme.PALETTE["start"]              # thesis teal
+    reward_positive: str = _theme.PALETTE["goal"]     # muted amber
+    reward_negative: str = _theme.PALETTE["penalty"]  # terracotta
+    cue: str = _theme.PALETTE["sense"]                # dusty blue
 
 
 @dataclass
 class TikzTheme:
     """
     Color theme for TikZ T-maze visualization.
-    
-    Uses HTML hex colors that will be defined in the TikZ preamble.
-    Default colors use ColorBrewer Paired_9 palette.
+
+    Uses color NAMES defined in the TikZ preamble by
+    get_tikz_color_definitions() (thesis cover palette).
     """
     background: str = "white"
-    corridor: str = "white"
-    wall: str = "black"
-    agent: str = "pairedblue"           # #1f78b4
-    reward_positive: str = "pairedgreen" # #33a02c
-    reward_negative: str = "pairedred"   # #e31a1c
-    cue: str = "pairedorange"            # #fdbf6f
+    corridor: str = "thesispaper"
+    wall: str = "thesischarcoal"
+    agent: str = "thesisteal"
+    reward_positive: str = "thesisamber"
+    reward_negative: str = "thesisterracotta"
+    cue: str = "thesisdustyblue"
 
 
 def get_tikz_color_definitions() -> str:
     """
-    Get TikZ/xcolor color definitions for the Paired_9 palette.
-    
+    Get TikZ/xcolor color definitions for the thesis palette.
+
     Returns:
-        LaTeX code defining the custom colors.
+        LaTeX code defining the custom colors (from TIKZ_COLORS, which mirrors
+        the repo-root dissertation theme).
     """
-    return r"""\definecolor{pairedlightblue}{HTML}{A6CEE3}
-\definecolor{pairedblue}{HTML}{1F78B4}
-\definecolor{pairedlightgreen}{HTML}{B2DF8A}
-\definecolor{pairedgreen}{HTML}{33A02C}
-\definecolor{pairedlightred}{HTML}{FB9A99}
-\definecolor{pairedred}{HTML}{E31A1C}
-\definecolor{pairedorange}{HTML}{FDBF6F}
-\definecolor{paireddarkorange}{HTML}{FF7F00}
-\definecolor{pairedpurple}{HTML}{CAB2D6}"""
+    return "\n".join(
+        f"\\definecolor{{{name}}}{{HTML}}{{{hexval.lstrip('#').upper()}}}"
+        for name, hexval in TIKZ_COLORS.items()
+    )
 
 
 def _draw_plan_arrows_mpl(
@@ -131,7 +133,7 @@ def _draw_plan_arrows_mpl(
     plan_data: PlanData,
     theme: MazeTheme,
     current_state: int,
-    arrow_color: str = "#8B4513",  # saddle brown for plan arrows
+    arrow_color: str = _theme.PALETTE["path_hi"],  # dark trajectory teal
 ) -> None:
     """
     Draw plan arrows on matplotlib axes.
@@ -432,7 +434,7 @@ def _fig_to_array(fig: Figure) -> np.ndarray:
 def _generate_tikz_plan_arrows(
     plan_data: PlanData,
     current_state: int,
-    arrow_color: str = "paireddarkorange",
+    arrow_color: str = "thesispathdark",
 ) -> List[str]:
     """
     Generate TikZ code for plan arrows.
@@ -551,7 +553,7 @@ def generate_tikz_frame(
             r"\usepackage[dvipsnames]{xcolor}",
             r"\usetikzlibrary{shapes,positioning,arrows.meta}",
             "",
-            "% ColorBrewer Paired_9 palette",
+            "% Thesis cover palette (mirrors repo-root dissertation_theme.py)",
             get_tikz_color_definitions(),
             "",
             r"\begin{document}",
@@ -695,15 +697,15 @@ def save_tmaze_reference(
     with open(output_path, 'w') as f:
         f.write(tikz_code)
     
-    # Also save colors.tex in the same directory
+    # Also save colors.tex in the same directory (always rewritten so palette
+    # changes in the dissertation theme propagate).
     colors_path = output_path.parent / "colors.tex"
-    if not colors_path.exists():
-        with open(colors_path, 'w') as f:
-            f.write("% ColorBrewer Paired_9 palette for T-maze figures\n")
-            f.write("% Include this in your paper preamble with: \\input{data/colors.tex}\n")
-            f.write(get_tikz_color_definitions())
-            f.write("\n")
-        print(f"Color definitions saved to: {colors_path}")
+    with open(colors_path, 'w') as f:
+        f.write("% Thesis cover palette for T-maze figures\n")
+        f.write("% Include this in your paper preamble with: \\input{data/colors.tex}\n")
+        f.write(get_tikz_color_definitions())
+        f.write("\n")
+    print(f"Color definitions saved to: {colors_path}")
     
     print(f"T-maze reference figure saved to: {output_path}")
     return output_path
@@ -745,7 +747,7 @@ def save_episode_tikz_frames(
     # Save color definitions for paper preamble
     colors_path = output_dir / "colors.tex"
     with open(colors_path, 'w') as f:
-        f.write("% ColorBrewer Paired_9 palette for T-maze figures\n")
+        f.write("% Thesis cover palette for T-maze figures\n")
         f.write("% Include this in your paper preamble with: \\input{frames/colors.tex}\n")
         f.write(get_tikz_color_definitions())
         f.write("\n")

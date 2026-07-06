@@ -15,11 +15,19 @@ Panels:
 
 import argparse
 import json
+import sys
 import warnings
 from pathlib import Path
 
 import numpy as np
 import yaml
+
+# Repo-root dissertation theme (lives above the chapter's DVC root).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as _theme  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Backend setup: try PGF (LaTeX-native), fall back to Agg (PNG only)
@@ -31,6 +39,7 @@ try:
     import matplotlib.pyplot as plt
     # Test that pdflatex is available
     from matplotlib.backends.backend_pgf import FigureCanvasPgf
+    _theme.apply_rcparams()
     plt.rcParams.update({
         "pgf.texsystem": "pdflatex",
         "text.usetex": True,
@@ -48,6 +57,7 @@ except Exception:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    _theme.apply_rcparams()
     plt.rcParams.update({
         "font.family": "serif",
         "font.size": 9,
@@ -75,7 +85,7 @@ def load_json(path):
 def load_colors(project_root):
     """Load color scheme from params.yaml."""
     params_path = project_root / "params.yaml"
-    defaults = {"active": "#1F78B4", "marginal": "#33A02C", "planning": "#FF7F00"}
+    defaults = {"active": "#3A6F73", "marginal": "#B4553F", "planning": "#A67E24"}
     if not params_path.exists():
         return defaults
     with open(params_path) as f:

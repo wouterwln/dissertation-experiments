@@ -20,6 +20,14 @@ import yaml
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+# Repo-root dissertation theme (lives above the chapter's DVC root).
+for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
+    if (_p / "dissertation_theme.py").exists():
+        sys.path.insert(0, str(_p))
+        break
+import dissertation_theme as _theme  # noqa: E402
+_theme.apply_rcparams()
+
 matplotlib.rcParams.update({
     "font.family": "serif",
     "font.size": 8,
@@ -50,9 +58,9 @@ def load_colors():
     with open(params_path) as f:
         params = yaml.safe_load(f)
     return params.get("colors", {
-        "active": "#1F78B4",
-        "marginal": "#33A02C",
-        "planning": "#FF7F00",
+        "active": "#3A6F73",
+        "marginal": "#B4553F",
+        "planning": "#A67E24",
     })
 
 
