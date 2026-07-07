@@ -88,10 +88,11 @@ stages:
             observe_first: true
         convergence_sweep.frozen_lake: *id001
     outs:
-    - path: data/convergence_sweep/frozen-lake/summary.csv
+    - path: data/convergence_sweep/frozen-lake
       hash: md5
-      md5: 66451cf8174089b0df0e708af366f1b5
-      size: 5586
+      md5: 1e6a38a6fad5790ceda4ff21dd95c562.dir
+      size: 2564480
+      nfiles: 96
   convergence_sweep_wumpus_world:
     cmd: uv run python run_convergence_sweep.py --environment wumpus-world 
       --grid-size 5 --n-configs 25 --n-pits 4 --planning-horizon 8 --obs-noise 
@@ -180,10 +181,11 @@ stages:
             observe_first: true
         convergence_sweep.wumpus_world: *id002
     outs:
-    - path: data/convergence_sweep/wumpus-world/summary.csv
+    - path: data/convergence_sweep/wumpus-world
       hash: md5
-      md5: 5b18d24c51033d50af195fb3294102ef
-      size: 5463
+      md5: 1756d9ca32570912e2ea0976eb45636c.dir
+      size: 2573027
+      nfiles: 96
   convergence_sweep_rocksample:
     cmd: uv run python run_convergence_sweep.py --environment rocksample 
       --grid-size 4 --n-rocks 3 --planning-horizon 12 --half-eff-dist 2.0 
@@ -273,10 +275,11 @@ stages:
             observe_first: true
         convergence_sweep.rocksample: *id003
     outs:
-    - path: data/convergence_sweep/rocksample/summary.csv
+    - path: data/convergence_sweep/rocksample
       hash: md5
-      md5: 022b1fdf22bb09d2be45fac15d3b92f8
-      size: 5475
+      md5: d7f1250316e7c4c50a85e17f540a1d03.dir
+      size: 2582586
+      nfiles: 96
   convergence_sweep_plots:
     cmd: uv run python plot_convergence_sweep.py --environment all --input-dir 
       data/convergence_sweep --output-dir data/convergence_sweep/plots --format 
@@ -284,26 +287,26 @@ stages:
     deps:
     - path: data/convergence_sweep/frozen-lake/summary.csv
       hash: md5
-      md5: 66451cf8174089b0df0e708af366f1b5
-      size: 5586
+      md5: a71be13840e7f1215c9cf793e24200e4
+      size: 5581
     - path: data/convergence_sweep/rocksample/summary.csv
       hash: md5
-      md5: 022b1fdf22bb09d2be45fac15d3b92f8
+      md5: caa80aa9232a09a53f3ea2b84d8d0757
       size: 5475
     - path: data/convergence_sweep/wumpus-world/summary.csv
       hash: md5
-      md5: 5b18d24c51033d50af195fb3294102ef
-      size: 5463
+      md5: 305ca548ae2bd4a9ed77d66c98a8411d
+      size: 5462
     - path: plot_convergence_sweep.py
       hash: md5
-      md5: d7bb79a1ee5c20774349d5c8b6eeb3af
-      size: 18344
+      md5: 58bcf3eb28ed4abf5a69aa4a21ebea24
+      size: 32113
     outs:
     - path: data/convergence_sweep/plots/
       hash: md5
-      md5: 4f5d7ad46cd49a58921841ef83ec1b04.dir
-      size: 2593533
-      nfiles: 54
+      md5: a292051c51558045dfa501fe334ed265.dir
+      size: 2948161
+      nfiles: 58
   frozen_lake@loopy:
     cmd: uv run python run_frozen_lake.py --planning-method loopy --grid-size 4 
       --n-configs 15 --hole-fraction 0.2 --min-hamming 4 --base-noise 0.4 
@@ -1434,3 +1437,26 @@ stages:
       hash: md5
       md5: 6b01d8369102a4528de1709071f7ddb5
       size: 1856678
+  rocksample_trajectory_plots:
+    cmd: uv run python plot_rocksample_trajectory.py --all-configs --results-dir
+      data/results/rocksample --output-dir data/plots/rocksample
+    deps:
+    - path: data/results/rocksample
+      hash: md5
+      md5: 7da832d14d87ab7ef58ec9f6c42518b6.dir
+      size: 14423726
+      nfiles: 5
+    - path: environments/rocksample.py
+      hash: md5
+      md5: 8808d36695bc55856e15615c227bdde8
+      size: 23651
+    - path: plot_rocksample_trajectory.py
+      hash: md5
+      md5: 43c325e4d14af2113690098131b70590
+      size: 16768
+    outs:
+    - path: data/plots/rocksample
+      hash: md5
+      md5: ee948ab67ece20a0e603537c813662df.dir
+      size: 700365
+      nfiles: 16
