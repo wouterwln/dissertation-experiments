@@ -63,8 +63,10 @@ stages:
       uv run python scripts/plot_door_code.py
       --input-dir output/door_code
       --output output/door_code/figure.pdf
+      --cards-dir output/door_code/cards
     deps:
       - scripts/plot_door_code.py
+      - scripts/_cards.py
       - output/door_code/aif.json
       - output/door_code/vbp.json
       - output/door_code/psrl.json
@@ -77,6 +79,7 @@ stages:
       - output/door_code/random.json
     outs:
       - output/door_code/figure.pdf
+      - output/door_code/cards
 
   # BAMCP sims-budget ablation — sweep MCTS rollouts per plan() call
   # around the canonical 10000 (Guez 2012 paper-grade norm) to show the
@@ -215,8 +218,10 @@ stages:
       uv run python scripts/plot_minigrid_door_code.py
       --input-dir output/minigrid_door_code
       --output output/minigrid_door_code/figure.pdf
+      --cards-dir output/minigrid_door_code/cards
     deps:
       - scripts/plot_minigrid_door_code.py
+      - scripts/_cards.py
       - output/minigrid_door_code/aif.json
       - output/minigrid_door_code/vbp.json
       - output/minigrid_door_code/psrl.json
@@ -229,6 +234,7 @@ stages:
       - output/minigrid_door_code/random.json
     outs:
       - output/minigrid_door_code/figure.pdf
+      - output/minigrid_door_code/cards
 
   # M4 — RockSample BA-POMDP. Factorized θ. Full sample-based BA-RL
   # slate (PSRL/BAMCP/BOSS/Factored BA-POMCP) wired alongside AIF/VBP/
@@ -294,8 +300,10 @@ stages:
       uv run python scripts/plot_rock_sample.py
       --input-dir output/rock_sample
       --output output/rock_sample/figure.pdf
+      --cards-dir output/rock_sample/cards
     deps:
       - scripts/plot_rock_sample.py
+      - scripts/_cards.py
       - output/rock_sample/aif.json
       - output/rock_sample/vbp.json
       - output/rock_sample/psrl.json
@@ -307,6 +315,7 @@ stages:
       - output/rock_sample/random.json
     outs:
       - output/rock_sample/figure.pdf
+      - output/rock_sample/cards
 
   rock_sample_viz:
     cmd: >-
@@ -467,8 +476,10 @@ stages:
       uv run python scripts/plot_factored_tiger.py
       --input-dir output/factored_tiger
       --output output/factored_tiger/figure.pdf
+      --cards-dir output/factored_tiger/cards
     deps:
       - scripts/plot_factored_tiger.py
+      - scripts/_cards.py
       - output/factored_tiger/aif.json
       - output/factored_tiger/vbp.json
       - output/factored_tiger/psrl.json
@@ -480,3 +491,18 @@ stages:
       - output/factored_tiger/random.json
     outs:
       - output/factored_tiger/figure.pdf
+      - output/factored_tiger/cards
+
+  # Static benchmark-environment schematics (fig:environments-ch6). No run data:
+  # depends only on the plot script and the environment modules it draws from.
+  plot_environments:
+    cmd: >-
+      uv run python scripts/plot_environments.py
+      --output-dir output/environments
+    deps:
+      - scripts/plot_environments.py
+      - learningpomdp/environments/rock_sample.py
+      - learningpomdp/environments/minigrid_door_code.py
+      - learningpomdp/environments/door_code.py
+    outs:
+      - output/environments

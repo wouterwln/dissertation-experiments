@@ -12,9 +12,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -63,9 +63,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -114,9 +114,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -165,9 +165,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -216,9 +216,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -267,9 +267,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -318,9 +318,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -369,9 +369,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -420,9 +420,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -461,7 +461,7 @@ stages:
       size: 123524614
   plot:
     cmd: uv run python scripts/plot_door_code.py --input-dir output/door_code 
-      --output output/door_code/figure.pdf
+      --output output/door_code/figure.pdf --cards-dir output/door_code/cards
     deps:
     - path: output/door_code/aif.json
       hash: md5
@@ -503,15 +503,24 @@ stages:
       hash: md5
       md5: fe28ecb4fed61270b1d8beed8239920c
       size: 129248410
+    - path: scripts/_cards.py
+      hash: md5
+      md5: f6d63ac6cf827e6495b9d433b11ca655
+      size: 1592
     - path: scripts/plot_door_code.py
       hash: md5
-      md5: bdfec8ee4660934b9acca1c1fc702f7c
-      size: 14617
+      md5: 88b6cdb9357824aee5fc1cac744701bc
+      size: 16632
     outs:
+    - path: output/door_code/cards
+      hash: md5
+      md5: 177f8d735f9a6fc10f894c3fc3fc312e.dir
+      size: 436903
+      nfiles: 9
     - path: output/door_code/figure.pdf
       hash: md5
-      md5: f01b627f35bc59242e704bd22630947e
-      size: 60636
+      md5: f1e51b21b9fb1488ce97c66c92c802dd
+      size: 64274
   minigrid_door_code@aif:
     cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 3 
       --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
@@ -526,9 +535,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -589,9 +598,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -652,9 +661,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -715,9 +724,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -778,9 +787,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -841,9 +850,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -904,9 +913,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -967,9 +976,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -1030,9 +1039,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -1081,7 +1090,8 @@ stages:
       nfiles: 10
   plot_minigrid:
     cmd: uv run python scripts/plot_minigrid_door_code.py --input-dir 
-      output/minigrid_door_code --output output/minigrid_door_code/figure.pdf
+      output/minigrid_door_code --output output/minigrid_door_code/figure.pdf 
+      --cards-dir output/minigrid_door_code/cards
     deps:
     - path: output/minigrid_door_code/aif.json
       hash: md5
@@ -1123,15 +1133,24 @@ stages:
       hash: md5
       md5: aa91f4d3ae157c8432072486a9a3aeca
       size: 23807235
+    - path: scripts/_cards.py
+      hash: md5
+      md5: f6d63ac6cf827e6495b9d433b11ca655
+      size: 1592
     - path: scripts/plot_minigrid_door_code.py
       hash: md5
-      md5: ba12844af0a64c5776f1f842cb0cc856
-      size: 12555
+      md5: fb746485be5300e87aab0be53c8110c7
+      size: 14392
     outs:
+    - path: output/minigrid_door_code/cards
+      hash: md5
+      md5: 2eb84bbcc4308d887c002bbea1d3ed92.dir
+      size: 395415
+      nfiles: 9
     - path: output/minigrid_door_code/figure.pdf
       hash: md5
-      md5: 1d529a8934bc16840af2eaa1c52a2210
-      size: 53775
+      md5: 09084db5dc3e2eab993fbf05261aa1c5
+      size: 56263
   rock_sample@random:
     cmd: uv run python scripts/run_rock_sample.py --planner random --K 4 
       --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
@@ -1144,9 +1163,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1202,9 +1221,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1260,9 +1279,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1318,9 +1337,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1376,9 +1395,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1434,9 +1453,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1492,9 +1511,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1550,9 +1569,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1598,7 +1617,8 @@ stages:
       size: 18821960
   plot_rock_sample:
     cmd: uv run python scripts/plot_rock_sample.py --input-dir 
-      output/rock_sample --output output/rock_sample/figure.pdf
+      output/rock_sample --output output/rock_sample/figure.pdf --cards-dir 
+      output/rock_sample/cards
     deps:
     - path: output/rock_sample/aif.json
       hash: md5
@@ -1636,15 +1656,24 @@ stages:
       hash: md5
       md5: a738f3a6373bef339c7ac0b625b929b7
       size: 18753272
+    - path: scripts/_cards.py
+      hash: md5
+      md5: f6d63ac6cf827e6495b9d433b11ca655
+      size: 1592
     - path: scripts/plot_rock_sample.py
       hash: md5
-      md5: a947abc1c036b5b3c6be0e6014b5aa66
-      size: 11095
+      md5: 69cfcbfe3a05c7d9f9b9dd971d484827
+      size: 13010
     outs:
+    - path: output/rock_sample/cards
+      hash: md5
+      md5: 511f1e1112f57ffccc7ce2cb14ab7d63.dir
+      size: 641584
+      nfiles: 12
     - path: output/rock_sample/figure.pdf
       hash: md5
-      md5: 6f8bd14c55c62aa23bab09490570c236
-      size: 68572
+      md5: 3b70f6f1879418ab3116776897c9c57a
+      size: 70098
   plot_door_code_simscaling:
     cmd: uv run python scripts/plot_door_code_simscaling.py --input-dir 
       output/door_code_simscaling --output 
@@ -1689,9 +1718,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1747,9 +1776,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1805,9 +1834,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -1913,8 +1942,8 @@ stages:
       size: 18783998
     - path: scripts/visualize_rock_sample.py
       hash: md5
-      md5: 1e09a2e4d6e84b028bd433bb452d4fb3
-      size: 11647
+      md5: 9169dd78c684e7b8dfffcdac1c2e0169
+      size: 12686
     params:
       params.yaml:
         rock_sample.env.K: 4
@@ -1938,9 +1967,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -1989,9 +2018,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -2046,9 +2075,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -2103,9 +2132,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_door_code.py
       hash: md5
       md5: 794333e42e354284146c7e8fa110c76a
@@ -2162,9 +2191,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_minigrid_door_code.py
       hash: md5
       md5: cf29059519cdea8039f170cecd58f151
@@ -2223,9 +2252,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2281,9 +2310,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2339,9 +2368,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2397,9 +2426,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2455,9 +2484,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2513,9 +2542,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2571,9 +2600,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2629,9 +2658,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2687,9 +2716,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2745,9 +2774,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2803,9 +2832,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2861,9 +2890,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2919,9 +2948,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -2977,9 +3006,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3035,9 +3064,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3093,9 +3122,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3151,9 +3180,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3209,9 +3238,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3267,9 +3296,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3325,9 +3354,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3383,9 +3412,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3441,9 +3470,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3499,9 +3528,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3557,9 +3586,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3615,9 +3644,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_rock_sample.py
       hash: md5
       md5: a81a79f430e37e9eb8216b4c7f4718bb
@@ -3673,9 +3702,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -3726,9 +3755,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -3779,9 +3808,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -3832,9 +3861,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -3885,9 +3914,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -3938,9 +3967,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -3991,9 +4020,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -4044,9 +4073,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -4097,9 +4126,9 @@ stages:
     deps:
     - path: learningpomdp/
       hash: md5
-      md5: 5cfa1bd87078fb72d66cb520295886f5.dir
-      size: 606903
-      nfiles: 61
+      md5: f7abe0c255a529cc1f3c2fbbbc5e2a28.dir
+      size: 642726
+      nfiles: 62
     - path: scripts/run_factored_tiger.py
       hash: md5
       md5: ff0ab082fd555a81815e105f5e38bdcd
@@ -4140,7 +4169,8 @@ stages:
       size: 9575350
   plot_factored_tiger:
     cmd: uv run python scripts/plot_factored_tiger.py --input-dir 
-      output/factored_tiger --output output/factored_tiger/figure.pdf
+      output/factored_tiger --output output/factored_tiger/figure.pdf 
+      --cards-dir output/factored_tiger/cards
     deps:
     - path: output/factored_tiger/aif.json
       hash: md5
@@ -4178,12 +4208,47 @@ stages:
       hash: md5
       md5: f3343648db314640e1b50c2958d0ad8f
       size: 9257242
+    - path: scripts/_cards.py
+      hash: md5
+      md5: f6d63ac6cf827e6495b9d433b11ca655
+      size: 1592
     - path: scripts/plot_factored_tiger.py
       hash: md5
-      md5: 389dd61727beda0a233cb0cb9baeab7d
-      size: 9907
+      md5: 5598f780fee1b3bd4a8cd8c0405335a2
+      size: 11768
     outs:
+    - path: output/factored_tiger/cards
+      hash: md5
+      md5: 9f7daa7b5deb84589098850c65940c0e.dir
+      size: 426049
+      nfiles: 10
     - path: output/factored_tiger/figure.pdf
       hash: md5
-      md5: 1097d48b1f8c85a5d6976387f201e733
-      size: 52300
+      md5: f1f53085428d3382a5af2624a2291696
+      size: 52365
+  plot_environments:
+    cmd: uv run python scripts/plot_environments.py --output-dir 
+      output/environments
+    deps:
+    - path: learningpomdp/environments/door_code.py
+      hash: md5
+      md5: 28f33c69c4ccaf9073d21b5b1798ba43
+      size: 23671
+    - path: learningpomdp/environments/minigrid_door_code.py
+      hash: md5
+      md5: 246557b24470fec154b8b0fccda9298c
+      size: 43938
+    - path: learningpomdp/environments/rock_sample.py
+      hash: md5
+      md5: e54a9c62118ce6eb7fed2382adde7284
+      size: 24130
+    - path: scripts/plot_environments.py
+      hash: md5
+      md5: b35dd3fbd5965ed2db7b2093e1040bb1
+      size: 13364
+    outs:
+    - path: output/environments
+      hash: md5
+      md5: b80691d96cfb7c6b61080a57b36e86f9.dir
+      size: 124506
+      nfiles: 8

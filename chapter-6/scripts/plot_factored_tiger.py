@@ -48,6 +48,8 @@ for _p in [Path(__file__).resolve(), *Path(__file__).resolve().parents]:
         break
 import dissertation_theme as theme  # noqa: E402
 
+from _cards import save_legend_card, save_panel_cards  # noqa: E402
+
 
 PLANNER_LABELS = {
     "aif": "AIF",
@@ -86,10 +88,28 @@ def _curve_with_band(
     ax, summary: dict, metric: str, color: str, label: str,
     linestyle: str = "-", group: str = "curves", marker: str = "",
 ):
-    curve = summary[group][metric]
-    mean = np.array(curve["mean"])
-    p05 = np.array(curve["p05"])
-    p95 = np.array(curve["p95"])
+    # 90% CI of the *mean* over seeds (not of per-seed values): mean ± 1.645·SE,
+    # from the raw per-episode curves. Falls back to the stored percentile band
+    # for any metric without raw per-seed data.
+    pe = summary.get("per_episode", {})
+    raw = None
+    if metric in pe:
+        raw = np.asarray(pe[metric], dtype=float)
+    elif metric == "brier":
+        mass_key = next((k for k in ("posterior_mass_on_true_theta",
+                                     "posterior_mass_on_persistent_theta")
+                         if k in pe), None)
+        if mass_key is not None:
+            raw = (1.0 - np.asarray(pe[mass_key], dtype=float)) ** 2
+    if raw is not None:
+        mean = raw.mean(axis=0)
+        band = 1.645 * raw.std(axis=0, ddof=1) / np.sqrt(raw.shape[0])
+        p05, p95 = mean - band, mean + band
+    else:
+        curve = summary[group][metric]
+        mean = np.array(curve["mean"])
+        p05 = np.array(curve["p05"])
+        p95 = np.array(curve["p95"])
     eps = np.arange(len(mean))
     # Sparse markers double as a non-color encoding (CVD / greyscale print).
     ax.plot(eps, mean, color=color, label=label, lw=2, linestyle=linestyle,
@@ -127,6 +147,10 @@ def main() -> None:
         "--input-dir", type=Path, default=Path("output/factored_tiger"),
     )
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--cards-dir", type=Path, default=None,
+        help="if set, also write each panel as its own PDF card here",
+    )
     args = parser.parse_args()
     theme.apply_rcparams()
 
@@ -180,8 +204,9 @@ def main() -> None:
 
         regret = _cumulative_regret(s, oracle_run)
         regret_mean = regret.mean(axis=0)
-        regret_p05 = np.percentile(regret, 5, axis=0)
-        regret_p95 = np.percentile(regret, 95, axis=0)
+        regret_band = 1.645 * regret.std(axis=0, ddof=1) / np.sqrt(regret.shape[0])
+        regret_p05 = regret_mean - regret_band
+        regret_p95 = regret_mean + regret_band
         ax_regret.plot(eps_axis, regret_mean, color=c, label=lab, lw=2, linestyle=ls,
                        marker=mk, markevery=max(len(eps_axis) // 10, 1), ms=4)
         if ls == "-":
@@ -252,8 +277,24 @@ def main() -> None:
     plt.tight_layout(rect=(0, 0, 1, 0.97))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(args.output, dpi=150, bbox_inches="tight")
-    plt.close(fig)
     print(f"figure saved to {args.output}", flush=True)
+
+    if args.cards_dir is not None:
+        named_axes = [
+            ("reward", ax_reward), ("norm", ax_norm),
+            ("persistent", ax_persistent), ("mass", ax_mass),
+            ("safe", ax_safe), ("tiger", ax_tiger), ("regret", ax_regret),
+            ("ptime", ax_ptime), ("brier", ax_brier),
+        ]
+        handles, labels = ax_reward.get_legend_handles_labels()
+        if ax_reward.get_legend() is not None:
+            ax_reward.get_legend().remove()
+        save_panel_cards(fig, named_axes, args.cards_dir, "factored_tiger")
+        save_legend_card(handles, labels,
+                         args.cards_dir / "factored_tiger_legend.pdf")
+        print(f"cards saved to {args.cards_dir}", flush=True)
+
+    plt.close(fig)
 
 
 if __name__ == "__main__":
