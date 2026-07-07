@@ -109,6 +109,14 @@ PALETTE = {
     "path_hi":  "#22474A",
     "path":     THESIS["primary"],      # single-color path uses (legends)
 
+    # -- Grid-world trajectory (step order): navigation-amber ramp -----------
+    # For grid/maze figures the step path stays in the navigation-amber family
+    # (the flat `arrow` amber the Wumpus figure uses), shaded light -> dark by
+    # step so RockSample and Wumpus read as one visual grammar. `nav_mid` is the
+    # canonical `arrow` amber so the ramp is centered on it.
+    "nav_lo":  "#F4C578",               # early steps (light amber)
+    "nav_hi":  "#9C5811",               # late steps (deep amber / umber)
+
     # -- Observation-noise heatmap endpoints (low -> high noise): a cool dusty-
     # blue haze reads as uncertainty (ch4 has no cue/sense channel competing for
     # blue). Capped light so even the noisiest cell is soft ambient shading, never
@@ -225,6 +233,17 @@ def path_cmap():
     """Teal light -> dark colormap encoding trajectory step order (early -> late)."""
     return LinearSegmentedColormap.from_list(
         "path", [PALETTE["path_lo"], PALETTE["path_mid"], PALETTE["path_hi"]]
+    )
+
+
+def nav_cmap():
+    """Navigation-amber light -> dark ramp for grid trajectory step order.
+
+    Centered on the flat navigation amber (``PALETTE["arrow"]``) the Wumpus
+    figure uses, so a step-shaded grid trajectory stays in that colour family
+    (RockSample and Wumpus read as one grammar)."""
+    return LinearSegmentedColormap.from_list(
+        "nav", [PALETTE["nav_lo"], PALETTE["arrow"], PALETTE["nav_hi"]]
     )
 
 

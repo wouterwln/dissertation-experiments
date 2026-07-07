@@ -23,9 +23,11 @@ stages:
     params:
       - convergence_sweep
       - convergence_sweep.frozen_lake
-    plots:
-      - data/convergence_sweep/frozen-lake/summary.csv:
-          cache: false
+    outs:
+      # Cached (pushable/pullable): captures both summary.csv and the per-seed
+      # vfe_trace JSONs, so a fresh machine can `dvc pull` this instead of
+      # re-running the ~40-min sweep. Produce once (home PC), push, pull anywhere.
+      - data/convergence_sweep/frozen-lake
 
   convergence_sweep_wumpus_world:
     cmd: >-
@@ -51,9 +53,8 @@ stages:
     params:
       - convergence_sweep
       - convergence_sweep.wumpus_world
-    plots:
-      - data/convergence_sweep/wumpus-world/summary.csv:
-          cache: false
+    outs:
+      - data/convergence_sweep/wumpus-world
 
   convergence_sweep_rocksample:
     cmd: >-
@@ -81,9 +82,8 @@ stages:
     params:
       - convergence_sweep
       - convergence_sweep.rocksample
-    plots:
-      - data/convergence_sweep/rocksample/summary.csv:
-          cache: false
+    outs:
+      - data/convergence_sweep/rocksample
 
   convergence_sweep_plots:
     cmd: >-
@@ -227,6 +227,19 @@ stages:
       - data/results/wumpus_world
     outs:
       - data/plots/wumpus_world
+
+  rocksample_trajectory_plots:
+    cmd: >-
+      uv run python plot_rocksample_trajectory.py
+      --all-configs
+      --results-dir data/results/rocksample
+      --output-dir data/plots/rocksample
+    deps:
+      - plot_rocksample_trajectory.py
+      - environments/rocksample.py
+      - data/results/rocksample
+    outs:
+      - data/plots/rocksample
 
   rocksample:
     foreach: ${rocksample_methods}
