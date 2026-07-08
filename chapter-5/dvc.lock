@@ -299,13 +299,13 @@ stages:
       size: 5462
     - path: plot_convergence_sweep.py
       hash: md5
-      md5: 58bcf3eb28ed4abf5a69aa4a21ebea24
-      size: 32113
+      md5: 7c8e7f5246e11499622397c0eb211d02
+      size: 31839
     outs:
     - path: data/convergence_sweep/plots/
       hash: md5
-      md5: a292051c51558045dfa501fe334ed265.dir
-      size: 2948161
+      md5: ca8be2b9d060c0db0e279001ee76ea28.dir
+      size: 2926517
       nfiles: 58
   frozen_lake@loopy:
     cmd: uv run python run_frozen_lake.py --planning-method loopy --grid-size 4 
