@@ -39,7 +39,7 @@ from _cards import save_legend_card, save_panel_cards  # noqa: E402
 
 
 PLANNER_LABELS = {
-    "aif": "AIF",
+    "aif": "AIF-MP",
     "vbp": "VBP",
     "psrl": "PSRL",
     "belief_q": "Belief-Q",
@@ -61,13 +61,20 @@ PLANNER_ORDER = (
     "oracle", "random",
 )
 
+# Ablation-only planners kept out of the thesis baseline slate (their tables
+# live in the source publication's appendix); dropped when --paper-slate is set.
+PAPER_SLATE_EXCLUDE = ("vbp", "belief_q", "pomcp")
 
-def _load(input_dir: Path) -> dict[str, dict]:
+
+def _load(input_dir: Path, paper_slate: bool = True) -> dict[str, dict]:
     """Load whichever planner JSONs are present in `input_dir`. Missing
     files are skipped so the same plot script handles full slates and
-    small ablations (including runs without an oracle baseline)."""
+    small ablations (including runs without an oracle baseline). With
+    paper_slate set, the ablation-only planners are dropped too."""
     out = {}
     for name in PLANNER_ORDER:
+        if paper_slate and name in PAPER_SLATE_EXCLUDE:
+            continue
         path = input_dir / f"{name}.json"
         if not path.exists():
             continue
@@ -84,7 +91,7 @@ def _curve_with_band(
     ax, summary: dict, metric: str, color: str, label: str,
     linestyle: str = "-", group: str = "curves", marker: str = "",
 ):
-    # 90% CI of the *mean* over seeds (not of per-seed values): mean ± 1.645·SE,
+    # 95% CI of the *mean* over seeds (not of per-seed values): mean ± 1.96·SE,
     # from the raw per-episode curves. Falls back to the stored percentile band
     # for any metric without raw per-seed data.
     pe = summary.get("per_episode", {})
@@ -98,8 +105,14 @@ def _curve_with_band(
         if mass_key is not None:
             raw = (1.0 - np.asarray(pe[mass_key], dtype=float)) ** 2
     if raw is not None:
-        mean = raw.mean(axis=0)
-        band = 1.645 * raw.std(axis=0, ddof=1) / np.sqrt(raw.shape[0])
+        # Nan-safe across-seed summary: reward_normalised is undefined (NaN)
+        # on instances whose max achievable reward is 0, and a plain mean
+        # would propagate a single NaN seed into the whole per-episode curve.
+        n = np.isfinite(raw).sum(axis=0)
+        with np.errstate(invalid="ignore"):
+            mean = np.nanmean(raw, axis=0)
+            se = np.nanstd(raw, axis=0, ddof=1) / np.sqrt(np.maximum(n, 1))
+        band = np.where(n >= 2, 1.96 * se, 0.0)
         p05, p95 = mean - band, mean + band
     else:
         curve = summary[group][metric]
@@ -183,10 +196,16 @@ def main() -> None:
         "--cards-dir", type=Path, default=None,
         help="if set, also write each panel as its own PDF card here",
     )
+    parser.add_argument(
+        "--paper-slate", default="true",
+        help="if true, drop VBP/Belief-Q/POMCP so figure and cards carry "
+             "only the thesis baseline slate",
+    )
     args = parser.parse_args()
     theme.apply_rcparams()
 
-    runs = _load(args.input_dir)
+    paper_slate = str(args.paper_slate).strip().lower() in {"1", "true", "yes", "on"}
+    runs = _load(args.input_dir, paper_slate)
     available = [n for n in PLANNER_ORDER if n in runs]
     cfg = runs[available[0]]["config"]
     n_episodes = cfg["n_episodes"]
@@ -235,7 +254,7 @@ def main() -> None:
         if oracle_run is not None:
             regret = _cumulative_regret(s, oracle_run)
             regret_mean = regret.mean(axis=0)
-            regret_band = 1.645 * regret.std(axis=0, ddof=1) / np.sqrt(regret.shape[0])
+            regret_band = 1.96 * regret.std(axis=0, ddof=1) / np.sqrt(regret.shape[0])
             regret_p05 = regret_mean - regret_band
             regret_p95 = regret_mean + regret_band
             ax_regret.plot(eps_axis, regret_mean, color=c, label=lab, lw=2, linestyle=ls,
@@ -250,14 +269,14 @@ def main() -> None:
 
     ax_succ.set_xlabel("episode within block")
     ax_succ.set_ylabel("success rate")
-    ax_succ.set_title("Success rate (mean ± 90% CI)")
+    ax_succ.set_title("Success rate (mean ± 95% CI)")
     ax_succ.set_ylim(-0.02, 1.02)
     ax_succ.legend(loc="lower right", fontsize=9)
     ax_succ.grid(True, alpha=0.3)
 
     ax_mass.set_xlabel("episode within block")
     ax_mass.set_ylabel("q(theta_true)")
-    ax_mass.set_title("Posterior mass on true theta")
+    ax_mass.set_title("Posterior mass on true θ")
     ax_mass.set_ylim(-0.02, 1.02)
     ax_mass.grid(True, alpha=0.3)
 
@@ -299,7 +318,7 @@ def main() -> None:
 
     ax_regret.set_xlabel("episode within block")
     ax_regret.set_ylabel("cumulative regret vs oracle")
-    ax_regret.set_title("Cumulative regret (mean ± 90% CI)")
+    ax_regret.set_title("Cumulative regret (mean ± 95% CI)")
     ax_regret.axhline(0, color=theme.PALETTE["ink"], lw=0.5, alpha=0.4)
     ax_regret.grid(True, alpha=0.3)
 

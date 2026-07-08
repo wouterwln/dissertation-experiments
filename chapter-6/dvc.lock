@@ -461,7 +461,8 @@ stages:
       size: 123524614
   plot:
     cmd: uv run python scripts/plot_door_code.py --input-dir output/door_code 
-      --output output/door_code/figure.pdf --cards-dir output/door_code/cards
+      --output output/door_code/figure.pdf --cards-dir output/door_code/cards 
+      --paper-slate true
     deps:
     - path: output/door_code/aif.json
       hash: md5
@@ -509,18 +510,21 @@ stages:
       size: 1592
     - path: scripts/plot_door_code.py
       hash: md5
-      md5: 88b6cdb9357824aee5fc1cac744701bc
-      size: 16632
+      md5: 1376c9fc80ff2305afead75f293d4e51
+      size: 17684
+    params:
+      params.yaml:
+        plot.paper_slate: true
     outs:
     - path: output/door_code/cards
       hash: md5
-      md5: 177f8d735f9a6fc10f894c3fc3fc312e.dir
-      size: 436903
+      md5: f1a9ad9e82d7186a7f40a3c1b0235d37.dir
+      size: 369284
       nfiles: 9
     - path: output/door_code/figure.pdf
       hash: md5
-      md5: f1e51b21b9fb1488ce97c66c92c802dd
-      size: 64274
+      md5: b6bd1742a273fee1aec67aa224c2f402
+      size: 52654
   minigrid_door_code@aif:
     cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 3 
       --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
@@ -1091,7 +1095,7 @@ stages:
   plot_minigrid:
     cmd: uv run python scripts/plot_minigrid_door_code.py --input-dir 
       output/minigrid_door_code --output output/minigrid_door_code/figure.pdf 
-      --cards-dir output/minigrid_door_code/cards
+      --cards-dir output/minigrid_door_code/cards --paper-slate true
     deps:
     - path: output/minigrid_door_code/aif.json
       hash: md5
@@ -1139,18 +1143,21 @@ stages:
       size: 1592
     - path: scripts/plot_minigrid_door_code.py
       hash: md5
-      md5: fb746485be5300e87aab0be53c8110c7
-      size: 14392
+      md5: ceeb90ada7cb39266bf1fa60f256b2fd
+      size: 15444
+    params:
+      params.yaml:
+        plot.paper_slate: true
     outs:
     - path: output/minigrid_door_code/cards
       hash: md5
-      md5: 2eb84bbcc4308d887c002bbea1d3ed92.dir
-      size: 395415
+      md5: 4b3eaff10184e297ad8b2bda111fdde0.dir
+      size: 339387
       nfiles: 9
     - path: output/minigrid_door_code/figure.pdf
       hash: md5
-      md5: 09084db5dc3e2eab993fbf05261aa1c5
-      size: 56263
+      md5: 513d0319340903c35d194dd3979bb841
+      size: 46840
   rock_sample@random:
     cmd: uv run python scripts/run_rock_sample.py --planner random --K 4 
       --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
@@ -1618,7 +1625,7 @@ stages:
   plot_rock_sample:
     cmd: uv run python scripts/plot_rock_sample.py --input-dir 
       output/rock_sample --output output/rock_sample/figure.pdf --cards-dir 
-      output/rock_sample/cards
+      output/rock_sample/cards --paper-slate true
     deps:
     - path: output/rock_sample/aif.json
       hash: md5
@@ -1662,18 +1669,21 @@ stages:
       size: 1592
     - path: scripts/plot_rock_sample.py
       hash: md5
-      md5: 69cfcbfe3a05c7d9f9b9dd971d484827
-      size: 13010
+      md5: 03329082ceb6381512a7cdc0fb2223a8
+      size: 14074
+    params:
+      params.yaml:
+        plot.paper_slate: true
     outs:
     - path: output/rock_sample/cards
       hash: md5
-      md5: 511f1e1112f57ffccc7ce2cb14ab7d63.dir
-      size: 641584
+      md5: 73d4e7e0fc91783a58177561df6286aa.dir
+      size: 598707
       nfiles: 12
     - path: output/rock_sample/figure.pdf
       hash: md5
-      md5: 3b70f6f1879418ab3116776897c9c57a
-      size: 70098
+      md5: 139da1873102db4a3440995967a99d44
+      size: 65918
   plot_door_code_simscaling:
     cmd: uv run python scripts/plot_door_code_simscaling.py --input-dir 
       output/door_code_simscaling --output 
@@ -4170,7 +4180,7 @@ stages:
   plot_factored_tiger:
     cmd: uv run python scripts/plot_factored_tiger.py --input-dir 
       output/factored_tiger --output output/factored_tiger/figure.pdf 
-      --cards-dir output/factored_tiger/cards
+      --cards-dir output/factored_tiger/cards --paper-slate true
     deps:
     - path: output/factored_tiger/aif.json
       hash: md5
@@ -4214,18 +4224,21 @@ stages:
       size: 1592
     - path: scripts/plot_factored_tiger.py
       hash: md5
-      md5: 5598f780fee1b3bd4a8cd8c0405335a2
-      size: 11768
+      md5: 57399dfa1ef7c73e3704ce108fdac51b
+      size: 12832
+    params:
+      params.yaml:
+        plot.paper_slate: true
     outs:
     - path: output/factored_tiger/cards
       hash: md5
-      md5: 9f7daa7b5deb84589098850c65940c0e.dir
-      size: 426049
+      md5: 54d3e95cabc08219397a3b47e983ad7e.dir
+      size: 404155
       nfiles: 10
     - path: output/factored_tiger/figure.pdf
       hash: md5
-      md5: f1f53085428d3382a5af2624a2291696
-      size: 52365
+      md5: 58cf46db138a65994098c493ef687343
+      size: 49790
   plot_environments:
     cmd: uv run python scripts/plot_environments.py --output-dir 
       output/environments

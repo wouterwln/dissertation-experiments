@@ -74,12 +74,6 @@ wumpus_world_methods:
     damping: 0.6
 
 
-# Ablation: Active Inference with loopy backward messages to theta.
-# Same scheme as wumpus_world_methods.active-inference, but theta is inferred via
-# cavity messages (theta_feedback) rather than clamped to its prior. It collapses
-# (best damping 0.25 still ~0-8% success vs ~58% for active-inference). `episodes`
-# is a GPU knob: Wumpus tensors are small so this only trades wall-clock, not
-# memory. Set to 1000 to match the main wumpus_world stage for the final figure.
 wumpus_world_loopy_theta:
   episodes: 1000
   planning_iterations: 150

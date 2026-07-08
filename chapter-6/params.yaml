@@ -1,6 +1,12 @@
 # Parameters for the door-code system-identification experiment.
 # Edit values here, then `dvc repro` reruns affected stages.
 
+# Figure/card rendering. paper_slate drops the ablation-only planners
+# (VBP, Belief-Q, POMCP) from every results figure and card, so they carry
+# only the thesis baseline slate; set false to render the full diagnostic slate.
+plot:
+  paper_slate: true
+
 env:
   K: 6              # number of doors / symbols  [reduced 8→6 after K=8 OOM'd CPU and exceeded GPU wallclock]
   lock_length: 4    # doors to open in sequence per episode

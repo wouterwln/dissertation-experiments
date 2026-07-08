@@ -581,16 +581,12 @@ def plot_plateau_traces(results_by_env, output_dir, fmt, params_path="params.yam
                     transform=ax.get_xaxis_transform(), ha="right", va="top",
                     fontsize=6.5, color=theme.PALETTE["muted"])
 
-        # Self-contained λ readout in-panel (the envelope figure is the primary
-        # place the selected λ is legible; this is a courtesy annotation).
+        # The selected λ per planner is reported in the figure caption (and shown
+        # in the λ-sensitivity envelope figure) rather than annotated in-panel,
+        # where the box would overlap the plateau traces.
         if lam_notes:
-            ax.text(0.97, 0.97 if is_delta else 0.03,
-                    "$\\lambda$: " + " · ".join(lam_notes),
-                    transform=ax.transAxes, ha="right",
-                    va="top" if is_delta else "bottom",
-                    fontsize=6.5, color=theme.PALETTE["ink"],
-                    bbox=dict(boxstyle="round,pad=0.3", fc=theme.PALETTE["cell"],
-                              ec=theme.PALETTE["grid"], lw=0.6, alpha=0.9))
+            print(f"    {ENV_LABELS.get(env, env)} selected λ: "
+                  + ", ".join(lam_notes))
 
         ax.set_xlabel("Message-passing iteration")
         ax.set_title(ENV_LABELS.get(env, env))

@@ -64,6 +64,9 @@ stages:
       --input-dir output/door_code
       --output output/door_code/figure.pdf
       --cards-dir output/door_code/cards
+      --paper-slate ${plot.paper_slate}
+    params:
+      - plot.paper_slate
     deps:
       - scripts/plot_door_code.py
       - scripts/_cards.py
@@ -219,6 +222,9 @@ stages:
       --input-dir output/minigrid_door_code
       --output output/minigrid_door_code/figure.pdf
       --cards-dir output/minigrid_door_code/cards
+      --paper-slate ${plot.paper_slate}
+    params:
+      - plot.paper_slate
     deps:
       - scripts/plot_minigrid_door_code.py
       - scripts/_cards.py
@@ -301,6 +307,9 @@ stages:
       --input-dir output/rock_sample
       --output output/rock_sample/figure.pdf
       --cards-dir output/rock_sample/cards
+      --paper-slate ${plot.paper_slate}
+    params:
+      - plot.paper_slate
     deps:
       - scripts/plot_rock_sample.py
       - scripts/_cards.py
@@ -477,6 +486,9 @@ stages:
       --input-dir output/factored_tiger
       --output output/factored_tiger/figure.pdf
       --cards-dir output/factored_tiger/cards
+      --paper-slate ${plot.paper_slate}
+    params:
+      - plot.paper_slate
     deps:
       - scripts/plot_factored_tiger.py
       - scripts/_cards.py
