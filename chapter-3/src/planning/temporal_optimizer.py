@@ -6,6 +6,7 @@ Uses the unified temporal_vfe.py with θ-independent policy q(u|x).
 """
 
 from dataclasses import dataclass
+from functools import partial
 from typing import List, Optional
 import jax
 import jax.numpy as jnp
@@ -47,6 +48,87 @@ class TemporalPlanningResult:
     # Computed marginals for analysis
     q_x_theta: Array                        # (horizon+1, n_states, n_theta)
     q_u_theta: Array                        # (horizon, n_actions, n_theta)
+
+
+@partial(
+    jax.jit,
+    static_argnames=(
+        "horizon", "n_optimization_steps", "learning_rate", "inference_mode",
+    ),
+)
+def _run_optimization(
+    params,
+    initial_state,
+    transition_tensor,
+    gen_tensor_groups,
+    log_gen_tensor_groups,
+    goal_mapping,
+    action_prior,
+    effective_theta_prior,
+    horizon,
+    n_optimization_steps,
+    learning_rate,
+    inference_mode,
+):
+    """Run the Adam optimization loop under a single stable JIT cache entry.
+
+    All per-episode-varying quantities (params, initial_state, priors) are
+    DYNAMIC arguments; only truly-constant config (horizon, step count,
+    learning rate, inference mode) is static. This keeps the compilation cache
+    to one executable per distinct horizon and reuses it across every episode,
+    instead of the eager-scan path that baked initial_state/prior values into a
+    fresh executable per planning call (~150 MB/episode compilation-cache leak).
+    """
+    def loss_fn(params):
+        return temporal_vfe_jit(
+            q_theta_logits=params['q_theta_logits'],
+            q_u_given_x_logits=params['q_u_given_x_logits'],
+            q_x_given_xu_theta_logits=params['q_x_given_xu_theta_logits'],
+            q_obs_logits_groups=params['q_obs_logits_groups'],
+            initial_state=initial_state,
+            transition_tensor=transition_tensor,
+            gen_tensor_groups=gen_tensor_groups,
+            log_gen_tensor_groups=log_gen_tensor_groups,
+            goal_mapping=goal_mapping,
+            action_prior=action_prior,
+            theta_prior=effective_theta_prior,
+            horizon=horizon,
+            inference_mode=inference_mode,
+        )
+
+    optimizer = optax.adam(learning_rate=learning_rate)
+    opt_state = optimizer.init(params)
+
+    # Pre-allocate loss history array (stores every 100 steps)
+    num_samples = (n_optimization_steps - 1) // 100 + 1
+    loss_history_array = jnp.zeros(num_samples)
+
+    def step_fn(carry, step_idx):
+        params, opt_state, loss_hist, hist_idx = carry
+
+        loss, grads = jax.value_and_grad(loss_fn)(params)
+        updates, opt_state = optimizer.update(grads, opt_state)
+        params = optax.apply_updates(params, updates)
+
+        # Record loss every 100 steps
+        should_record = (step_idx % 100) == 0
+        new_hist_idx = hist_idx + jnp.where(should_record, 1, 0)
+        loss_hist = jax.lax.cond(
+            should_record,
+            lambda: loss_hist.at[hist_idx].set(loss),
+            lambda: loss_hist
+        )
+
+        return (params, opt_state, loss_hist, new_hist_idx), loss
+
+    initial_carry = (params, opt_state, loss_history_array, 0)
+    (params, opt_state, loss_history_array, _), all_losses = jax.lax.scan(
+        step_fn,
+        initial_carry,
+        jnp.arange(n_optimization_steps)
+    )
+
+    return params, loss_history_array, all_losses
 
 
 def plan_actions_temporal(
@@ -163,57 +245,20 @@ def plan_actions_temporal(
         'q_obs_logits_groups': q_obs_logits_groups_init,
     }
 
-    # Define loss function
-    def loss_fn(params):
-        return temporal_vfe_jit(
-            q_theta_logits=params['q_theta_logits'],
-            q_u_given_x_logits=params['q_u_given_x_logits'],
-            q_x_given_xu_theta_logits=params['q_x_given_xu_theta_logits'],
-            q_obs_logits_groups=params['q_obs_logits_groups'],
-            initial_state=initial_state,
-            transition_tensor=transition_tensor,
-            gen_tensor_groups=gen_tensor_groups,
-            log_gen_tensor_groups=log_gen_tensor_groups,
-            goal_mapping=goal_mapping,
-            action_prior=action_prior,
-            theta_prior=effective_theta_prior,
-            horizon=config.planning_horizon,
-            inference_mode=config.inference_mode,
-        )
-
-    # Setup optimizer
-    optimizer = optax.adam(learning_rate=config.learning_rate)
-    opt_state = optimizer.init(params)
-
-    # Pre-allocate loss history array (stores every 100 steps)
-    num_samples = (config.n_optimization_steps - 1) // 100 + 1
-    loss_history_array = jnp.zeros(num_samples)
-
-    # Define scan-compatible optimization step
-    def step_fn(carry, step_idx):
-        params, opt_state, loss_hist, hist_idx = carry
-
-        loss, grads = jax.value_and_grad(loss_fn)(params)
-        updates, opt_state = optimizer.update(grads, opt_state)
-        params = optax.apply_updates(params, updates)
-
-        # Record loss every 100 steps
-        should_record = (step_idx % 100) == 0
-        new_hist_idx = hist_idx + jnp.where(should_record, 1, 0)
-        loss_hist = jax.lax.cond(
-            should_record,
-            lambda: loss_hist.at[hist_idx].set(loss),
-            lambda: loss_hist
-        )
-
-        return (params, opt_state, loss_hist, new_hist_idx), loss
-
-    # Run optimization using jax.lax.scan
-    initial_carry = (params, opt_state, loss_history_array, 0)
-    (params, opt_state, loss_history_array, _), all_losses = jax.lax.scan(
-        step_fn,
-        initial_carry,
-        jnp.arange(config.n_optimization_steps)
+    # Run optimization under a stable JIT cache entry (see _run_optimization).
+    params, loss_history_array, all_losses = _run_optimization(
+        params,
+        initial_state,
+        transition_tensor,
+        gen_tensor_groups,
+        log_gen_tensor_groups,
+        goal_mapping,
+        action_prior,
+        effective_theta_prior,
+        horizon=config.planning_horizon,
+        n_optimization_steps=config.n_optimization_steps,
+        learning_rate=config.learning_rate,
+        inference_mode=config.inference_mode,
     )
 
     # Convert loss history
