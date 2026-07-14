@@ -8,8 +8,8 @@ stages:
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -20,8 +20,8 @@ stages:
       size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze.cue_cost_epsilon: 1.1
@@ -39,18 +39,18 @@ stages:
     outs:
     - path: data/epistemic_maze/planning/results.json
       hash: md5
-      md5: 3072020c3fc2132b8efb74f403605ed0
-      size: 159476321
+      md5: 090ce4282954dea584cc795231cc8e16
+      size: 159468679
   epistemic_active:
     cmd: "uv run python scripts/epistemic_maze/experiment.py --strategy temporal --inference-mode
-      active --output-dir data/epistemic_maze --n-episodes 10 --horizon 3 --max-steps
+      active --output-dir data/epistemic_maze --n-episodes 1000 --horizon 3 --max-steps
       5 --n-opt-steps 1000 --learning-rate 0.01 --n-theta 2 --goal-temperature 1.5
       --cue-accuracy 1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -61,8 +61,8 @@ stages:
       size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze.cue_cost_epsilon: 1.1
@@ -72,7 +72,7 @@ stages:
         epistemic_maze.learning_rate: 0.01
         epistemic_maze.location_observation_accuracy: 1.0
         epistemic_maze.max_steps: 5
-        epistemic_maze.n_episodes: 10
+        epistemic_maze.n_episodes: 1000
         epistemic_maze.n_optimization_steps: 1000
         epistemic_maze.n_theta: 2
         epistemic_maze.receding_horizon: true
@@ -80,18 +80,18 @@ stages:
     outs:
     - path: data/epistemic_maze/active/results.json
       hash: md5
-      md5: 831c6cffaf0bbc67ba2cac3ff9e11276
-      size: 1629551
+      md5: ac589f7002b1d5a813d04b398b80aa67
+      size: 162876080
   epistemic_marginal:
     cmd: "uv run python scripts/epistemic_maze/experiment.py --strategy temporal --inference-mode
-      marginal --output-dir data/epistemic_maze --n-episodes 10 --horizon 3 --max-steps
-      5 --n-opt-steps 1000 --learning-rate 0.01 --n-theta 2 --goal-temperature 1.0
+      marginal --output-dir data/epistemic_maze --n-episodes 1000 --horizon 3 --max-steps
+      5 --n-opt-steps 1000 --learning-rate 0.01 --n-theta 2 --goal-temperature 1.5
       --cue-accuracy 1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -102,18 +102,18 @@ stages:
       size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
-        epistemic_maze.cue_cost_epsilon: 1.2
+        epistemic_maze.cue_cost_epsilon: 1.1
         epistemic_maze.cue_observation_accuracy: 1.0
-        epistemic_maze.goal_temperature: 2.0
+        epistemic_maze.goal_temperature: 1.5
         epistemic_maze.horizon: 3
         epistemic_maze.learning_rate: 0.01
         epistemic_maze.location_observation_accuracy: 1.0
         epistemic_maze.max_steps: 5
-        epistemic_maze.n_episodes: 10
+        epistemic_maze.n_episodes: 1000
         epistemic_maze.n_optimization_steps: 1000
         epistemic_maze.n_theta: 2
         epistemic_maze.receding_horizon: true
@@ -121,8 +121,8 @@ stages:
     outs:
     - path: data/epistemic_maze/marginal/results.json
       hash: md5
-      md5: 99ab3bddc6aafd0677b126b8906ba584
-      size: 1621770
+      md5: f514e447e377a3b5878bbf19e44c15cd
+      size: 162602703
   tmaze_convergence_curves:
     cmd: uv run python scripts/tmaze/convergence_analysis.py --analysis curves 
       --output-dir data/tmaze/convergence
@@ -512,13 +512,13 @@ stages:
       size: 184
   epistemic_sophisticated:
     cmd: "uv run python scripts/epistemic_maze/experiment.py --strategy sophisticated
-      --output-dir data/epistemic_maze --n-episodes 10 --horizon 3 --max-steps 5 --n-theta
-      2 --goal-temperature 1.0 --cue-accuracy 1.0 --seed 42\n"
+      --output-dir data/epistemic_maze --n-episodes 1000 --horizon 3 --max-steps 5
+      --n-theta 2 --goal-temperature 1.5 --cue-accuracy 1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -529,29 +529,29 @@ stages:
       size: 21319
     params:
       params.yaml:
-        epistemic_maze.cue_cost_epsilon: 1.2
+        epistemic_maze.cue_cost_epsilon: 1.1
         epistemic_maze.cue_observation_accuracy: 1.0
-        epistemic_maze.goal_temperature: 1.0
+        epistemic_maze.goal_temperature: 1.5
         epistemic_maze.horizon: 3
         epistemic_maze.location_observation_accuracy: 1.0
         epistemic_maze.max_steps: 5
-        epistemic_maze.n_episodes: 10
+        epistemic_maze.n_episodes: 1000
         epistemic_maze.n_theta: 2
         epistemic_maze.seed: 42
     outs:
     - path: data/epistemic_maze/sophisticated/results.json
       hash: md5
-      md5: b58e1caf8a91c07dd5c4e0f6bcf298d0
-      size: 41299
+      md5: 53952206b2e20a38cb888269d16a9a58
+      size: 4175787
   epistemic_vanilla:
     cmd: "uv run python scripts/epistemic_maze/experiment.py --strategy vanilla --output-dir
-      data/epistemic_maze --n-episodes 10 --horizon 3 --max-steps 5 --n-theta 2 --goal-temperature
-      1.0 --cue-accuracy 1.0 --seed 42\n"
+      data/epistemic_maze --n-episodes 1000 --horizon 3 --max-steps 5 --n-theta 2
+      --goal-temperature 1.5 --cue-accuracy 1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -562,23 +562,23 @@ stages:
       size: 21319
     params:
       params.yaml:
-        epistemic_maze.cue_cost_epsilon: 1.2
+        epistemic_maze.cue_cost_epsilon: 1.1
         epistemic_maze.cue_observation_accuracy: 1.0
-        epistemic_maze.goal_temperature: 1.0
+        epistemic_maze.goal_temperature: 1.5
         epistemic_maze.location_observation_accuracy: 1.0
-        epistemic_maze.n_episodes: 10
+        epistemic_maze.n_episodes: 1000
         epistemic_maze.n_theta: 2
         epistemic_maze.seed: 42
     outs:
     - path: data/epistemic_maze/vanilla/results.json
       hash: md5
-      md5: 18e4f61ccfca9de568aa975bd4eb15c1
-      size: 1105615
+      md5: ce1d873a29d25f57664fc4a26daeed55
+      size: 110237580
   epistemic_convergence_curves:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       curves --output-dir data/epistemic_maze/convergence --n-episodes 20 --n-opt-steps
       2000 --learning-rate 0.01 --n-theta 2 --horizon 3 --max-steps 5 --goal-temperature
-      1.0 --cue-accuracy 1.0 --seed 42\n"
+      1.5 --cue-accuracy 1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/convergence_analysis.py
       hash: md5
@@ -586,34 +586,34 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
       size: 22508
     - path: src/objectives/temporal_vfe.py
       hash: md5
-      md5: 1ceedbc42e8ad433eb44ddaaeb652278
-      size: 38534
+      md5: 76505309c7f3d21a49c8ecf78ae41b15
+      size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze:
-          n_episodes: 200
+          n_episodes: 1000
           horizon: 3
           max_steps: 5
           receding_horizon: true
           n_optimization_steps: 1000
           learning_rate: 0.01
           seed: 42
-          goal_temperature: 1.0
+          goal_temperature: 1.5
           cue_observation_accuracy: 1.0
           location_observation_accuracy: 1.0
-          cue_cost_epsilon: 1.2
+          cue_cost_epsilon: 1.1
           n_theta: 2
           convergence:
             curves: &id001
@@ -655,12 +655,12 @@ stages:
     outs:
     - path: data/epistemic_maze/convergence/curves.json
       hash: md5
-      md5: 33e6a2cafe382c9ca8c1ba902dd5d9dd
-      size: 19902205
+      md5: 427ab16880bfe388de59f25b88e0d8a7
+      size: 20056127
   epistemic_convergence_lr_sweep:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       lr_sweep --output-dir data/epistemic_maze/convergence --n-episodes 20 --n-opt-steps
-      2000 --n-theta 2 --horizon 3 --max-steps 5 --goal-temperature 1.0 --cue-accuracy
+      2000 --n-theta 2 --horizon 3 --max-steps 5 --goal-temperature 1.5 --cue-accuracy
       1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/convergence_analysis.py
@@ -669,34 +669,34 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
       size: 22508
     - path: src/objectives/temporal_vfe.py
       hash: md5
-      md5: 1ceedbc42e8ad433eb44ddaaeb652278
-      size: 38534
+      md5: 76505309c7f3d21a49c8ecf78ae41b15
+      size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze:
-          n_episodes: 200
+          n_episodes: 1000
           horizon: 3
           max_steps: 5
           receding_horizon: true
           n_optimization_steps: 1000
           learning_rate: 0.01
           seed: 42
-          goal_temperature: 1.0
+          goal_temperature: 1.5
           cue_observation_accuracy: 1.0
           location_observation_accuracy: 1.0
-          cue_cost_epsilon: 1.2
+          cue_cost_epsilon: 1.1
           n_theta: 2
           convergence:
             curves:
@@ -738,12 +738,12 @@ stages:
     outs:
     - path: data/epistemic_maze/convergence/lr_sweep.json
       hash: md5
-      md5: 5be13fed7431099da8fbf53e8c3bb07c
-      size: 89327988
+      md5: 5571fc598808e74dbb92a435bff2c6ba
+      size: 89891241
   epistemic_convergence_budget:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       budget --output-dir data/epistemic_maze/convergence --n-episodes 20 --learning-rate
-      0.01 --n-theta 2 --horizon 3 --max-steps 5 --goal-temperature 1.0 --cue-accuracy
+      0.01 --n-theta 2 --horizon 3 --max-steps 5 --goal-temperature 1.5 --cue-accuracy
       1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/convergence_analysis.py
@@ -752,34 +752,34 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
       size: 22508
     - path: src/objectives/temporal_vfe.py
       hash: md5
-      md5: 1ceedbc42e8ad433eb44ddaaeb652278
-      size: 38534
+      md5: 76505309c7f3d21a49c8ecf78ae41b15
+      size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze:
-          n_episodes: 200
+          n_episodes: 1000
           horizon: 3
           max_steps: 5
           receding_horizon: true
           n_optimization_steps: 1000
           learning_rate: 0.01
           seed: 42
-          goal_temperature: 1.0
+          goal_temperature: 1.5
           cue_observation_accuracy: 1.0
           location_observation_accuracy: 1.0
-          cue_cost_epsilon: 1.2
+          cue_cost_epsilon: 1.1
           n_theta: 2
           convergence:
             curves:
@@ -821,8 +821,8 @@ stages:
     outs:
     - path: data/epistemic_maze/convergence/budget.json
       hash: md5
-      md5: de81033b1e691d6b4e6a7148d5544223
-      size: 56035
+      md5: 27f23ca6d7a9030d547289aef3860a04
+      size: 56639
   tmaze_experiment_vanilla:
     cmd: uv run python scripts/tmaze/experiment.py --strategy vanilla 
       --output-dir data/tmaze/vanilla --no-video --no-tikz
@@ -887,7 +887,7 @@ stages:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       variance --output-dir data/epistemic_maze/convergence --n-episodes 20 --n-opt-steps
       2000 --learning-rate 0.01 --n-theta 2 --horizon 3 --max-steps 5 --goal-temperature
-      1.0 --cue-accuracy 1.0 --seed 42\n"
+      1.5 --cue-accuracy 1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/convergence_analysis.py
       hash: md5
@@ -895,34 +895,34 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 4cbef963b690de26129c915e5762f070
-      size: 27915
+      md5: 49641b3b2b94adf84cee50b72db3b665
+      size: 28415
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
       size: 22508
     - path: src/objectives/temporal_vfe.py
       hash: md5
-      md5: 1ceedbc42e8ad433eb44ddaaeb652278
-      size: 38534
+      md5: 76505309c7f3d21a49c8ecf78ae41b15
+      size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze:
-          n_episodes: 200
+          n_episodes: 1000
           horizon: 3
           max_steps: 5
           receding_horizon: true
           n_optimization_steps: 1000
           learning_rate: 0.01
           seed: 42
-          goal_temperature: 1.0
+          goal_temperature: 1.5
           cue_observation_accuracy: 1.0
           location_observation_accuracy: 1.0
-          cue_cost_epsilon: 1.2
+          cue_cost_epsilon: 1.1
           n_theta: 2
           convergence:
             curves:
@@ -964,12 +964,12 @@ stages:
     outs:
     - path: data/epistemic_maze/convergence/variance.json
       hash: md5
-      md5: f96f0550181b7d5526bdc38d37b5d46c
-      size: 46881
+      md5: 37f43fa61c1e186a11b75b98fbdede09
+      size: 47106
   epistemic_convergence_scenario_curves:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       scenario_curves --output-dir data/epistemic_maze/convergence --n-opt-steps 2000
-      --learning-rate 0.01 --n-theta 2 --horizon 3 --goal-temperature 1.0 --cue-accuracy
+      --learning-rate 0.01 --n-theta 2 --horizon 3 --goal-temperature 1.5 --cue-accuracy
       1.0 --seed 42\n"
     deps:
     - path: scripts/epistemic_maze/convergence_analysis.py
@@ -982,26 +982,26 @@ stages:
       size: 22508
     - path: src/objectives/temporal_vfe.py
       hash: md5
-      md5: 1ceedbc42e8ad433eb44ddaaeb652278
-      size: 38534
+      md5: 76505309c7f3d21a49c8ecf78ae41b15
+      size: 38890
     - path: src/planning/temporal_optimizer.py
       hash: md5
-      md5: b4be2de0545cc1d4ee2942f71c12c0cc
-      size: 12003
+      md5: a84984e141fac64bbd71d2c3a81d6bc4
+      size: 13396
     params:
       params.yaml:
         epistemic_maze:
-          n_episodes: 200
+          n_episodes: 1000
           horizon: 3
           max_steps: 5
           receding_horizon: true
           n_optimization_steps: 1000
           learning_rate: 0.01
           seed: 42
-          goal_temperature: 1.0
+          goal_temperature: 1.5
           cue_observation_accuracy: 1.0
           location_observation_accuracy: 1.0
-          cue_cost_epsilon: 1.2
+          cue_cost_epsilon: 1.1
           n_theta: 2
           convergence:
             curves: &id005
@@ -1043,47 +1043,47 @@ stages:
     outs:
     - path: data/epistemic_maze/convergence/scenario_curves.json
       hash: md5
-      md5: 01e84ba5367f699ca9e5a32b77edb461
-      size: 698049
+      md5: bba8a25aa80a4ae3157968637608b9ac
+      size: 703968
   epistemic_convergence_figures:
     cmd: "uv run python scripts/epistemic_maze/plot_convergence.py --input-dir data/epistemic_maze/convergence
       --output-dir data/epistemic_maze/convergence/figures\n"
     deps:
     - path: data/epistemic_maze/convergence/budget.json
       hash: md5
-      md5: de81033b1e691d6b4e6a7148d5544223
-      size: 56035
+      md5: 27f23ca6d7a9030d547289aef3860a04
+      size: 56639
     - path: data/epistemic_maze/convergence/curves.json
       hash: md5
-      md5: 33e6a2cafe382c9ca8c1ba902dd5d9dd
-      size: 19902205
+      md5: 427ab16880bfe388de59f25b88e0d8a7
+      size: 20056127
     - path: data/epistemic_maze/convergence/lr_sweep.json
       hash: md5
-      md5: 5be13fed7431099da8fbf53e8c3bb07c
-      size: 89327988
+      md5: 5571fc598808e74dbb92a435bff2c6ba
+      size: 89891241
     - path: data/epistemic_maze/convergence/scenario_curves.json
       hash: md5
-      md5: 01e84ba5367f699ca9e5a32b77edb461
-      size: 698049
+      md5: bba8a25aa80a4ae3157968637608b9ac
+      size: 703968
     - path: data/epistemic_maze/convergence/variance.json
       hash: md5
-      md5: f96f0550181b7d5526bdc38d37b5d46c
-      size: 46881
+      md5: 37f43fa61c1e186a11b75b98fbdede09
+      size: 47106
     - path: scripts/epistemic_maze/plot_convergence.py
       hash: md5
-      md5: ee848d050da2b1d6488e1318d1f10d3c
-      size: 12898
+      md5: eed4841b69ef2ef843064281a9a22458
+      size: 13325
     params:
       params.yaml:
         colors:
-          active: '#1F78B4'
-          marginal: '#33A02C'
-          planning: '#FF7F00'
+          active: '#3A6F73'
+          marginal: '#4A46A3'
+          planning: '#2F97CE'
     outs:
     - path: data/epistemic_maze/convergence/figures/
       hash: md5
-      md5: 6046d58b535cc2ae4485d29dbf512887.dir
-      size: 2309148
+      md5: 2d9859cbe429977229160ff024ebb52a.dir
+      size: 2577563
       nfiles: 20
   tmaze_video_marginal:
     cmd: uv run python scripts/tmaze/plot_experiment.py --input-dir 
