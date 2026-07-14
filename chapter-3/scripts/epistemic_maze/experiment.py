@@ -7,6 +7,7 @@ environment with multi-goal epistemic uncertainty.
 """
 
 import argparse
+import gc
 import json
 import random
 from pathlib import Path
@@ -536,6 +537,15 @@ def run_experiment(
         episode_data = run_episode_fn(**episode_kwargs)
 
         episodes.append(episode_data)
+
+        # Periodically clear JAX caches to bound memory. The temporal 'active'
+        # (epistemic-prior) objective accumulates ~150 MB of compiled/cached JAX
+        # artifacts per episode; without this a long run is SIGKILLed by the OOM
+        # killer (observed dying near episode ~204 on a 31 GB machine). Clearing
+        # every N episodes does not change results, only frees memory.
+        if (episode_idx + 1) % 10 == 0:
+            jax.clear_caches()
+            gc.collect()
 
     # Compute statistics
     total_rewards = [ep['total_reward'] for ep in episodes]
