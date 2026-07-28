@@ -8,6 +8,7 @@ tmaze:
     n_optimization_steps: 1500
     learning_rate: 0.05
     seed: 18
+    si_inference_horizon: 4
   convergence:
     curves:
       n_episodes: 20

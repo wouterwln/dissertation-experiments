@@ -225,7 +225,8 @@ def convert_tmaze_tensors_to_pymdp(
         reward_obs_tensor: p(cue|location, reward_loc) shape (2, 5, 2)
         goal_mapping: p(goal|state, reward_loc) shape (5, 2)
         theta_prior: p(theta) shape (2,)
-        goal_temperature: Scaling factor for reward preferences in C matrix
+        goal_temperature: Scaling factor for reward preferences in C matrix.
+            Preferences are asymmetric: +1x for the correct arm, -2x for the wrong one.
 
     Returns:
         A, B, C, D in pymdp obj_array format
@@ -277,6 +278,15 @@ def convert_tmaze_tensors_to_pymdp(
     # B[0]: Location transitions - shape (5, 5, 4)
     B[0] = transition_np.copy()
 
+    # The reward arms are absorbing: TMaze.step ends the episode as soon as one is
+    # entered (done = reward != 0), so leaving an arm is not something the agent can
+    # actually do. Without this the tree search plans to enter an arm, read the reward
+    # to resolve theta, and walk to the other arm - a recovery the environment never
+    # allows - which makes the cue redundant.
+    for arm in (2, 4):  # TOP_LEFT, TOP_RIGHT
+        B[0][:, arm, :] = 0.0
+        B[0][arm, arm, :] = 1.0
+
     # B[1]: Theta transitions - identity (theta never changes)
     B[1] = np.zeros((n_theta, n_theta, 1))
     B[1][:, :, 0] = np.eye(n_theta)
@@ -285,7 +295,9 @@ def convert_tmaze_tensors_to_pymdp(
     C = pymdp_utils.obj_array(3)
     C[0] = np.zeros(n_states)  # Neutral location preferences
     C[1] = np.zeros(2)  # Neutral cue preferences
-    C[2] = np.array([0.0, goal_temperature * 1.0, -goal_temperature * 1.0])
+    # Asymmetric: the loss at a terminal arm is twice as costly as the reward is
+    # valuable, so committing to an arm under uncertain theta is not free.
+    C[2] = np.array([0.0, goal_temperature * 1.0, -goal_temperature * 2.0])
 
     # ==================== D VECTORS (State Priors) ====================
     D = pymdp_utils.obj_array(2)

@@ -279,6 +279,7 @@ def run_experiment(
     config: ExperimentConfig,
     record_planning_for_last: bool = False,
     strategy: str = "factorized",
+    si_inference_horizon: int = 4,
 ) -> Tuple[float, float, List[EpisodeResult]]:
     """Run the full T-maze experiment.
 
@@ -287,6 +288,12 @@ def run_experiment(
             - "factorized": Factorized VFE (gradient-based, with inference_mode)
             - "sophisticated": pymdp tree-search (EFE)
             - "vanilla": pymdp single-step EFE
+        si_inference_horizon: Tree-search depth for the "sophisticated" strategy,
+            normally max_steps. Depth 2 and up all give 100% success / 100% cue
+            visits; only depth 1 underperforms (44%), since a one-step lookahead
+            cannot chain cue -> junction -> arm inside the step budget. Exposed
+            separately so that degradation can be measured.
+            Ignored by the "vanilla" strategy, which uses the full max_steps.
     """
     random.seed(config.seed)
 
@@ -302,7 +309,7 @@ def run_experiment(
             n_actions=4,
             n_theta=2,
             policy_len=1 if is_sophisticated else config.max_steps,
-            inference_horizon=config.max_steps,
+            inference_horizon=si_inference_horizon if is_sophisticated else config.max_steps,
             use_utility=True,
             use_states_info_gain=True,
             use_param_info_gain=True,
@@ -506,6 +513,8 @@ def main():
     parser.add_argument("--strategy", type=str, default="factorized",
                         choices=["factorized", "sophisticated", "vanilla"],
                         help="Planning strategy: factorized (VFE), sophisticated (pymdp tree-search), or vanilla (pymdp single-step EFE)")
+    parser.add_argument("--si-inference-horizon", type=int, default=4,
+                        help="Tree-search depth for --strategy sophisticated (see run_experiment)")
     parser.add_argument("--output-dir", type=str, default="data",
                         help="Output directory for results and videos")
     parser.add_argument("--no-video", action="store_true",
@@ -565,6 +574,7 @@ def main():
         config,
         record_planning_for_last=(args.strategy == "factorized"),
         strategy=args.strategy,
+        si_inference_horizon=args.si_inference_horizon,
     )
     
     print("\nRESULTS")

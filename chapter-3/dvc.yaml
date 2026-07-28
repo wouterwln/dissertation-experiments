@@ -186,11 +186,12 @@ stages:
       - data/tmaze/colors.tex
 
   tmaze_experiment_sophisticated:
-    cmd: uv run python scripts/tmaze/experiment.py --strategy sophisticated --output-dir data/tmaze/sophisticated --no-video --no-tikz
+    cmd: uv run python scripts/tmaze/experiment.py --strategy sophisticated --si-inference-horizon ${tmaze.experiment.si_inference_horizon} --output-dir data/tmaze/sophisticated --no-video --no-tikz
     params:
       - tmaze.experiment.n_episodes
       - tmaze.experiment.max_steps
       - tmaze.experiment.seed
+      - tmaze.experiment.si_inference_horizon
     deps:
       - scripts/tmaze/experiment.py
       - src/environments/tmaze.py
