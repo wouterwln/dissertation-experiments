@@ -36,6 +36,11 @@ from src.planning.sophisticated_planner import (
     SophisticatedPlanningConfig,
     SophisticatedPlanner,
 )
+from src.planning.temporal_optimizer_meanfield import (
+    plan_actions_meanfield,
+    select_action_meanfield,
+    MeanfieldPlanningConfig,
+)
 from src.environments import N_LOCATIONS
 
 
@@ -153,6 +158,132 @@ def get_observation(env: EpistemicMaze, is_final_step: bool = False) -> list:
         reward_obs_idx = None  # Don't update beliefs on reward during episode
 
     return [location_obs_idx, theta_obs_idx, reward_obs_idx]
+
+
+def run_episode_meanfield(
+    env: EpistemicMaze,
+    transition_tensor,
+    observation_tensor,
+    location_observation_tensor,
+    goal_mapping,
+    action_prior,
+    theta_prior,
+    config: MeanfieldPlanningConfig,
+    location_observation_accuracy: float = 1.0,
+    max_steps: int = 5,
+    verbose: bool = False,
+) -> Dict:
+    """Run one episode under the constrained (mean-field) posterior family.
+
+    The objective is the epistemic-prior VFE, unchanged; only the family is
+    constrained, with future actions independent of future states and theta:
+    q = q(y,x,theta) * prod_t q(u_t). Everything else (perception, receding
+    horizon, action execution) matches run_episode.
+    """
+    trajectory = [env.state_idx]
+    actions = []
+    planning_history = []
+
+    prior_theta_logits = jnp.log(theta_prior + 1e-8)
+    prior_location_logits = jnp.log(jnp.ones(N_LOCATIONS) / N_LOCATIONS)
+
+    state_belief = jnp.zeros(config.n_states)
+    for loc in range(N_LOCATIONS):
+        s = components_to_state(loc, 4)
+        state_belief = state_belief.at[s].set(1.0 / N_LOCATIONS)
+    state_belief = state_belief / jnp.sum(state_belief + 1e-8)
+
+    for step in range(max_steps):
+        effective_horizon = min(max_steps - step, config.planning_horizon)
+        if effective_horizon <= 0:
+            break
+
+        step_config = MeanfieldPlanningConfig(
+            planning_horizon=effective_horizon,
+            n_states=config.n_states,
+            n_actions=config.n_actions,
+            n_theta=config.n_theta,
+            n_obs=config.n_obs,
+            n_optimization_steps=config.n_optimization_steps,
+            learning_rate=config.learning_rate,
+            init_seed=config.init_seed + step,
+        )
+
+        planning_result = plan_actions_meanfield(
+            initial_state=state_belief,
+            transition_tensor=transition_tensor,
+            theta_observation_tensor=observation_tensor,
+            goal_mapping=goal_mapping,
+            action_prior=action_prior,
+            theta_prior=theta_prior,
+            config=step_config,
+            prior_theta_logits=prior_theta_logits,
+            location_observation_tensor=location_observation_tensor,
+        )
+
+        action = select_action_meanfield(
+            result=planning_result,
+            current_state_idx=env.state_idx,
+            timestep=0,
+        )
+
+        if verbose:
+            loc, knob = state_to_components(env.state_idx)
+            print(f"  Step {step}: State={env.state_idx} (loc={loc}, knob={knob}), Action={action}")
+
+        planning_history.append({
+            'step': step,
+            'state': env.state_idx,
+            'q_u': planning_result.q_u.tolist(),
+            'q_first_action': planning_result.q_first_action.tolist(),
+            'q_theta': planning_result.q_theta.tolist(),
+            'action': int(action),
+            'final_loss': planning_result.final_loss,
+        })
+
+        location_obs, context_obs, _reward, done = env.step(action)
+
+        obs_idx = sample_observation_fn(context_obs)
+        prior_theta = jax.nn.softmax(prior_theta_logits)
+        posterior_theta = bayesian_theta_update_fn(observation_tensor, prior_theta, obs_idx, env.state_idx)
+        prior_theta_logits = jnp.log(posterior_theta + 1e-8)
+
+        location_obs_idx = sample_location_observation_fn(location_obs)
+        prior_location = jax.nn.softmax(prior_location_logits)
+        posterior_location = bayesian_location_update_fn(prior_location, location_obs_idx, location_observation_accuracy)
+        prior_location_logits = jnp.log(posterior_location + 1e-8)
+
+        state_belief = bayesian_state_update_from_location_fn(
+            prior_state=state_belief,
+            action=action,
+            transition_tensor=transition_tensor,
+            location_observation_tensor=location_observation_tensor,
+            location_obs_idx=location_obs_idx,
+        )
+
+        trajectory.append(env.state_idx)
+        actions.append(int(action))
+
+        if done:
+            break
+
+    final_reward = env.get_final_reward()
+    final_loc, final_knob = state_to_components(trajectory[-1])
+    visited_cue = any(state_to_components(s)[0] == Location.CUE for s in trajectory[1:])
+
+    return {
+        'total_reward': float(final_reward),
+        'n_steps': len(actions),
+        'reached_goal': (final_loc == env.theta and final_knob == 4),
+        'reached_safe': (final_loc == Location.SAFE_SINK),
+        'outcome': env.get_outcome(),
+        'trajectory': trajectory,
+        'actions': actions,
+        'final_state': trajectory[-1],
+        'theta': env.theta,
+        'visited_cue': visited_cue,
+        'planning_history': planning_history,
+    }
 
 
 def run_episode_sophisticated(
@@ -486,6 +617,22 @@ def run_experiment(
         )
         run_episode_fn = run_episode_sophisticated
         desc_label = f"{strategy} (policy_len={effective_policy_len}, si_horizon={horizon if is_sophisticated else 1})"
+    elif strategy == "meanfield-active":
+        # Same epistemic-prior objective, constrained family: q(u_t) carries no
+        # dependence on future states or theta. Isolates posterior structure.
+        n_obs = n_theta + 1
+        config = MeanfieldPlanningConfig(
+            planning_horizon=horizon,
+            n_states=N_STATES,
+            n_actions=N_ACTIONS,
+            n_theta=n_theta,
+            n_obs=n_obs,
+            n_optimization_steps=n_optimization_steps,
+            learning_rate=learning_rate,
+            init_seed=seed,
+        )
+        run_episode_fn = run_episode_meanfield
+        desc_label = "meanfield-active"
     else:
         # Temporal VFE strategy
         n_obs = n_theta + 1  # Context observations + neutral
@@ -571,8 +718,8 @@ def run_experiment(
             'n_theta': n_theta,
             'horizon': horizon,
             'max_steps': max_steps,
-            'n_optimization_steps': n_optimization_steps if strategy == "temporal" else None,
-            'learning_rate': learning_rate if strategy == "temporal" else None,
+            'n_optimization_steps': n_optimization_steps if strategy in ("temporal", "meanfield-active") else None,
+            'learning_rate': learning_rate if strategy in ("temporal", "meanfield-active") else None,
             'policy_len': config.policy_len if strategy in ("sophisticated", "vanilla") else None,
             'sophisticated': config.sophisticated if strategy in ("sophisticated", "vanilla") else None,
             'goal_temperature': goal_temperature,
@@ -600,9 +747,9 @@ def main():
     parser.add_argument(
         '--strategy',
         type=str,
-        choices=['temporal', 'sophisticated', 'vanilla'],
+        choices=['temporal', 'sophisticated', 'vanilla', 'meanfield-active'],
         default='temporal',
-        help='Planning strategy: temporal (VFE factorization), sophisticated (pymdp tree-search), or vanilla (pymdp single-step EFE)'
+        help='Planning strategy: temporal (VFE factorization), sophisticated (pymdp tree-search), vanilla (pymdp single-step EFE), or meanfield-active (epistemic-prior VFE over the constrained family q(u_t), the q_perp ablation)'
     )
     parser.add_argument(
         '--inference-mode',
@@ -690,7 +837,7 @@ def main():
     )
 
     # Create output directory
-    if args.strategy in ("sophisticated", "vanilla"):
+    if args.strategy in ("sophisticated", "vanilla", "meanfield-active"):
         output_subdir = args.strategy
     else:
         output_subdir = args.inference_mode

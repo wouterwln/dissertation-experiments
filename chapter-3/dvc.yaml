@@ -288,6 +288,46 @@ stages:
     outs:
       - data/epistemic_maze/active/results.json
 
+  epistemic_ablation:
+    # q_perp ablation: same epistemic-prior objective as epistemic_active, minimized
+    # over the constrained family q(y,x,theta) * prod_t q(u_t) — future actions carry
+    # no dependence on future states or theta. Isolates posterior structure from the
+    # objective. Ported from the IWAI 'meanfield' strategy, with the four epistemic
+    # priors switched to unnormalized exp to match this repo's temporal_vfe.
+    cmd: >
+      uv run python scripts/epistemic_maze/experiment.py
+      --strategy meanfield-active
+      --output-dir data/epistemic_maze
+      --n-episodes ${epistemic_maze.n_episodes}
+      --horizon ${epistemic_maze.horizon}
+      --max-steps ${epistemic_maze.max_steps}
+      --n-opt-steps ${epistemic_maze.n_optimization_steps}
+      --learning-rate ${epistemic_maze.learning_rate}
+      --n-theta ${epistemic_maze.n_theta}
+      --goal-temperature ${epistemic_maze.goal_temperature}
+      --cue-accuracy ${epistemic_maze.cue_observation_accuracy}
+      --seed ${epistemic_maze.seed}
+    params:
+      - epistemic_maze.n_episodes
+      - epistemic_maze.horizon
+      - epistemic_maze.max_steps
+      - epistemic_maze.receding_horizon
+      - epistemic_maze.n_optimization_steps
+      - epistemic_maze.learning_rate
+      - epistemic_maze.n_theta
+      - epistemic_maze.goal_temperature
+      - epistemic_maze.cue_observation_accuracy
+      - epistemic_maze.location_observation_accuracy
+      - epistemic_maze.cue_cost_epsilon
+      - epistemic_maze.seed
+    deps:
+      - scripts/epistemic_maze/experiment.py
+      - src/environments/epistemic_maze.py
+      - src/planning/temporal_optimizer_meanfield.py
+      - src/objectives/temporal_vfe_meanfield.py
+    outs:
+      - data/epistemic_maze/meanfield-active/results.json
+
   epistemic_marginal:
     cmd: >
       uv run python scripts/epistemic_maze/experiment.py

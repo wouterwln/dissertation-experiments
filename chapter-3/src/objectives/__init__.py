@@ -18,6 +18,11 @@ from .temporal_vfe import (
     ModalityGroup,
 )
 
+from .temporal_vfe_meanfield import (
+    temporal_vfe_meanfield,
+    extract_marginals_meanfield,
+)
+
 __all__ = [
     # Factorized VFE (T-Maze)
     "factorized_vfe",
@@ -33,4 +38,7 @@ __all__ = [
     "compute_forward_marginals",
     "group_modalities_for_jit",
     "ModalityGroup",
+    # Mean-field temporal VFE (q_perp ablation: actions independent of state and θ)
+    "temporal_vfe_meanfield",
+    "extract_marginals_meanfield",
 ]

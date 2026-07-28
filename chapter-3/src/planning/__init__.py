@@ -14,6 +14,13 @@ from .temporal_optimizer import (
     TemporalPlanningResult,
 )
 
+from .temporal_optimizer_meanfield import (
+    plan_actions_meanfield,
+    select_action_meanfield,
+    MeanfieldPlanningConfig,
+    MeanfieldPlanningResult,
+)
+
 from .sophisticated_planner import (
     SophisticatedPlanningConfig,
     SophisticatedPlanningResult,
@@ -32,6 +39,11 @@ __all__ = [
     "select_action_temporal",
     "TemporalPlanningConfig",
     "TemporalPlanningResult",
+    # Mean-field temporal planner (Epistemic Maze q_perp ablation)
+    "plan_actions_meanfield",
+    "select_action_meanfield",
+    "MeanfieldPlanningConfig",
+    "MeanfieldPlanningResult",
     # Sophisticated (pymdp) planner
     "SophisticatedPlanningConfig",
     "SophisticatedPlanningResult",
