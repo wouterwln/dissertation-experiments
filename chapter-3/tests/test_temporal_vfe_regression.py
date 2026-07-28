@@ -109,15 +109,15 @@ def test_temporal_vfe_value_and_grad(inference_mode):
             f"{inference_mode}: grad[{i}] norm {gnorm:.8f} != ref {ref['grad_norms'][i]:.8f}"
 
 
-# Reference values for unified temporal_vfe.
-# NOTE: the "active" reference below is STALE — it was computed when epistemic priors
-# used softmax (not exp) and the active mode included the planning correction. After the
-# switch to unnormalized exp priors + dropping the planning correction from active mode,
-# it must be regenerated via _compute_reference_values(). "marginal" and "planning" are
-# unaffected and remain valid.
+# Reference values for unified temporal_vfe, regenerated via _compute_reference_values().
+# The "active" entry was previously stale: it dated from when the epistemic priors used
+# softmax rather than unnormalized exp and active mode still included the planning
+# correction. Its grad[0] norm now matches "marginal" rather than "planning", which is the
+# expected signature of active mode excluding that correction. "marginal" and "planning"
+# reproduce their original values bit-for-bit and are unchanged.
 REFERENCE_VALUES = {
     "marginal": {"value": 8.4810800552, "grad_norms": [0.6133068799972534, 0.27373582124710083, 0.3120035231113434]},
-    "active": {"value": 48.7071533203, "grad_norms": [0.6219660043716431, 0.24006876349449158, 0.2932417094707489]},
+    "active": {"value": 9.8709220886, "grad_norms": [0.6133068799972534, 0.25363489985466003, 0.2982744574546814]},
     "planning": {"value": 11.9153842926, "grad_norms": [0.6219660043716431, 0.23366200923919678, 0.30721938610076904]},
 }
 
