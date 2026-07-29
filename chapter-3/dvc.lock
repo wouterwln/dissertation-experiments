@@ -8,8 +8,8 @@ stages:
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -49,8 +49,8 @@ stages:
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -90,8 +90,8 @@ stages:
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -402,8 +402,8 @@ stages:
     deps:
     - path: scripts/tmaze/experiment.py
       hash: md5
-      md5: 18f1cac67fb889ea7d805b1c1ba47206
-      size: 21485
+      md5: 8dc0360ae67007e89e29feabd4f54c81
+      size: 22254
     - path: src/environments/tmaze.py
       hash: md5
       md5: c32e0e0f9d51025b37dde083bd6b467f
@@ -428,7 +428,7 @@ stages:
     outs:
     - path: data/tmaze/marginal/results.json
       hash: md5
-      md5: b2e23ff29b4d968865dd19d912b6bf0e
+      md5: 06053d4c30bc71a7d639890459e7c507
       size: 338183
     - path: data/tmaze/marginal/stats.json
       hash: md5
@@ -440,8 +440,8 @@ stages:
     deps:
     - path: scripts/tmaze/experiment.py
       hash: md5
-      md5: 18f1cac67fb889ea7d805b1c1ba47206
-      size: 21485
+      md5: 8dc0360ae67007e89e29feabd4f54c81
+      size: 22254
     - path: src/environments/tmaze.py
       hash: md5
       md5: c32e0e0f9d51025b37dde083bd6b467f
@@ -466,8 +466,8 @@ stages:
     outs:
     - path: data/tmaze/active/results.json
       hash: md5
-      md5: 86b6ad3d76a3deeceaa047d9f838ea79
-      size: 337159
+      md5: 71a2df4e425bdb9939d289d8ba531c2e
+      size: 337165
     - path: data/tmaze/active/stats.json
       hash: md5
       md5: 6e5f415f7e726794bd03fe99c939726e
@@ -478,8 +478,8 @@ stages:
     deps:
     - path: scripts/tmaze/experiment.py
       hash: md5
-      md5: 18f1cac67fb889ea7d805b1c1ba47206
-      size: 21485
+      md5: 8dc0360ae67007e89e29feabd4f54c81
+      size: 22254
     - path: src/environments/tmaze.py
       hash: md5
       md5: c32e0e0f9d51025b37dde083bd6b467f
@@ -504,7 +504,7 @@ stages:
     outs:
     - path: data/tmaze/planning/results.json
       hash: md5
-      md5: 2edbfaad998f6acad52ea12548768fbd
+      md5: 5e929197ce617678f2c86c63ac92884a
       size: 338183
     - path: data/tmaze/planning/stats.json
       hash: md5
@@ -517,16 +517,16 @@ stages:
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
       size: 22508
     - path: src/planning/sophisticated_planner.py
       hash: md5
-      md5: a5e44807d358824f94165926496bb2db
-      size: 21319
+      md5: 9033cc45e1b411d1226caf029b117ccb
+      size: 22059
     params:
       params.yaml:
         epistemic_maze.cue_cost_epsilon: 1.1
@@ -541,8 +541,8 @@ stages:
     outs:
     - path: data/epistemic_maze/sophisticated/results.json
       hash: md5
-      md5: 53952206b2e20a38cb888269d16a9a58
-      size: 4175787
+      md5: a5b5cc601627e3dbcfb7aa1f19268cfe
+      size: 4175582
   epistemic_vanilla:
     cmd: "uv run python scripts/epistemic_maze/experiment.py --strategy vanilla --output-dir
       data/epistemic_maze --n-episodes 1000 --horizon 3 --max-steps 5 --n-theta 2
@@ -550,16 +550,16 @@ stages:
     deps:
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
       size: 22508
     - path: src/planning/sophisticated_planner.py
       hash: md5
-      md5: a5e44807d358824f94165926496bb2db
-      size: 21319
+      md5: 9033cc45e1b411d1226caf029b117ccb
+      size: 22059
     params:
       params.yaml:
         epistemic_maze.cue_cost_epsilon: 1.1
@@ -572,8 +572,8 @@ stages:
     outs:
     - path: data/epistemic_maze/vanilla/results.json
       hash: md5
-      md5: ce1d873a29d25f57664fc4a26daeed55
-      size: 110237580
+      md5: 966e4c947c738c9face34d7477284a93
+      size: 110225544
   epistemic_convergence_curves:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       curves --output-dir data/epistemic_maze/convergence --n-episodes 20 --n-opt-steps
@@ -586,8 +586,8 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -669,8 +669,8 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -752,8 +752,8 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -829,16 +829,16 @@ stages:
     deps:
     - path: scripts/tmaze/experiment.py
       hash: md5
-      md5: 18f1cac67fb889ea7d805b1c1ba47206
-      size: 21485
+      md5: 8dc0360ae67007e89e29feabd4f54c81
+      size: 22254
     - path: src/environments/tmaze.py
       hash: md5
       md5: c32e0e0f9d51025b37dde083bd6b467f
       size: 9903
     - path: src/planning/sophisticated_planner.py
       hash: md5
-      md5: a5e44807d358824f94165926496bb2db
-      size: 21319
+      md5: 9033cc45e1b411d1226caf029b117ccb
+      size: 22059
     params:
       params.yaml:
         tmaze.experiment.max_steps: 4
@@ -847,7 +847,7 @@ stages:
     outs:
     - path: data/tmaze/vanilla/results.json
       hash: md5
-      md5: db7b2d1c6bd8499cbae3bfbf645fcabb
+      md5: 0b8778d3372cb7127ba110a893730f7f
       size: 333004
     - path: data/tmaze/vanilla/stats.json
       hash: md5
@@ -855,34 +855,36 @@ stages:
       size: 182
   tmaze_experiment_sophisticated:
     cmd: uv run python scripts/tmaze/experiment.py --strategy sophisticated 
-      --output-dir data/tmaze/sophisticated --no-video --no-tikz
+      --si-inference-horizon 4 --output-dir data/tmaze/sophisticated --no-video 
+      --no-tikz
     deps:
     - path: scripts/tmaze/experiment.py
       hash: md5
-      md5: 18f1cac67fb889ea7d805b1c1ba47206
-      size: 21485
+      md5: 8dc0360ae67007e89e29feabd4f54c81
+      size: 22254
     - path: src/environments/tmaze.py
       hash: md5
       md5: c32e0e0f9d51025b37dde083bd6b467f
       size: 9903
     - path: src/planning/sophisticated_planner.py
       hash: md5
-      md5: a5e44807d358824f94165926496bb2db
-      size: 21319
+      md5: 9033cc45e1b411d1226caf029b117ccb
+      size: 22059
     params:
       params.yaml:
         tmaze.experiment.max_steps: 4
         tmaze.experiment.n_episodes: 1000
         tmaze.experiment.seed: 18
+        tmaze.experiment.si_inference_horizon: 4
     outs:
     - path: data/tmaze/sophisticated/results.json
       hash: md5
-      md5: 34a735c4a20538da4af1489a2df5314f
-      size: 289959
+      md5: 3ed16b4bdbceb1c7026bd2be7dd5b912
+      size: 333004
     - path: data/tmaze/sophisticated/stats.json
       hash: md5
-      md5: 54317223762439cae94a31f4180156e4
-      size: 183
+      md5: e8e741499007561138912fd6c08145f3
+      size: 182
   epistemic_convergence_variance:
     cmd: "uv run python scripts/epistemic_maze/convergence_analysis.py --analysis
       variance --output-dir data/epistemic_maze/convergence --n-episodes 20 --n-opt-steps
@@ -895,8 +897,8 @@ stages:
       size: 17805
     - path: scripts/epistemic_maze/experiment.py
       hash: md5
-      md5: 49641b3b2b94adf84cee50b72db3b665
-      size: 28415
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
     - path: src/environments/epistemic_maze.py
       hash: md5
       md5: 8cbfc7b72d425df31132f5f3dd0b2038
@@ -1091,7 +1093,7 @@ stages:
     deps:
     - path: data/tmaze/marginal/results.json
       hash: md5
-      md5: b2e23ff29b4d968865dd19d912b6bf0e
+      md5: 06053d4c30bc71a7d639890459e7c507
       size: 338183
     - path: scripts/tmaze/plot_experiment.py
       hash: md5
@@ -1117,8 +1119,8 @@ stages:
     deps:
     - path: data/tmaze/active/results.json
       hash: md5
-      md5: 86b6ad3d76a3deeceaa047d9f838ea79
-      size: 337159
+      md5: 71a2df4e425bdb9939d289d8ba531c2e
+      size: 337165
     - path: scripts/tmaze/plot_experiment.py
       hash: md5
       md5: f5dc26a05b128a9d374ef477cceed660
@@ -1143,7 +1145,7 @@ stages:
     deps:
     - path: data/tmaze/planning/results.json
       hash: md5
-      md5: 2edbfaad998f6acad52ea12548768fbd
+      md5: 5e929197ce617678f2c86c63ac92884a
       size: 338183
     - path: scripts/tmaze/plot_experiment.py
       hash: md5
@@ -1184,3 +1186,44 @@ stages:
       hash: md5
       md5: 89fb88602e5896e152a68fff85ff1876
       size: 1944
+  epistemic_ablation:
+    cmd: "uv run python scripts/epistemic_maze/experiment.py --strategy meanfield-active
+      --output-dir data/epistemic_maze --n-episodes 1000 --horizon 3 --max-steps 5
+      --n-opt-steps 1000 --learning-rate 0.01 --n-theta 2 --goal-temperature 1.5 --cue-accuracy
+      1.0 --seed 42\n"
+    deps:
+    - path: scripts/epistemic_maze/experiment.py
+      hash: md5
+      md5: e24fe0b996c95452034eec562c538e14
+      size: 34060
+    - path: src/environments/epistemic_maze.py
+      hash: md5
+      md5: 8cbfc7b72d425df31132f5f3dd0b2038
+      size: 22508
+    - path: src/objectives/temporal_vfe_meanfield.py
+      hash: md5
+      md5: 77671e59a0634a916e828a961c625b15
+      size: 16833
+    - path: src/planning/temporal_optimizer_meanfield.py
+      hash: md5
+      md5: ffd39dd17d432a5d011034a2efbbc48b
+      size: 8241
+    params:
+      params.yaml:
+        epistemic_maze.cue_cost_epsilon: 1.1
+        epistemic_maze.cue_observation_accuracy: 1.0
+        epistemic_maze.goal_temperature: 1.5
+        epistemic_maze.horizon: 3
+        epistemic_maze.learning_rate: 0.01
+        epistemic_maze.location_observation_accuracy: 1.0
+        epistemic_maze.max_steps: 5
+        epistemic_maze.n_episodes: 1000
+        epistemic_maze.n_optimization_steps: 1000
+        epistemic_maze.n_theta: 2
+        epistemic_maze.receding_horizon: true
+        epistemic_maze.seed: 42
+    outs:
+    - path: data/epistemic_maze/meanfield-active/results.json
+      hash: md5
+      md5: 6b54a4bd4f6381374d477bcb25e35cf4
+      size: 7102706
