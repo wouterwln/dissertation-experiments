@@ -304,8 +304,8 @@ stages:
     outs:
     - path: data/convergence_sweep/plots/
       hash: md5
-      md5: ca8be2b9d060c0db0e279001ee76ea28.dir
-      size: 2926517
+      md5: 10bd0850ba1e9a5ec795983cb8e4b8ca.dir
+      size: 2883382
       nfiles: 58
   frozen_lake@loopy:
     cmd: uv run python run_frozen_lake.py --planning-method loopy --grid-size 4 
@@ -1457,6 +1457,6 @@ stages:
     outs:
     - path: data/plots/rocksample
       hash: md5
-      md5: ee948ab67ece20a0e603537c813662df.dir
-      size: 700365
+      md5: 56dc11f4e3b94687f7f45b0b74cffd2f.dir
+      size: 680813
       nfiles: 16
