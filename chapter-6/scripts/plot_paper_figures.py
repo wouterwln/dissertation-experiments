@@ -51,7 +51,7 @@ PLANNER_LABELS = {
     "boss": "BOSS",
     "factored_bamcp": "Factored BA-POMCP",
     "ids": "IDS",
-    "oracle": "Oracle",
+    "oracle": r"Known-$\theta$ VBP",
     "random": "Random",
 }
 PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}

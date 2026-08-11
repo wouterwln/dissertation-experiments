@@ -212,3 +212,83 @@ def test_aggregator_skips_derived_when_no_posterior_key(tmp_path: Path) -> None:
     out = tmp_path / "aif.json"
     agg = _run_aggregator(str(shard_dir / "aif.shard*.json"), out)
     assert "derived" not in agg
+
+
+# --- config.invocation provenance -----------------------------------------
+
+
+def _planner_args(**overrides):
+    """Argparse-like namespace spanning both arg families the record sees."""
+    import argparse
+
+    base = dict(
+        planner="ids", K=3, bamcp_depth=8, ids_bamcp_depth=None,
+        bamcp_n_simulations=10000, planner_iterations=70,
+        # shard-varying surface, all of which must be dropped
+        output=Path("/tmp/x.json"), video_dir=None, n_shards=5,
+        shard_index=3, total_seeds=100, n_seeds=20, seed=3000009,
+    )
+    base.update(overrides)
+    return argparse.Namespace(**base)
+
+
+def test_invocation_record_drops_every_shard_varying_arg() -> None:
+    """The record must be shard-invariant or `aggregate_shards.py` aborts.
+
+    The aggregator rejects shards disagreeing on any `config` key outside
+    its own exemption set, which is what turns "every shard used the same
+    bamcp_depth" into a checked property. A shard-varying key in the
+    record would make that check reject every multi-shard run.
+    """
+    from learningpomdp.experiment.io import (
+        _SHARD_VARYING_ARGS,
+        invocation_record,
+    )
+
+    a = _planner_args(shard_index=0, seed=0)
+    b = _planner_args(shard_index=3, seed=3000009)
+    assert invocation_record(a) == invocation_record(b)
+    assert not _SHARD_VARYING_ARGS.intersection(invocation_record(a))
+
+
+def test_invocation_record_keeps_planner_knobs_and_resolves_ids_depth() -> None:
+    """`bamcp_depth` is the point of the record; IDS's is post-fallback.
+
+    No cluster job script passes `--ids-bamcp-depth`, so the raw arg is
+    None on every cluster run and only the resolved value says what depth
+    IDS actually searched to.
+    """
+    from learningpomdp.experiment.io import invocation_record
+
+    record = invocation_record(_planner_args(), ids_bamcp_depth=8)
+    assert record["bamcp_depth"] == 8
+    assert record["ids_bamcp_depth"] == 8
+    assert record["bamcp_n_simulations"] == 10000
+    assert record["planner_iterations"] == 70
+
+
+def test_invocation_record_stringifies_paths() -> None:
+    """A Path-valued arg must not reach `json.dump`.
+
+    Every Path arg the run scripts define today (`--output`, `--video-dir`)
+    is shard-varying and so excluded, making this branch unreachable from
+    the current CLIs. It is kept because the failure it prevents is a
+    serialization crash *after* the run finishes -- on a 14h cluster shard
+    that discards the whole job -- and a future non-excluded Path arg would
+    trip it with nothing else to catch it.
+    """
+    from learningpomdp.experiment.io import invocation_record
+
+    record = invocation_record(_planner_args(layout_seed=Path("/tmp/l")))
+    assert record["layout_seed"] == "/tmp/l"
+    json.dumps(record)
+
+
+def test_invocation_record_rejects_shard_varying_resolved_key() -> None:
+    """A shard-varying `resolved` key is the same bug by another route."""
+    import pytest
+
+    from learningpomdp.experiment.io import invocation_record
+
+    with pytest.raises(ValueError, match="shard-varying"):
+        invocation_record(_planner_args(), seed=17)

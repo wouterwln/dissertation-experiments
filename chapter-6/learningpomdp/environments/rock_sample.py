@@ -56,7 +56,7 @@ from typing import Optional
 
 import numpy as np
 
-from learningpomdp.environments.base import StepResult
+from learningpomdp.environments.base import SAFE_LOG_FLOOR, StepResult
 from learningpomdp.factors import FactorSpec, ThetaSpec
 from learningpomdp.observations import (
     ModalityRegistry,
@@ -360,6 +360,68 @@ def create_goal(
     via SENSE first. Symmetric (``bad_logit == good_logit``) ties the
     expected preference at zero and lets info gain dominate, which is
     the failure mode this default avoids.
+
+    What the transformation preserves
+    --------------------------------
+    For one rock r with belief ``q = P(θ_r = good)``, the two objectives
+    the paper compares are both affine and strictly increasing in ``q``::
+
+        E[Δ log C | SAMPLE_r]  = q·good_logit     - (1-q)·bad_logit
+        E[Δ reward | SAMPLE_r] = q·sample_reward  - (1-q)·sample_reward
+
+    The softmax normaliser is per-θ and state-independent, so it cancels
+    exactly in every state-to-state difference and hence in the
+    expectation above. Both objectives count each rock once (the mask bit
+    flips on the first successful SAMPLE) and are sums of these per-rock
+    terms, so additivity across rocks is preserved as well.
+
+    Preserved for *any* positive (good_logit, bad_logit):
+
+    - **Monotonicity in the belief.** Both objectives induce a threshold
+      rule on the same sufficient statistic ``q``: if SAMPLE is preferred
+      at ``q`` it is preferred at every ``q' > q``.
+    - **The ranking of rocks.** At a fixed belief both objectives prefer
+      sampling the rock with the largest ``q``, so the commitment *target*
+      never differs between them.
+
+    Not preserved:
+
+    - **The threshold location.** ``E[Δ log C]`` crosses zero at
+      ``q = bad_logit / (good_logit + bad_logit)``; ``E[Δ reward]`` at
+      ``q = 0.5``, since the env reward is symmetric ``±sample_reward``.
+      These coincide iff ``good_logit == bad_logit``. The canonical
+      (2, 4) puts the goal prior's threshold at 0.67 against the reward's
+      0.50 — i.e. AIF/VBP require *more* confidence before sampling than
+      reward-optimality does. That extra caution is a designer-supplied
+      constraint, not something the planner derives, which is why the
+      symmetric cells of the sweep matter. The affine form and the
+      ``bad/(good+bad)`` crossing are checked numerically in
+      ``tests/test_preference_sweeps.py``, not just asserted here.
+    - **Magnitude.** ``log C`` is in nats, reward in env units; only the
+      sign/threshold structure above can be aligned, never the scale.
+    - **Movement and sensing costs.** RockSample charges none here, so
+      unlike Factored Tiger's ``listen_cost`` there is no per-action term
+      left unrepresented; the state-only goal prior is expressive enough
+      for this environment's whole reward function up to the threshold
+      shift above.
+
+    Finally, the argument above covers only the pragmatic (expected
+    log-preference) term of the Expected Free Energy. The epistemic term
+    has no reward counterpart — it is an addition to the objective, not a
+    re-encoding of it. That is precisely why the ratio matters: at
+    ``good_logit == bad_logit`` the pragmatic term vanishes under a
+    uniform belief and the epistemic term alone can make SAMPLE
+    attractive, purely for the information the reveal yields.
+
+    The ``rock_sample_preference`` DVC stage sweeps a 6-cell cross
+    through the canonical (2, 4) cell at reduced seed count — ``bad``
+    along [1, 2, 4, 8] at ``good = 2`` and ``good`` along [1, 2, 4] at
+    ``bad = 4`` — so the sensitivity of the reported results to this knob
+    is measured rather than assumed. It includes the
+    reward-ratio-matched symmetric cells (2, 2) and (4, 4); the cross
+    rather than the full grid because AIF on RockSample is the most
+    expensive planner × benchmark pair in the suite (see the params.yaml
+    note for the cost figures).
     """
     K = layout.K
     n_events = layout.n_events
@@ -383,7 +445,20 @@ def create_goal(
 
     logits_centered = goal_logits - goal_logits.max(axis=0, keepdims=True)
     g = np.exp(logits_centered)
-    return g / g.sum(axis=0, keepdims=True)
+    goal = g / g.sum(axis=0, keepdims=True)
+    # The planners consume float32 log C via messages.safe_log, which
+    # clamps at log(max(C, 1e-30)); below that the goal is silently
+    # truncated onto one floor value. Checked in float64 — the float32
+    # cast is exact to ~1e-7 relative this far above the subnormal range.
+    if goal.min() < SAFE_LOG_FLOOR:
+        raise ValueError(
+            f"goal prior underflows the safe_log floor at K={K}, "
+            f"(good_logit, bad_logit)=({good_logit}, {bad_logit}): min "
+            f"entry {goal.min():.3e} < {SAFE_LOG_FLOOR:.0e}. The logits "
+            f"span max(good_logit, bad_logit)*K nats; lower them (keeping "
+            f"the ratio) or lower K."
+        )
+    return goal
 
 
 def informative_states_for_rock(

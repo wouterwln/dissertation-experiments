@@ -11,6 +11,14 @@ if TYPE_CHECKING:
     from learningpomdp.observations import ModalityRegistry
 
 
+# Smallest goal-prior entry the planners can still distinguish: they read
+# log C through planning.messages.safe_log, which clamps at
+# log(max(C, 1e-30)), so every entry below this floor collapses onto one
+# value. The factored_tiger / rock_sample create_goal functions, whose
+# logits scale with K, refuse to return a goal that crosses it.
+SAFE_LOG_FLOOR = 1e-30
+
+
 @dataclass
 class StepResult:
     """Result of a single environment step.

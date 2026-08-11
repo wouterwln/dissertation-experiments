@@ -425,6 +425,13 @@ def run_block(
     else:
         q_static = jnp.asarray(initial_q_static, dtype=jnp.float32)
 
+    # Block-level planner setup, once before the episode loop (distinct
+    # from prepare_episode, which fires per episode). BAMCP/BOSS reset
+    # their rollout Q-hat here — learned within a block, dropped across
+    # blocks. Planners without the hook are untouched.
+    if hasattr(planner, "prepare_block"):
+        planner.prepare_block(q_static, rng)
+
     episodes: list[FactoredTigerEpisodeResult] = []
     for _ep_idx in range(n_episodes):
         # No-op for theta_spec.episode_reset_components=(), but keeps the
@@ -570,7 +577,7 @@ def _stack(
 
 def _run_one_seed_worker(
     env_kwargs: dict[str, Any],
-    planner_factory: Callable[[], Planner],
+    planner_factory: Callable[[int], Planner],
     block_theta: int,
     n_episodes: int,
     horizon: int,
@@ -578,10 +585,11 @@ def _run_one_seed_worker(
     deterministic: bool,
     seed: int,
     clip_horizon: bool,
+    seed_index: int,
 ) -> FactoredTigerBlockResult:
     """Subprocess entry point: builds fresh env + planner per worker."""
     env = FactoredTigerEnv(**env_kwargs)
-    planner = planner_factory()
+    planner = planner_factory(seed_index)
     return run_block(
         env, planner, block_theta_true=block_theta, n_episodes=n_episodes,
         horizon=horizon, max_steps=max_steps, deterministic=deterministic,
@@ -604,7 +612,7 @@ def run_outer_loop(
     progress_desc: str = "factored-tiger",
     env_factory: Callable[[dict[str, Any]], FactoredTigerEnv] | None = None,
     workers: int = 1,
-    planner_factory: Optional[Callable[[], Planner]] = None,
+    planner_factory: Optional[Callable[[int], Planner]] = None,
 ) -> FactoredTigerOuterLoopResult:
     """Run n_seeds blocks of n_episodes; sequential or parallel by workers."""
     if env_factory is None:
@@ -619,7 +627,7 @@ def run_outer_loop(
                 "`workers > 1` requires `planner_factory` since planner "
                 "instances are not pickle-safe across processes."
             )
-        probe = planner_factory()
+        probe = planner_factory(0)
         if isinstance(probe, GPU_PLANNER_TYPES):
             warnings.warn(
                 f"Planner type {type(probe).__name__} uses JAX/GPU; "
@@ -672,6 +680,7 @@ def run_outer_loop(
                     deterministic,
                     seed * 10_000 + s,
                     clip_horizon,
+                    s,
                 )
                 for s in range(n_seeds)
             ]
@@ -698,8 +707,12 @@ def run_outer_loop(
             kwargs = dict(env_kwargs)
             kwargs["obs_seed"] = seed * 10_000 + s
             env = env_factory(kwargs)
+            # The factory takes the outer-seed index so each seed gets its
+            # own planner RNG stream: a fresh instance alone is not enough,
+            # since `default_rng(<same int>)` replays the same stream and
+            # the per-plan() draw count is fixed by n_simulations.
             seed_planner = (
-                planner_factory() if planner_factory is not None else planner
+                planner_factory(s) if planner_factory is not None else planner
             )
             block = run_block(
                 env, seed_planner, block_theta_true=block_thetas[s],

@@ -3,7 +3,8 @@
 Aggregates output/rock_sample_kscaling/K<K>/<planner>.json over the
 K values defined in params.rock_sample.k_sweep and plots:
 
-  Left:   reward_normalised (block-mean, mean ± 90% CI across seeds)
+  Left:   reward_normalised (block-mean, mean ± 95% CI of the mean;
+          1.96·SEM across seeds, as in the main results figures)
           per planner vs K. Shows the absolute performance curve as
           #factors grows.
   Middle: AIF − BAMCP and AIF − Factored-BAMCP planning-time gap
@@ -52,7 +53,7 @@ PLANNER_LABELS = {
     "boss": "BOSS",
     "factored_bamcp": "Factored BA-POMCP",
     "ids": "IDS",
-    "oracle": "Oracle",
+    "oracle": r"Known-$\theta$ VBP",
     "random": "Random",
 }
 PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
@@ -79,16 +80,21 @@ def _discover_K_values(input_dir: Path) -> list[int]:
 
 
 def _block_mean_reward_normalised(summary: dict) -> tuple[float, float, float]:
-    """Mean ± 90% CI of reward_normalised, averaged across the block."""
+    """Mean ± 95% CI of the mean of reward_normalised over the block.
+
+    1.96·SEM across seeds, matching every main results figure
+    (`plot_rock_sample.py`). The `curves` block in the JSON stores
+    p05/p95 instead, which is the spread of per-seed values rather than a
+    confidence interval of the mean, so it is not used here.
+    """
     per_ep = np.array(summary["per_episode"]["reward_normalised"])
     # Shape (n_seeds, n_episodes). Average across episodes -> per-seed scalar,
     # then aggregate across seeds (NaN-safe).
     per_seed = np.nanmean(per_ep, axis=1)  # (n_seeds,)
-    return (
-        float(np.nanmean(per_seed)),
-        float(np.nanpercentile(per_seed, 5)),
-        float(np.nanpercentile(per_seed, 95)),
-    )
+    mean = float(np.nanmean(per_seed))
+    n = int(np.isfinite(per_seed).sum())
+    band = 1.96 * float(np.nanstd(per_seed, ddof=1)) / np.sqrt(max(n, 1))
+    return mean, mean - band, mean + band
 
 
 def _terminal_persistent_entropy(summary: dict) -> float:
@@ -115,8 +121,8 @@ def main() -> None:
 
     # Aggregate per (planner, K).
     reward_means: dict[str, list[float]] = {p: [] for p in PLANNER_ORDER}
-    reward_p05: dict[str, list[float]] = {p: [] for p in PLANNER_ORDER}
-    reward_p95: dict[str, list[float]] = {p: [] for p in PLANNER_ORDER}
+    reward_lo: dict[str, list[float]] = {p: [] for p in PLANNER_ORDER}
+    reward_hi: dict[str, list[float]] = {p: [] for p in PLANNER_ORDER}
     entropy_terminal: dict[str, list[float]] = {p: [] for p in PLANNER_ORDER}
 
     for K in k_values:
@@ -128,10 +134,10 @@ def main() -> None:
                 )
             with path.open() as f:
                 summary = json.load(f)
-            mean, p05, p95 = _block_mean_reward_normalised(summary)
+            mean, lo, hi = _block_mean_reward_normalised(summary)
             reward_means[planner].append(mean)
-            reward_p05[planner].append(p05)
-            reward_p95[planner].append(p95)
+            reward_lo[planner].append(lo)
+            reward_hi[planner].append(hi)
             entropy_terminal[planner].append(_terminal_persistent_entropy(summary))
 
     fig, axes = plt.subplots(1, 3, figsize=(20, 6))
@@ -148,17 +154,17 @@ def main() -> None:
         c = PLANNER_COLORS[planner]
         ls = PLANNER_LINESTYLES.get(planner, "-")
         means = np.array(reward_means[planner])
-        p05 = np.array(reward_p05[planner])
-        p95 = np.array(reward_p95[planner])
+        lo = np.array(reward_lo[planner])
+        hi = np.array(reward_hi[planner])
         ax_reward.plot(
             k_values, means, color=c, label=PLANNER_LABELS[planner],
             lw=2, linestyle=ls, marker=PLANNER_MARKERS.get(planner) or "o",
         )
         if ls == "-":
-            ax_reward.fill_between(k_values, p05, p95, color=c, alpha=0.12)
+            ax_reward.fill_between(k_values, lo, hi, color=c, alpha=0.12)
     ax_reward.set_xlabel("K (number of rocks / θ factors)")
     ax_reward.set_ylabel("block-mean reward / max_possible")
-    ax_reward.set_title("Normalised reward vs K (mean ± 90% CI)")
+    ax_reward.set_title("Normalised reward vs K (mean ± 95% CI)")
     ax_reward.set_ylim(-0.1, 1.1)
     ax_reward.axhline(1.0, color=theme.PALETTE["ink"], lw=0.5, ls=":", alpha=0.5)
     ax_reward.legend(loc="lower left", fontsize=8, ncol=2)

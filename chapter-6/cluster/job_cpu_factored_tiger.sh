@@ -3,14 +3,23 @@
 #SBATCH --partition=genoa
 #SBATCH --cpus-per-task=7
 #SBATCH --mem=12G
-#SBATCH --time=16:00:00
+# 1h. The 16h this replaces predated the info-gain prune (b4b8985/d731c92)
+# and was the worst offender in the slate at ~84x the real cost — see the
+# reservation note in job_cpu_rock_sample.sh. scripts/price_slate.py
+# projects the worst shard (IDS, 5 seeds/shard over workers=2) at 0.19h,
+# so 1h is ~5x margin. Planning time only, so a lower bound.
+#SBATCH --time=01:00:00
 #SBATCH --output=logs/cpu_factored_tiger_%x_%A_%a.out
 #SBATCH --error=logs/cpu_factored_tiger_%x_%A_%a.err
 # Required env: PLANNER, N_SHARDS, WORKERS
+# Optional env: OUT_DIR, SEEDS_OVERRIDE — shard directory and seed count,
+# defaulted below; cluster/submit_pilot.sh sets both to run this same job at
+# reduced scale outside output/<stage>/. See that script for why.
 
 set -euo pipefail
 cd "${SLURM_SUBMIT_DIR}"
-mkdir -p logs output/factored_tiger/shards
+OUT_DIR="${OUT_DIR:-output/factored_tiger}"
+mkdir -p logs "${OUT_DIR}/shards"
 
 source cluster/setup_env_cpu.sh
 export JAX_PLATFORMS=cpu
@@ -24,9 +33,9 @@ read_param() {
     uv run python -c "import yaml; p=yaml.safe_load(open('params.yaml')); v=p$1; print(str(v).lower() if isinstance(v, bool) else v)"
 }
 
-TOTAL_SEEDS=$(read_param "['factored_tiger']['runner']['n_seeds']")
+TOTAL_SEEDS="${SEEDS_OVERRIDE:-$(read_param "['factored_tiger']['runner']['n_seeds']")}"
 
-echo "host=$(hostname) date=$(date -Is) planner=${PLANNER} shard=${SHARD_INDEX}/${N_SHARDS} workers=${WORKERS}"
+echo "host=$(hostname) date=$(date -Is) planner=${PLANNER} out=${OUT_DIR} shard=${SHARD_INDEX}/${N_SHARDS} workers=${WORKERS}"
 uv run python -c "import jax; print(f'JAX devices: {jax.devices()}')"
 
 uv run python scripts/run_factored_tiger.py \
@@ -56,6 +65,6 @@ uv run python scripts/run_factored_tiger.py \
     --total-seeds "$TOTAL_SEEDS" \
     --n-shards "$N_SHARDS" \
     --shard-index "$SHARD_INDEX" \
-    --output "output/factored_tiger/shards/${PLANNER}.shard$(printf '%02d' "$SHARD_INDEX").json"
+    --output "${OUT_DIR}/shards/${PLANNER}.shard$(printf '%02d' "$SHARD_INDEX").json"
 
 echo "done planner=${PLANNER} shard=${SHARD_INDEX} at $(date -Is)"

@@ -5,6 +5,7 @@ from .belief_state_q import BeliefStateQLearner
 from .goal import Goal, GoalType
 from .ids_planner import IDSPlanner
 from .oracle_planner import OraclePlanner
+from .persistent_oracle_planner import PersistentOraclePlanner
 from .psrl_planner import PSRLPlanner
 from .vbp_planner import VBPPlanner
 
@@ -14,7 +15,9 @@ from .vbp_planner import VBPPlanner
 # worker. CPU-only planners (BAMCP/BOSS/Random/IDS) are safe to
 # parallelise. IDS wraps BAMCP for its Q oracle, so its JAX touch is
 # limited to converting the final action distribution.
-GPU_PLANNER_TYPES = (AIFPlanner, VBPPlanner, PSRLPlanner, OraclePlanner)
+GPU_PLANNER_TYPES = (
+    AIFPlanner, VBPPlanner, PSRLPlanner, OraclePlanner, PersistentOraclePlanner,
+)
 
 __all__ = [
     "AIFPlanner",
@@ -25,5 +28,6 @@ __all__ = [
     "IDSPlanner",
     "OraclePlanner",
     "PSRLPlanner",
+    "PersistentOraclePlanner",
     "VBPPlanner",
 ]

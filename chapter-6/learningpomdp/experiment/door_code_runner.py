@@ -17,11 +17,13 @@ outer-loop seed.
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 from tqdm import tqdm
@@ -85,6 +87,100 @@ def _select_action(
         return int(p.argmax())
     p = p / p.sum()
     return int(rng.choice(len(p), p=p))
+
+
+def _effective_horizons(
+    horizon: int, max_steps: int, clip_horizon: bool,
+) -> list[int]:
+    """Every distinct horizon `run_episode` will hand `plan()`.
+
+    Mirrors the `effective_horizon` expression in `run_episode`; keep the
+    two in sync.
+    """
+    if not clip_horizon:
+        return [horizon]
+    return sorted({min(horizon, max_steps - step) for step in range(max_steps)})
+
+
+def _warmup_planner(
+    env: Any,
+    planner: Planner,
+    horizon: int,
+    max_steps: int,
+    clip_horizon: bool,
+) -> None:
+    """Pay every XLA compile the episode loop would otherwise pay inside
+    the timed region.
+
+    `AIFPlanner` / `VBPPlanner` jit on `horizon`, so under `clip_horizon`
+    a single process compiles once per distinct `effective_horizon` the
+    step loop reaches — up to `min(horizon, max_steps)` separate compiles.
+    Every one of them lands inside `run_episode`'s `perf_counter` window
+    and is charged to `planning_time_s`, which is what makes an un-warmed
+    `planning_time_s` partly a compile measurement. One discarded
+    `plan()` per distinct horizon here moves all of them outside every
+    timed region.
+
+    Only correct for planners whose `plan()` is a pure function of its
+    arguments (AIF, VBP, Oracle, PSRL). The sample-based planners
+    (BAMCP / BOSS / IDS / POMCP / BeliefQ / Random) draw from an internal
+    RNG inside `plan()`, so a discarded warm-up call would shift their
+    stream and change their results. Hence opt-in and off by default:
+    only the timing stage, which runs AIF, asks for it.
+    """
+    T = jnp.asarray(env.get_transition_tensor(), dtype=jnp.float32)
+    B_list = [
+        jnp.asarray(B_c, dtype=jnp.float32)
+        for B_c in env.get_observation_tensors()
+    ]
+    goal = jnp.asarray(env.get_goal(), dtype=jnp.float32)
+    q_state = _start_q_state_for(env)
+    q_static = jnp.ones(env.n_static, dtype=jnp.float32) / env.n_static
+    for h in _effective_horizons(horizon, max_steps, clip_horizon):
+        action_dist = planner.plan(
+            q_state, q_static, T, B_list, goal, h,
+            theta_mask=env.get_modality_registry().theta_dependent_mask,
+            theta_spec=env.theta_spec,
+            t_factor_spec=env.t_factor_spec,
+            b_factor_specs=env.b_factor_specs,
+        )
+        if hasattr(action_dist, "block_until_ready"):
+            action_dist.block_until_ready()
+
+
+# Environment variables that decide how much parallelism the process may
+# use. Recorded, never set: a `planning_time_s` measured in a 2-core SLURM
+# cgroup and one measured on a many-core workstation are different numbers
+# for the same code, and the compute table has no other way to say which
+# regime it is quoting.
+_THREAD_ENV_VARS = (
+    "JAX_PLATFORMS",
+    "OMP_NUM_THREADS",
+    "XLA_FLAGS",
+    "MKL_NUM_THREADS",
+    "OPENBLAS_NUM_THREADS",
+    "SLURM_CPUS_PER_TASK",
+)
+
+
+def _runtime_record(warmup_planner: bool) -> dict[str, Any]:
+    """The timing regime of this process, for `config["runtime"]`.
+
+    `schedulable_cpus` is the affinity-mask size, not the node's core
+    count: it is what XLA's host thread pool and OpenMP actually size
+    themselves from under a SLURM cgroup, so it — not `--cpus-per-task`
+    alone — is the number that determines the regime.
+    """
+    if hasattr(os, "sched_getaffinity"):
+        schedulable_cpus = len(os.sched_getaffinity(0))
+    else:
+        schedulable_cpus = os.cpu_count()
+    return {
+        "jax_backend": jax.default_backend(),
+        "schedulable_cpus": schedulable_cpus,
+        "thread_env": {n: os.environ.get(n) for n in _THREAD_ENV_VARS},
+        "warmup_planner": bool(warmup_planner),
+    }
 
 
 def run_episode(
@@ -298,6 +394,14 @@ def run_block(
     else:
         q_static = jnp.asarray(initial_q_static, dtype=jnp.float32)
 
+    # Block-level planner setup, called once before the episode loop —
+    # distinct from prepare_episode, which fires per episode. BAMCP/BOSS
+    # reset their rollout Q-hat here: it is learned across the episodes of
+    # one block (theta_true pinned) and must not survive into the next
+    # block (theta_true redrawn). Planners without the hook are untouched.
+    if hasattr(planner, "prepare_block"):
+        planner.prepare_block(q_static, rng)
+
     episodes: list[EpisodeResult] = []
     for ep_idx in range(n_episodes):
         video_path = (
@@ -435,6 +539,20 @@ def _stack_metric(blocks: list[BlockResult], attr: str, dtype) -> np.ndarray:
 _IDENTIFY_THRESHOLD = 0.9
 
 
+def _survival_quantile(
+    fraction_by_episode: list[float], q: float,
+) -> float | None:
+    """First episode index at which the crossing fraction reaches `q`.
+
+    None when the fraction never reaches `q` within the budget, i.e. the
+    quantile is right-censored at the episode budget.
+    """
+    for k, frac in enumerate(fraction_by_episode):
+        if frac >= q:
+            return float(k)
+    return None
+
+
 def episodes_to_identify(
     posterior_mass_true: np.ndarray,
     threshold: float = _IDENTIFY_THRESHOLD,
@@ -443,9 +561,30 @@ def episodes_to_identify(
     on the true theta is >= threshold. Seeds that never cross the
     threshold contribute NaN.
 
-    Returned medians / IQR are computed over the seeds that crossed; the
-    `fraction_identified` field reports what share of seeds did cross
-    within the budget.
+    Two families of summary come out of the same first-crossing times:
+
+    `median` / `p25` / `p75` are **conditional on crossing** — computed
+    over the seeds that crossed, with `fraction_identified` reporting
+    what share those were. Comparing them across methods compares
+    different subpopulations of blocks whenever the crossing fractions
+    differ, so they are kept for backward compatibility (the figures read
+    them) but are not the primary statistic.
+
+    `fraction_identified_by_episode` / `censored_median` /
+    `censored_p25` / `censored_p75` treat non-crossing seeds as
+    right-censored at the episode budget instead of dropping them.
+    `fraction_identified_by_episode[k]` is the share of all seeds that
+    have crossed by episode index k (a survival curve, complement of
+    S(k)); the censored quantiles are the first index where that curve
+    reaches 0.25 / 0.5 / 0.75, and are None when it never does — which is
+    the honest answer for a method that identifies fewer than half its
+    blocks within the budget.
+
+    Censoring here is purely administrative and common to every seed (the
+    episode budget), and it happens after every observed event, so the
+    Kaplan-Meier product-limit estimator of S coincides exactly with
+    1 - ECDF of the first-crossing times; no product-limit loop is
+    needed and none is used.
     """
     crossed = posterior_mass_true >= threshold
     n_episodes = posterior_mass_true.shape[1]
@@ -460,6 +599,10 @@ def episodes_to_identify(
         median = None
         p25 = None
         p75 = None
+    ever = first_idx >= 0
+    fraction_by_episode = [
+        float((ever & (first_idx <= k)).mean()) for k in range(n_episodes)
+    ]
     return {
         "threshold": threshold,
         "n_episodes_budget": int(n_episodes),
@@ -467,7 +610,11 @@ def episodes_to_identify(
         "median": median,
         "p25": p25,
         "p75": p75,
-        "fraction_identified": float((first_idx >= 0).mean()),
+        "fraction_identified": float(ever.mean()),
+        "fraction_identified_by_episode": fraction_by_episode,
+        "censored_median": _survival_quantile(fraction_by_episode, 0.5),
+        "censored_p25": _survival_quantile(fraction_by_episode, 0.25),
+        "censored_p75": _survival_quantile(fraction_by_episode, 0.75),
     }
 
 
@@ -521,6 +668,7 @@ def run_outer_loop(
     env_factory: Callable[[dict[str, Any]], Any] | None = None,
     video_path_for: Callable[[int, int], Path | None] | None = None,
     video_fps: int = 4,
+    warmup_planner: bool = False,
 ) -> OuterLoopResult:
     """Run m = n_seeds blocks, each with a sampled theta_true and a
     fresh env (independent obs RNG per seed).
@@ -540,6 +688,11 @@ def run_outer_loop(
             instance. Defaults to DoorCodeEnv(**kwargs); pass a different
             factory (e.g. lambda kw: MiniGridDoorCodeEnv(**kw)) to run
             the same protocol against a different env.
+        warmup_planner: if True, run one discarded `plan()` per distinct
+            planning horizon before the first timed decision, so XLA
+            compiles are not charged to `planning_time_s`. Default False;
+            see `_warmup_planner` for why it is not safe to turn on for
+            the sample-based planners.
 
     Returns:
         OuterLoopResult with stacked per-episode metrics.
@@ -561,6 +714,11 @@ def run_outer_loop(
         kwargs = dict(env_kwargs)
         kwargs["obs_seed"] = seed * 10_000 + s
         env = env_factory(kwargs)
+        if warmup_planner and s == 0:
+            # Once per process is enough: the AIF/VBP jit cache is
+            # module-level and keyed on shapes and horizon, both of which
+            # are fixed across seeds.
+            _warmup_planner(env, planner, horizon, max_steps, clip_horizon)
         if theta_seeds is not None:
             if len(theta_seeds) != n_seeds:
                 raise ValueError(
@@ -604,6 +762,7 @@ def run_outer_loop(
         "seed": seed,
         "learn_on_failure": learn_on_failure,
         "clip_horizon": clip_horizon,
+        "runtime": _runtime_record(warmup_planner),
     }
     return OuterLoopResult(
         config=config,

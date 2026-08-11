@@ -11,7 +11,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 
-GPU_PLANNERS=(aif vbp psrl oracle)
+# persistent_oracle{,_vbp} only run on rock_sample; on the other stages
+# they have no shards and are reported as skipped.
+GPU_PLANNERS=(aif vbp psrl oracle persistent_oracle persistent_oracle_vbp)
 
 aggregate_one_dir() {
     local out_dir="$1"

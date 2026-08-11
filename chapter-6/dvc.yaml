@@ -28,6 +28,8 @@ stages:
         --K ${env.K}
         --lock-length ${env.lock_length}
         --probe-noise ${env.probe_noise}
+        --success-logit ${env.success_logit}
+        --failure-logit ${env.failure_logit}
         --n-seeds ${runner.n_seeds}
         --n-episodes ${runner.n_episodes}
         --max-steps ${runner.max_steps}
@@ -44,6 +46,8 @@ stages:
         --bamcp-ucb-c ${planner.bamcp_ucb_c}
         --bamcp-gamma ${planner.bamcp_gamma}
         --ids-bamcp-n-simulations ${planner.ids_bamcp_n_simulations}
+        --ids-bamcp-depth ${planner.ids_bamcp_depth}
+        --ids-rollout-seed ${planner.ids_rollout_seed}
         --ids-epsilon-info ${planner.ids_epsilon_info}
         --learn-on-failure ${runner.learn_on_failure}
         --clip-horizon ${runner.clip_horizon}
@@ -70,6 +74,7 @@ stages:
     deps:
       - scripts/plot_door_code.py
       - scripts/_cards.py
+      - dissertation_theme.py
       - output/door_code/aif.json
       - output/door_code/vbp.json
       - output/door_code/psrl.json
@@ -115,6 +120,8 @@ stages:
       --bamcp-ucb-c ${planner.bamcp_ucb_c}
       --bamcp-gamma ${planner.bamcp_gamma}
       --ids-bamcp-n-simulations ${planner.ids_bamcp_n_simulations}
+      --ids-bamcp-depth ${planner.ids_bamcp_depth}
+      --ids-rollout-seed ${planner.ids_rollout_seed}
       --ids-epsilon-info ${planner.ids_epsilon_info}
       --learn-on-failure ${runner.learn_on_failure}
       --clip-horizon ${runner.clip_horizon}
@@ -141,6 +148,7 @@ stages:
       --output output/door_code_simscaling/figure.pdf
     deps:
       - scripts/plot_door_code_simscaling.py
+      - dissertation_theme.py
       - output/door_code_simscaling/sims1000/bamcp.json
       - output/door_code_simscaling/sims10000/bamcp.json
       - output/door_code_simscaling/sims40000/bamcp.json
@@ -148,6 +156,413 @@ stages:
       - door_code_simscaling.sims_sweep
     outs:
       - output/door_code_simscaling/figure.pdf
+
+  # Goal-prior preference ablation — 4x4 grid over the two free
+  # parameters of door_code.create_goal (success_logit x failure_logit),
+  # AIF only: the sample-based baselines ignore the goal prior and plan
+  # on env reward, so there is nothing to sweep for them. The
+  # (succ=4, fail=-4) cell reproduces the canonical goal prior at
+  # door_code_preference.n_seeds. Output JSONs live at
+  # output/door_code_preference/succ<S>_fail<F>/aif.json.
+  door_code_preference:
+    matrix:
+      succ: ${door_code_preference.success_logits}
+      fail: ${door_code_preference.failure_logits}
+    cmd: >-
+      uv run python scripts/run_door_code.py
+      --planner aif
+      --K ${env.K}
+      --lock-length ${env.lock_length}
+      --probe-noise ${env.probe_noise}
+      --success-logit ${item.succ}
+      --failure-logit ${item.fail}
+      --n-seeds ${door_code_preference.n_seeds}
+      --n-episodes ${runner.n_episodes}
+      --max-steps ${runner.max_steps}
+      --horizon ${runner.horizon}
+      --seed ${runner.seed}
+      --planner-iterations ${planner.iterations}
+      --planner-damping ${planner.damping}
+      --learn-on-failure ${runner.learn_on_failure}
+      --clip-horizon ${runner.clip_horizon}
+      --output output/door_code_preference/succ${item.succ}_fail${item.fail}/aif.json
+    deps:
+      - scripts/run_door_code.py
+      - learningpomdp/
+    params:
+      - env
+      - runner
+      - planner
+      - door_code_preference
+    outs:
+      - output/door_code_preference/succ${item.succ}_fail${item.fail}/aif.json
+
+  # Note: figure.pdf is a SIBLING of the per-cell subdirectories (same
+  # DVC overlapping deps/outs constraint as plot_door_code_simscaling).
+  # The succ<S>_fail<F> deps mirror door_code_preference.{success_logits,
+  # failure_logits}; extend both together.
+  # The canonical door_code baselines come in as reference levels: they
+  # ignore C, so one canonical value per planner is their level across the
+  # whole sweep and the figure can answer "does AIF still win at the
+  # reward-matched cell", not just "is AIF sensitive to C". Zero extra
+  # compute — the JSONs are outs of the door_code stage.
+  plot_door_code_preference:
+    cmd: >-
+      uv run python scripts/plot_door_code_preference.py
+      --input-dir output/door_code_preference
+      --reference-dir output/door_code
+      --output output/door_code_preference/figure.pdf
+      --cards-dir output/door_code_preference/cards
+    deps:
+      - scripts/plot_door_code_preference.py
+      - scripts/_cards.py
+      - scripts/_preference.py
+      - dissertation_theme.py
+      - output/door_code/bamcp.json
+      - output/door_code/boss.json
+      - output/door_code/ids.json
+      - output/door_code_preference/succ1_fail-1/aif.json
+      - output/door_code_preference/succ1_fail-2/aif.json
+      - output/door_code_preference/succ1_fail-4/aif.json
+      - output/door_code_preference/succ1_fail-8/aif.json
+      - output/door_code_preference/succ2_fail-1/aif.json
+      - output/door_code_preference/succ2_fail-2/aif.json
+      - output/door_code_preference/succ2_fail-4/aif.json
+      - output/door_code_preference/succ2_fail-8/aif.json
+      - output/door_code_preference/succ4_fail-1/aif.json
+      - output/door_code_preference/succ4_fail-2/aif.json
+      - output/door_code_preference/succ4_fail-4/aif.json
+      - output/door_code_preference/succ4_fail-8/aif.json
+      - output/door_code_preference/succ8_fail-1/aif.json
+      - output/door_code_preference/succ8_fail-2/aif.json
+      - output/door_code_preference/succ8_fail-4/aif.json
+      - output/door_code_preference/succ8_fail-8/aif.json
+    params:
+      - door_code_preference
+      # The canonical (success, failure) pair the figure outlines.
+      - env.success_logit
+      - env.failure_logit
+    outs:
+      - output/door_code_preference/figure.pdf
+      - output/door_code_preference/cards
+
+  # MCTS depth-sensitivity ablation — sweep the tree-search family's
+  # TOTAL simulated lookahead (tree descent + leaf rollout, which is what
+  # `depth` bounds) from below up to the canonical H=8 that AIF-MP plans
+  # to. The sweep stops at H because `min(depth, max(horizon, 1))`
+  # saturates there, making above-H cells bit-identical no-ops; see the
+  # params.yaml door_code_depth block.
+  # BAMCP and IDS only: BOSS and POMCP take their action values from
+  # the same MCTS machinery, so they would trace the same curve (same
+  # convention as door_code_simscaling). IDS gets the swept depth through
+  # BOTH --bamcp-depth and --ids-bamcp-depth so the cell name means one
+  # thing for both planners. Output JSONs live at
+  # output/door_code_depth/depth<D>/<planner>.json.
+  door_code_depth:
+    matrix:
+      depth: ${door_code_depth.depth_sweep}
+      planner: [bamcp, ids]
+    cmd: >-
+      uv run python scripts/run_door_code.py
+      --planner ${item.planner}
+      --K ${env.K}
+      --lock-length ${env.lock_length}
+      --probe-noise ${env.probe_noise}
+      --n-seeds ${door_code_depth.n_seeds}
+      --n-episodes ${runner.n_episodes}
+      --max-steps ${runner.max_steps}
+      --horizon ${runner.horizon}
+      --seed ${runner.seed}
+      --planner-iterations ${planner.iterations}
+      --planner-damping ${planner.damping}
+      --bamcp-n-simulations ${planner.bamcp_n_simulations}
+      --bamcp-depth ${item.depth}
+      --bamcp-ucb-c ${planner.bamcp_ucb_c}
+      --bamcp-gamma ${planner.bamcp_gamma}
+      --ids-bamcp-n-simulations ${planner.ids_bamcp_n_simulations}
+      --ids-bamcp-depth ${item.depth}
+      --ids-rollout-seed ${planner.ids_rollout_seed}
+      --ids-epsilon-info ${planner.ids_epsilon_info}
+      --learn-on-failure ${runner.learn_on_failure}
+      --clip-horizon ${runner.clip_horizon}
+      --output output/door_code_depth/depth${item.depth}/${item.planner}.json
+    deps:
+      - scripts/run_door_code.py
+      - learningpomdp/
+    params:
+      - env
+      - runner
+      - planner
+      - door_code_depth
+    outs:
+      - output/door_code_depth/depth${item.depth}/${item.planner}.json
+
+  # Note: figure.pdf is a SIBLING of the per-depth subdirectories (same
+  # DVC overlapping deps/outs constraint as plot_door_code_simscaling).
+  # The depth<D> deps mirror door_code_depth.depth_sweep; extend both
+  # together.
+  plot_door_code_depth:
+    cmd: >-
+      uv run python scripts/plot_door_code_depth.py
+      --input-dir output/door_code_depth
+      --output output/door_code_depth/figure.pdf
+      --horizon ${runner.horizon}
+    deps:
+      - scripts/plot_door_code_depth.py
+      - dissertation_theme.py
+      - output/door_code_depth/depth2/bamcp.json
+      - output/door_code_depth/depth2/ids.json
+      - output/door_code_depth/depth4/bamcp.json
+      - output/door_code_depth/depth4/ids.json
+      - output/door_code_depth/depth6/bamcp.json
+      - output/door_code_depth/depth6/ids.json
+      - output/door_code_depth/depth8/bamcp.json
+      - output/door_code_depth/depth8/ids.json
+    params:
+      - door_code_depth.depth_sweep
+      - runner.horizon
+    outs:
+      - output/door_code_depth/figure.pdf
+
+  # Rollout-policy ablation — uniform (shipped default) vs epsilon-greedy
+  # in an off-policy-learned Q-hat (Guez et al. 2012). BAMCP and BOSS
+  # only: they are the two planners whose rollout policy this PR makes
+  # configurable. This is the decisive experiment for the paper's claim
+  # that the tree-search slate earns exactly 0.00 on door-code — if the
+  # flatline survives a competent rollout the claim stands, and if it
+  # does not the claim must be withdrawn. Output JSONs live at
+  # output/door_code_rollout/<policy>/<planner>.json.
+  door_code_rollout:
+    matrix:
+      policy: ${door_code_rollout.policies}
+      planner: [bamcp, boss]
+    cmd: >-
+      uv run python scripts/run_door_code.py
+      --planner ${item.planner}
+      --K ${env.K}
+      --lock-length ${env.lock_length}
+      --probe-noise ${env.probe_noise}
+      --n-seeds ${door_code_rollout.n_seeds}
+      --n-episodes ${runner.n_episodes}
+      --max-steps ${runner.max_steps}
+      --horizon ${runner.horizon}
+      --seed ${runner.seed}
+      --planner-iterations ${planner.iterations}
+      --planner-damping ${planner.damping}
+      --boss-n-samples ${planner.boss_n_samples}
+      --bamcp-n-simulations ${planner.bamcp_n_simulations}
+      --bamcp-depth ${planner.bamcp_depth}
+      --bamcp-ucb-c ${planner.bamcp_ucb_c}
+      --bamcp-gamma ${planner.bamcp_gamma}
+      --rollout-policy ${item.policy}
+      --rollout-epsilon ${door_code_rollout.epsilon}
+      --rollout-q-lr ${door_code_rollout.q_lr}
+      --learn-on-failure ${runner.learn_on_failure}
+      --clip-horizon ${runner.clip_horizon}
+      --output output/door_code_rollout/${item.policy}/${item.planner}.json
+    deps:
+      - scripts/run_door_code.py
+      - learningpomdp/
+    params:
+      - env
+      - runner
+      - planner
+      - door_code_rollout
+    outs:
+      - output/door_code_rollout/${item.policy}/${item.planner}.json
+
+  # Note: figure.pdf is a SIBLING of the per-policy subdirectories (same
+  # DVC overlapping deps/outs constraint as plot_door_code_simscaling).
+  # The per-policy deps mirror door_code_rollout.policies; extend both
+  # together.
+  plot_door_code_rollout:
+    cmd: >-
+      uv run python scripts/plot_door_code_rollout.py
+      --input-dir output/door_code_rollout
+      --output output/door_code_rollout/figure.pdf
+    deps:
+      - scripts/plot_door_code_rollout.py
+      - dissertation_theme.py
+      - output/door_code_rollout/uniform/bamcp.json
+      - output/door_code_rollout/uniform/boss.json
+      - output/door_code_rollout/eps_greedy_q/bamcp.json
+      - output/door_code_rollout/eps_greedy_q/boss.json
+    params:
+      - door_code_rollout
+    outs:
+      - output/door_code_rollout/figure.pdf
+
+  # AIF-MP convergence sensitivity report — 5x4 grid over the two knobs
+  # of the damped channel fixed point (planner.iterations x
+  # planner.damping), AIF only: the sample-based baselines have no
+  # message-passing iteration to sweep. The (iters=70, damp=0.9) cell
+  # reproduces the canonical message-passing config at
+  # aif_convergence.n_seeds. A SENSITIVITY REPORT, not a search — no cell
+  # is selected from it. Output JSONs live at
+  # output/aif_convergence/iter<N>_damp<D>/aif.json.
+  #
+  # params is declared key-by-key rather than block-by-block, unlike the
+  # neighbouring stages. Twenty cells is too expensive to rerun on an
+  # unrelated edit, and block-level `env` / `runner` / `planner` would do
+  # exactly that: `runner.n_seeds` is not used here (the stage takes
+  # aif_convergence.n_seeds instead) and neither is any `planner` key (both
+  # planner knobs come from the matrix), yet either block would invalidate
+  # all 20 cells when a BAMCP or BeliefQ knob moved.
+  aif_convergence:
+    matrix:
+      iters: ${aif_convergence.iterations_sweep}
+      damp: ${aif_convergence.damping_sweep}
+    cmd: >-
+      uv run python scripts/run_door_code.py
+      --planner aif
+      --K ${env.K}
+      --lock-length ${env.lock_length}
+      --probe-noise ${env.probe_noise}
+      --n-seeds ${aif_convergence.n_seeds}
+      --n-episodes ${runner.n_episodes}
+      --max-steps ${runner.max_steps}
+      --horizon ${runner.horizon}
+      --seed ${runner.seed}
+      --planner-iterations ${item.iters}
+      --planner-damping ${item.damp}
+      --learn-on-failure ${runner.learn_on_failure}
+      --clip-horizon ${runner.clip_horizon}
+      --output output/aif_convergence/iter${item.iters}_damp${item.damp}/aif.json
+    deps:
+      - scripts/run_door_code.py
+      - learningpomdp/
+    params:
+      - env.K
+      - env.lock_length
+      - env.probe_noise
+      - runner.n_episodes
+      - runner.max_steps
+      - runner.horizon
+      - runner.seed
+      - runner.learn_on_failure
+      - runner.clip_horizon
+      - aif_convergence.n_seeds
+    outs:
+      - output/aif_convergence/iter${item.iters}_damp${item.damp}/aif.json
+
+  # Note: figure.pdf is a SIBLING of the per-cell subdirectories (same
+  # DVC overlapping deps/outs constraint as plot_door_code_simscaling).
+  # The iter<N>_damp<D> deps mirror aif_convergence.{iterations_sweep,
+  # damping_sweep}; extend both together.
+  #
+  # This plot stage also recomputes the per-iteration channel residual
+  # itself, by calling the planner once per cell — the residual is a
+  # planner-internal diagnostic and is not in the run JSONs. Hence the
+  # dep on learningpomdp/.
+  plot_aif_convergence:
+    cmd: >-
+      uv run python scripts/plot_aif_convergence.py
+      --input-dir output/aif_convergence
+      --output output/aif_convergence/figure.pdf
+      --cards-dir output/aif_convergence/cards
+    deps:
+      - scripts/plot_aif_convergence.py
+      - scripts/_cards.py
+      - dissertation_theme.py
+      - learningpomdp/
+      - output/aif_convergence/iter10_damp0.5/aif.json
+      - output/aif_convergence/iter10_damp0.7/aif.json
+      - output/aif_convergence/iter10_damp0.9/aif.json
+      - output/aif_convergence/iter10_damp0.99/aif.json
+      - output/aif_convergence/iter20_damp0.5/aif.json
+      - output/aif_convergence/iter20_damp0.7/aif.json
+      - output/aif_convergence/iter20_damp0.9/aif.json
+      - output/aif_convergence/iter20_damp0.99/aif.json
+      - output/aif_convergence/iter40_damp0.5/aif.json
+      - output/aif_convergence/iter40_damp0.7/aif.json
+      - output/aif_convergence/iter40_damp0.9/aif.json
+      - output/aif_convergence/iter40_damp0.99/aif.json
+      - output/aif_convergence/iter70_damp0.5/aif.json
+      - output/aif_convergence/iter70_damp0.7/aif.json
+      - output/aif_convergence/iter70_damp0.9/aif.json
+      - output/aif_convergence/iter70_damp0.99/aif.json
+      - output/aif_convergence/iter140_damp0.5/aif.json
+      - output/aif_convergence/iter140_damp0.7/aif.json
+      - output/aif_convergence/iter140_damp0.9/aif.json
+      - output/aif_convergence/iter140_damp0.99/aif.json
+    params:
+      # The two sweeps only; they decide which cells the script must find.
+      # aif_convergence.n_seeds reaches this stage through the cell JSONs
+      # it already depends on, same as plot_door_code_simscaling.
+      - aif_convergence.iterations_sweep
+      - aif_convergence.damping_sweep
+    outs:
+      - output/aif_convergence/figure.pdf
+      - output/aif_convergence/cards
+
+  # Matched-hardware timing anchor for the compute table: canonical-config
+  # AIF forced onto CPU, so its seconds-per-decision is comparable with
+  # the tree-search baselines' CPU numbers instead of being an A100
+  # measurement compared against EPYC cores. JAX_PLATFORMS=cpu pins the
+  # backend locally; on Snellius this runs on the genoa partition through
+  # .venv-cpu (cluster/{job,submit}_cpu_aif_timing.sh).
+  #
+  # `JAX_PLATFORMS=cpu` is the *only* environment override here, and
+  # cluster/job_cpu_aif_timing.sh sets exactly the same one and nothing
+  # else, so the local and cluster paths run the same configuration.
+  # Neither caps thread counts: XLA and OpenMP size their pools from the
+  # process affinity mask, which is the SLURM allocation on the cluster
+  # and the whole machine locally. That is a hardware difference, not a
+  # configuration difference, and the run JSON records which regime
+  # produced the number (`config.runtime`).
+  #
+  # `--warmup-planner` is what makes this a per-decision timing at all:
+  # under clip_horizon the planner jits once per distinct effective
+  # horizon, and without a warm-up all of those XLA compiles are charged
+  # to planning_time_s.
+  #
+  # Reduced seeds/episodes on purpose — the output is a per-decision
+  # timing, not a return. Do not quote this stage's returns as a result.
+  #
+  # NOTHING CONSUMES THIS OUTPUT YET. No stage deps on it and no code
+  # converts planning_time_s into seconds-per-decision outside
+  # plot_door_code.py (which reads output/door_code/). The table emitter
+  # is the intended consumer and does not exist in this repo yet.
+  aif_cpu_timing:
+    cmd: >-
+      JAX_PLATFORMS=cpu
+      uv run python scripts/run_door_code.py
+      --planner aif
+      --K ${env.K}
+      --lock-length ${env.lock_length}
+      --probe-noise ${env.probe_noise}
+      --n-seeds ${aif_cpu_timing.n_seeds}
+      --n-episodes ${aif_cpu_timing.n_episodes}
+      --max-steps ${runner.max_steps}
+      --horizon ${runner.horizon}
+      --seed ${runner.seed}
+      --planner-iterations ${planner.iterations}
+      --planner-damping ${planner.damping}
+      --learn-on-failure ${runner.learn_on_failure}
+      --clip-horizon ${runner.clip_horizon}
+      --warmup-planner
+      --output output/aif_cpu_timing/aif.json
+    deps:
+      - scripts/run_door_code.py
+      - learningpomdp/
+    params:
+      # Key-by-key, not block-by-block: `runner.n_seeds` is unused here
+      # (the stage takes aif_cpu_timing.n_seeds) and would otherwise rerun
+      # a timing measurement whenever the canonical seed count moved.
+      - env.K
+      - env.lock_length
+      - env.probe_noise
+      - runner.max_steps
+      - runner.horizon
+      - runner.seed
+      - runner.learn_on_failure
+      - runner.clip_horizon
+      - planner.iterations
+      - planner.damping
+      - aif_cpu_timing.n_seeds
+      - aif_cpu_timing.n_episodes
+    outs:
+      - output/aif_cpu_timing/aif.json
 
   # M2 — Farama-MiniGrid spatial sibling. Same planner slate as M1
   # (the planners are environment-agnostic; they consume T/B/goal),
@@ -203,6 +618,8 @@ stages:
         --bamcp-ucb-c ${minigrid.planner.bamcp_ucb_c}
         --bamcp-gamma ${minigrid.planner.bamcp_gamma}
         --ids-bamcp-n-simulations ${minigrid.planner.ids_bamcp_n_simulations}
+        --ids-bamcp-depth ${minigrid.planner.ids_bamcp_depth}
+        --ids-rollout-seed ${minigrid.planner.ids_rollout_seed}
         --ids-epsilon-info ${minigrid.planner.ids_epsilon_info}
         --output output/minigrid_door_code/${item.planner}.json
         --video-dir output/minigrid_door_code/${item.planner}/videos
@@ -228,6 +645,7 @@ stages:
     deps:
       - scripts/plot_minigrid_door_code.py
       - scripts/_cards.py
+      - dissertation_theme.py
       - output/minigrid_door_code/aif.json
       - output/minigrid_door_code/vbp.json
       - output/minigrid_door_code/psrl.json
@@ -245,6 +663,19 @@ stages:
   # M4 — RockSample BA-POMDP. Factorized θ. Full sample-based BA-RL
   # slate (PSRL/BAMCP/BOSS/Factored BA-POMCP) wired alongside AIF/VBP/
   # Oracle/Random. BeliefQ deferred (door-code-specific belief feature).
+  # persistent_oracle{,_vbp} are rock_sample-only: they know θ_sensor but
+  # still infer θ_quality, giving an ordered reference point inside the
+  # Oracle-vs-AIF gap. That gap does not decompose into two interpretable
+  # terms: only `persistent_oracle - aif` is one (the value of knowing
+  # θ_persistent); `oracle - persistent_oracle` is not the value of
+  # knowing θ_episodic, because the inner solver changes with the
+  # information (VBP vs AIF). The other three
+  # benchmarks have no episodic θ, so there they would equal `oracle`.
+  # `persistent_oracle` is the reported reference arm (AIF inner solve —
+  # it differs from `aif` in exactly one respect, θ_persistent is given);
+  # `persistent_oracle_vbp` mirrors `oracle`'s base planner but over-senses
+  # and never scores above plain `vbp`, so it is a diagnostic only and
+  # bounds nothing. See persistent_oracle_planner.py's module docstring.
   rock_sample:
     foreach:
       aif:
@@ -263,6 +694,10 @@ stages:
         planner: ids
       oracle:
         planner: oracle
+      persistent_oracle:
+        planner: persistent_oracle
+      persistent_oracle_vbp:
+        planner: persistent_oracle_vbp
       random:
         planner: random
     do:
@@ -290,6 +725,8 @@ stages:
         --bamcp-gamma ${rock_sample.planner.bamcp_gamma}
         --boss-n-samples ${rock_sample.planner.boss_n_samples}
         --ids-bamcp-n-simulations ${rock_sample.planner.ids_bamcp_n_simulations}
+        --ids-bamcp-depth ${rock_sample.planner.ids_bamcp_depth}
+        --ids-rollout-seed ${rock_sample.planner.ids_rollout_seed}
         --ids-epsilon-info ${rock_sample.planner.ids_epsilon_info}
         --workers ${rock_sample.runner.workers}
         --output output/rock_sample/${item.planner}.json
@@ -313,6 +750,7 @@ stages:
     deps:
       - scripts/plot_rock_sample.py
       - scripts/_cards.py
+      - dissertation_theme.py
       - output/rock_sample/aif.json
       - output/rock_sample/vbp.json
       - output/rock_sample/psrl.json
@@ -336,6 +774,7 @@ stages:
       --fps 4
     deps:
       - scripts/visualize_rock_sample.py
+      - dissertation_theme.py
       - output/rock_sample/aif.json
       - output/rock_sample/bamcp.json
       - output/rock_sample/psrl.json
@@ -390,6 +829,8 @@ stages:
       --bamcp-gamma ${rock_sample.planner.bamcp_gamma}
       --boss-n-samples ${rock_sample.planner.boss_n_samples}
       --ids-bamcp-n-simulations ${rock_sample.planner.ids_bamcp_n_simulations}
+      --ids-bamcp-depth ${rock_sample.planner.ids_bamcp_depth}
+      --ids-rollout-seed ${rock_sample.planner.ids_rollout_seed}
       --ids-epsilon-info ${rock_sample.planner.ids_epsilon_info}
       --workers ${rock_sample.runner.workers}
       --output output/rock_sample_kscaling/K${item.K}/${item.planner}.json
@@ -412,6 +853,7 @@ stages:
       --output output/rock_sample_kscaling/figure.pdf
     deps:
       - scripts/plot_rock_sample_kscaling.py
+      - dissertation_theme.py
       - output/rock_sample_kscaling/K2
       - output/rock_sample_kscaling/K3
       - output/rock_sample_kscaling/K4
@@ -419,6 +861,200 @@ stages:
       - rock_sample.k_sweep
     outs:
       - output/rock_sample_kscaling/figure.pdf
+
+  # Goal-prior preference ablation on RockSample — a 6-cell CROSS through
+  # the canonical (good=2, bad=4) cell over the two free parameters of
+  # rock_sample.create_goal, not the full 3x4 grid: AIF on RockSample is
+  # the most expensive planner x benchmark pair in the suite, so the grid
+  # priced at 11295 SBU and the cross saves ~5650 of them (see the
+  # params.yaml note for the cell-by-cell rationale). `foreach:` over
+  # enumerated cells rather than `matrix:`, because a matrix is a cross
+  # product and would regenerate all 12.
+  # AIF only: BAMCP/BOSS/Factored-BAMCP/IDS/Random never read the goal
+  # prior C, they plan on the env reward table built by
+  # rock_sample_runner, so there is nothing to sweep for them. PSRL and
+  # Oracle *do* read C (both wrap VBP) but are excluded to bound GPU
+  # cost, so the swept cells have no baseline counterpart. The
+  # (good=2, bad=4) cell reproduces the canonical goal prior at
+  # rock_sample_preference.n_seeds; the good == bad cells match the
+  # environment's own symmetric ±sample_reward ratio. Params are
+  # enumerated leaf-by-leaf rather than as whole blocks — including
+  # rock_sample_preference.n_seeds rather than the block, so that adding
+  # a cell does not invalidate the existing ones (${item.*} is already
+  # hashed via cmd). Output JSONs live at
+  # output/rock_sample_preference/good<G>_bad<B>/aif.json.
+  rock_sample_preference:
+    foreach: ${rock_sample_preference.cells}
+    do:
+      cmd: >-
+        uv run python scripts/run_rock_sample.py
+        --planner aif
+        --K ${rock_sample.env.K}
+        --grid-size ${rock_sample.env.grid_size}
+        --sensor-noise-eta ${rock_sample.env.sensor_noise_eta}
+        --sample-reward ${rock_sample.env.sample_reward}
+        --good-logit ${item.good}
+        --bad-logit ${item.bad}
+        --layout-seed ${rock_sample.env.layout_seed}
+        --n-seeds ${rock_sample_preference.n_seeds}
+        --n-episodes ${rock_sample.runner.n_episodes}
+        --max-steps ${rock_sample.runner.max_steps}
+        --horizon ${rock_sample.runner.horizon}
+        --seed ${rock_sample.runner.seed}
+        --clip-horizon ${rock_sample.runner.clip_horizon}
+        --planner-iterations ${rock_sample.planner.iterations}
+        --planner-damping ${rock_sample.planner.damping}
+        --workers ${rock_sample.runner.workers}
+        --output output/rock_sample_preference/good${item.good}_bad${item.bad}/aif.json
+      deps:
+        - scripts/run_rock_sample.py
+        - learningpomdp/
+      params:
+        - rock_sample.env.K
+        - rock_sample.env.grid_size
+        - rock_sample.env.sensor_noise_eta
+        - rock_sample.env.sample_reward
+        - rock_sample.env.layout_seed
+        - rock_sample.runner.n_episodes
+        - rock_sample.runner.max_steps
+        - rock_sample.runner.horizon
+        - rock_sample.runner.seed
+        - rock_sample.runner.clip_horizon
+        - rock_sample.runner.workers
+        - rock_sample.planner.iterations
+        - rock_sample.planner.damping
+        - rock_sample_preference.n_seeds
+      outs:
+        - output/rock_sample_preference/good${item.good}_bad${item.bad}/aif.json
+
+  # Note: figure.pdf is a SIBLING of the per-cell subdirectories, never
+  # nested inside one — DVC rejects overlapping deps/outs paths. The
+  # good<G>_bad<B> deps mirror rock_sample_preference.cells; extend both
+  # together.
+  # The canonical rock_sample baselines come in as horizontal reference
+  # levels: they ignore C, so one canonical value per planner is their
+  # level across the whole sweep and the figure can answer "does AIF still
+  # win at the reward-matched cell", not just "is AIF sensitive to C".
+  # Zero extra compute — the JSONs are outs of the rock_sample stage.
+  plot_rock_sample_preference:
+    cmd: >-
+      uv run python scripts/plot_rock_sample_preference.py
+      --input-dir output/rock_sample_preference
+      --reference-dir output/rock_sample
+      --output output/rock_sample_preference/figure.pdf
+      --cards-dir output/rock_sample_preference/cards
+    deps:
+      - scripts/plot_rock_sample_preference.py
+      - scripts/_cards.py
+      - scripts/_preference.py
+      - dissertation_theme.py
+      - output/rock_sample_preference/good2_bad1/aif.json
+      - output/rock_sample_preference/good2_bad2/aif.json
+      - output/rock_sample_preference/good2_bad4/aif.json
+      - output/rock_sample_preference/good2_bad8/aif.json
+      - output/rock_sample_preference/good1_bad4/aif.json
+      - output/rock_sample_preference/good4_bad4/aif.json
+      - output/rock_sample/bamcp.json
+      - output/rock_sample/factored_bamcp.json
+      - output/rock_sample/boss.json
+      - output/rock_sample/ids.json
+    params:
+      - rock_sample_preference.n_seeds
+      # The plot script asserts the rendered cell set equals this grid, so
+      # a cell directory the regex misses cannot vanish silently.
+      - rock_sample_preference.cells
+      # The canonical (good, bad) pair the figure rings.
+      - rock_sample.env.good_logit
+      - rock_sample.env.bad_logit
+    outs:
+      - output/rock_sample_preference/figure.pdf
+      - output/rock_sample_preference/cards
+  # MCTS depth-sensitivity ablation on RockSample — same axis as
+  # door_code_depth, running from below up to the canonical H=15 (cells
+  # above H are unreachable no-ops; see the params.yaml block).
+  # RockSample is where the old unmatched depth was most severe (AIF-MP
+  # saw 15 steps of lookahead, every tree-search baseline 6), so this
+  # curve shows how much of the reported gap was lookahead rather than
+  # method. Output JSONs live at
+  # output/rock_sample_depth/depth<D>/<planner>.json.
+  #
+  # BAMCP takes the full sweep here; IDS is a SEPARATE stage below at the
+  # two endpoint depths only (a `matrix` is a cross product, so a ragged
+  # planner x depth design needs two stages — kept as two matrices rather
+  # than one enumerated `foreach` so each stage still reads like the other
+  # ablations in this file and both cell lists stay params-driven). The
+  # cost argument for the cut is in params.yaml's rock_sample_depth block.
+  rock_sample_depth:
+    matrix:
+      depth: ${rock_sample_depth.depth_sweep}
+      planner: [bamcp]
+    cmd: >-
+      uv run python scripts/run_rock_sample.py
+      --planner ${item.planner}
+      --K ${rock_sample.env.K}
+      --grid-size ${rock_sample.env.grid_size}
+      --sensor-noise-eta ${rock_sample.env.sensor_noise_eta}
+      --sample-reward ${rock_sample.env.sample_reward}
+      --good-logit ${rock_sample.env.good_logit}
+      --bad-logit ${rock_sample.env.bad_logit}
+      --layout-seed ${rock_sample.env.layout_seed}
+      --n-seeds ${rock_sample_depth.n_seeds}
+      --n-episodes ${rock_sample.runner.n_episodes}
+      --max-steps ${rock_sample.runner.max_steps}
+      --horizon ${rock_sample.runner.horizon}
+      --seed ${rock_sample.runner.seed}
+      --clip-horizon ${rock_sample.runner.clip_horizon}
+      --planner-iterations ${rock_sample.planner.iterations}
+      --planner-damping ${rock_sample.planner.damping}
+      --bamcp-n-simulations ${rock_sample.planner.bamcp_n_simulations}
+      --bamcp-depth ${item.depth}
+      --bamcp-ucb-c ${rock_sample.planner.bamcp_ucb_c}
+      --bamcp-gamma ${rock_sample.planner.bamcp_gamma}
+      --ids-bamcp-n-simulations ${rock_sample.planner.ids_bamcp_n_simulations}
+      --ids-bamcp-depth ${item.depth}
+      --ids-rollout-seed ${rock_sample.planner.ids_rollout_seed}
+      --ids-epsilon-info ${rock_sample.planner.ids_epsilon_info}
+      --workers ${rock_sample.runner.workers}
+      --output output/rock_sample_depth/depth${item.depth}/${item.planner}.json
+    deps:
+      - scripts/run_rock_sample.py
+      - learningpomdp/
+    params:
+      - rock_sample
+      - rock_sample_depth
+    outs:
+      - output/rock_sample_depth/depth${item.depth}/${item.planner}.json
+
+  # Note: figure.pdf is a SIBLING of the per-depth subdirectories, not
+  # nested inside any of them — DVC rejects overlapping deps/outs paths.
+  # The bamcp deps mirror rock_sample_depth.depth_sweep; extend the two
+  # together. There are deliberately no IDS cells in this ablation, in
+  # dvc.yaml or on the cluster slate: sweeping IDS over depth costs ~3043
+  # SBU (46% of the genoa budget remaining at the time of the run) to place
+  # markers on a line already known to be flat, because IDS's cost is
+  # joint-observation enumeration rather than tree depth. Its
+  # depth-invariance is reported from profiling already in hand (8.07 h ->
+  # 8.18 h across this whole sweep); see the params.yaml block. The plot
+  # script draws an IDS series if such cells are ever produced by hand and
+  # names the omission on the figure if not.
+  plot_rock_sample_depth:
+    cmd: >-
+      uv run python scripts/plot_rock_sample_depth.py
+      --input-dir output/rock_sample_depth
+      --output output/rock_sample_depth/figure.pdf
+      --horizon ${rock_sample.runner.horizon}
+    deps:
+      - scripts/plot_rock_sample_depth.py
+      - dissertation_theme.py
+      - output/rock_sample_depth/depth3/bamcp.json
+      - output/rock_sample_depth/depth6/bamcp.json
+      - output/rock_sample_depth/depth10/bamcp.json
+      - output/rock_sample_depth/depth15/bamcp.json
+    params:
+      - rock_sample_depth.depth_sweep
+      - rock_sample.runner.horizon
+    outs:
+      - output/rock_sample_depth/figure.pdf
 
   # Factored Tiger — canonical-literature env (Katt et al. 2019, FBA-POMDP)
   # with purely persistent factored θ. Pairs with RockSample (persistent
@@ -469,6 +1105,8 @@ stages:
         --bamcp-gamma ${factored_tiger.planner.bamcp_gamma}
         --boss-n-samples ${factored_tiger.planner.boss_n_samples}
         --ids-bamcp-n-simulations ${factored_tiger.planner.ids_bamcp_n_simulations}
+        --ids-bamcp-depth ${factored_tiger.planner.ids_bamcp_depth}
+        --ids-rollout-seed ${factored_tiger.planner.ids_rollout_seed}
         --ids-epsilon-info ${factored_tiger.planner.ids_epsilon_info}
         --workers ${factored_tiger.runner.workers}
         --output output/factored_tiger/${item.planner}.json
@@ -492,6 +1130,7 @@ stages:
     deps:
       - scripts/plot_factored_tiger.py
       - scripts/_cards.py
+      - dissertation_theme.py
       - output/factored_tiger/aif.json
       - output/factored_tiger/vbp.json
       - output/factored_tiger/psrl.json
@@ -505,6 +1144,335 @@ stages:
       - output/factored_tiger/figure.pdf
       - output/factored_tiger/cards
 
+  # Goal-prior preference ablation on Factored Tiger — 3x3 grid over the
+  # two free parameters of factored_tiger.create_goal (good_logit x
+  # bad_logit), AIF only for the same reason as the other two preference
+  # stages: BAMCP/BOSS/Factored-BAMCP/IDS/Random consume the env reward
+  # table (+open_safe_reward / -open_tiger_penalty) and never read C.
+  # PSRL and Oracle *do* read C (both wrap VBP) but are excluded to bound
+  # GPU cost, so the swept cells have no baseline counterpart.
+  # The (good=2, bad=4) cell reproduces the canonical goal prior at
+  # factored_tiger_preference.n_seeds; (good=1, bad=10) reaches the
+  # environment's own 1:10 reward ratio — bad_logit stops at 10 because
+  # exp(-bad_logit·K) underflows the float32 safe_log floor beyond it
+  # (see the params.yaml note and tests/test_preference_sweeps.py). Env
+  # reward knobs are still passed because the runner's cumulative_reward
+  # / reward_normalised metrics are computed from them. Params are
+  # enumerated leaf-by-leaf — including
+  # factored_tiger_preference.n_seeds rather than the block, so that
+  # extending good_logits/bad_logits adds cells without invalidating the
+  # existing ones (${item.*} is already hashed via cmd). Output JSONs
+  # live at output/factored_tiger_preference/good<G>_bad<B>/aif.json.
+  factored_tiger_preference:
+    matrix:
+      good: ${factored_tiger_preference.good_logits}
+      bad: ${factored_tiger_preference.bad_logits}
+    cmd: >-
+      uv run python scripts/run_factored_tiger.py
+      --planner aif
+      --K ${factored_tiger.env.K}
+      --listen-accuracy ${factored_tiger.env.listen_accuracy}
+      --open-safe-reward ${factored_tiger.env.open_safe_reward}
+      --open-tiger-penalty ${factored_tiger.env.open_tiger_penalty}
+      --listen-cost ${factored_tiger.env.listen_cost}
+      --good-logit ${item.good}
+      --bad-logit ${item.bad}
+      --n-seeds ${factored_tiger_preference.n_seeds}
+      --n-episodes ${factored_tiger.runner.n_episodes}
+      --max-steps ${factored_tiger.runner.max_steps}
+      --horizon ${factored_tiger.runner.horizon}
+      --seed ${factored_tiger.runner.seed}
+      --clip-horizon ${factored_tiger.runner.clip_horizon}
+      --planner-iterations ${factored_tiger.planner.iterations}
+      --planner-damping ${factored_tiger.planner.damping}
+      --workers ${factored_tiger.runner.workers}
+      --output output/factored_tiger_preference/good${item.good}_bad${item.bad}/aif.json
+    deps:
+      - scripts/run_factored_tiger.py
+      - learningpomdp/
+    params:
+      - factored_tiger.env.K
+      - factored_tiger.env.listen_accuracy
+      - factored_tiger.env.open_safe_reward
+      - factored_tiger.env.open_tiger_penalty
+      - factored_tiger.env.listen_cost
+      - factored_tiger.runner.n_episodes
+      - factored_tiger.runner.max_steps
+      - factored_tiger.runner.horizon
+      - factored_tiger.runner.seed
+      - factored_tiger.runner.clip_horizon
+      - factored_tiger.runner.workers
+      - factored_tiger.planner.iterations
+      - factored_tiger.planner.damping
+      - factored_tiger_preference.n_seeds
+    outs:
+      - output/factored_tiger_preference/good${item.good}_bad${item.bad}/aif.json
+
+  # Katt-2019 listen_cost arm — ONE extra AIF cell at the canonical goal
+  # prior, with the environment charging factored_tiger_preference.
+  # listen_cost_arm per LISTEN instead of the suite-wide 0.0.
+  #
+  # Why it exists: listen_cost is the one reward component the reward ->
+  # log-C transformation provably cannot encode (C is a distribution over
+  # *states*; no choice of logits prices an *action* — see
+  # factored_tiger.create_goal). Running the suite at listen_cost=0.0 and
+  # only documenting that limit reads as "we could not represent it so we
+  # set it to zero", so this arm measures what the missing term is worth
+  # instead. AIF only, same slate logic as the sweeps; one cell against
+  # the sweep's nine. Reported as a caption note on the preference figure
+  # (not a grid cell — it is not a goal-prior setting).
+  factored_tiger_listen_cost:
+    cmd: >-
+      uv run python scripts/run_factored_tiger.py
+      --planner aif
+      --K ${factored_tiger.env.K}
+      --listen-accuracy ${factored_tiger.env.listen_accuracy}
+      --open-safe-reward ${factored_tiger.env.open_safe_reward}
+      --open-tiger-penalty ${factored_tiger.env.open_tiger_penalty}
+      --listen-cost ${factored_tiger_preference.listen_cost_arm}
+      --good-logit ${factored_tiger.env.good_logit}
+      --bad-logit ${factored_tiger.env.bad_logit}
+      --n-seeds ${factored_tiger_preference.n_seeds}
+      --n-episodes ${factored_tiger.runner.n_episodes}
+      --max-steps ${factored_tiger.runner.max_steps}
+      --horizon ${factored_tiger.runner.horizon}
+      --seed ${factored_tiger.runner.seed}
+      --clip-horizon ${factored_tiger.runner.clip_horizon}
+      --planner-iterations ${factored_tiger.planner.iterations}
+      --planner-damping ${factored_tiger.planner.damping}
+      --workers ${factored_tiger.runner.workers}
+      --output output/factored_tiger_listen_cost/aif.json
+    deps:
+      - scripts/run_factored_tiger.py
+      - learningpomdp/
+    params:
+      - factored_tiger.env.K
+      - factored_tiger.env.listen_accuracy
+      - factored_tiger.env.open_safe_reward
+      - factored_tiger.env.open_tiger_penalty
+      - factored_tiger.env.good_logit
+      - factored_tiger.env.bad_logit
+      - factored_tiger.runner.n_episodes
+      - factored_tiger.runner.max_steps
+      - factored_tiger.runner.horizon
+      - factored_tiger.runner.seed
+      - factored_tiger.runner.clip_horizon
+      - factored_tiger.runner.workers
+      - factored_tiger.planner.iterations
+      - factored_tiger.planner.damping
+      - factored_tiger_preference.n_seeds
+      - factored_tiger_preference.listen_cost_arm
+    outs:
+      - output/factored_tiger_listen_cost/aif.json
+
+  # Note: figure.pdf is a SIBLING of the per-cell subdirectories, never
+  # nested inside one — DVC rejects overlapping deps/outs paths. The
+  # good<G>_bad<B> deps mirror factored_tiger_preference.{good_logits,
+  # bad_logits}; extend both together.
+  # The canonical factored_tiger baselines come in as reference levels:
+  # they ignore C, so one canonical value per planner is their level across
+  # the whole sweep and the figure can answer "does AIF still win at the
+  # reward-matched (1, 10) cell", not just "is AIF sensitive to C". Zero
+  # extra compute — the JSONs are outs of the factored_tiger stage.
+  plot_factored_tiger_preference:
+    cmd: >-
+      uv run python scripts/plot_factored_tiger_preference.py
+      --input-dir output/factored_tiger_preference
+      --reference-dir output/factored_tiger
+      --listen-cost-json output/factored_tiger_listen_cost/aif.json
+      --output output/factored_tiger_preference/figure.pdf
+      --cards-dir output/factored_tiger_preference/cards
+    deps:
+      - scripts/plot_factored_tiger_preference.py
+      - scripts/_cards.py
+      - scripts/_preference.py
+      - dissertation_theme.py
+      - output/factored_tiger/bamcp.json
+      - output/factored_tiger/factored_bamcp.json
+      - output/factored_tiger/boss.json
+      - output/factored_tiger/ids.json
+      - output/factored_tiger_listen_cost/aif.json
+      - output/factored_tiger_preference/good1_bad2/aif.json
+      - output/factored_tiger_preference/good1_bad4/aif.json
+      - output/factored_tiger_preference/good1_bad10/aif.json
+      - output/factored_tiger_preference/good2_bad2/aif.json
+      - output/factored_tiger_preference/good2_bad4/aif.json
+      - output/factored_tiger_preference/good2_bad10/aif.json
+      - output/factored_tiger_preference/good4_bad2/aif.json
+      - output/factored_tiger_preference/good4_bad4/aif.json
+      - output/factored_tiger_preference/good4_bad10/aif.json
+    params:
+      - factored_tiger_preference.n_seeds
+      # The plot script asserts the rendered cell set equals this grid, so
+      # a cell directory the regex misses cannot vanish silently.
+      - factored_tiger_preference.good_logits
+      - factored_tiger_preference.bad_logits
+      # The canonical (good, bad) pair the figure outlines.
+      - factored_tiger.env.good_logit
+      - factored_tiger.env.bad_logit
+    outs:
+      - output/factored_tiger_preference/figure.pdf
+      - output/factored_tiger_preference/cards
+
+  # Exact Bayes-adaptive reference on reduced door_code / Factored Tiger.
+  # One stage per benchmark rather than a `matrix` cell: the two reduced
+  # instances take different env flags. Each stage writes a single JSON
+  # holding all four arms (the two tie-break exact arms plus aif / bamcp)
+  # and, in reporting order, the per-decision action-agreement rate, the
+  # episode-0 value gap, and the descriptive block-return band — so there is
+  # no per-planner fan-out and no plot stage. Outputs are per-benchmark cell
+  # dirs; if a figure is added later it must be their SIBLING (same DVC
+  # overlapping deps/outs constraint as plot_door_code_simscaling).
+  exact_reference_door_code:
+    cmd: >-
+      uv run python scripts/run_exact_reference.py
+      --env door_code
+      --K ${exact_reference.door_code.K}
+      --lock-length ${exact_reference.door_code.lock_length}
+      --probe-noise ${env.probe_noise}
+      --max-steps ${exact_reference.door_code.max_steps}
+      --n-seeds ${exact_reference.n_seeds}
+      --n-episodes ${exact_reference.door_code.n_episodes}
+      --seed ${runner.seed}
+      --learn-on-failure ${runner.learn_on_failure}
+      --gamma ${exact_reference.gamma}
+      --max-nodes ${exact_reference.max_nodes}
+      --planner-iterations ${planner.iterations}
+      --planner-damping ${planner.damping}
+      --bamcp-n-simulations ${planner.bamcp_n_simulations}
+      --bamcp-ucb-c ${planner.bamcp_ucb_c}
+      --bamcp-gamma ${planner.bamcp_gamma}
+      --output output/exact_reference/door_code/reference.json
+    deps:
+      - scripts/run_exact_reference.py
+      - learningpomdp/
+    params:
+      - env.probe_noise
+      - runner
+      - planner
+      - exact_reference
+    outs:
+      - output/exact_reference/door_code/reference.json
+
+  exact_reference_factored_tiger:
+    cmd: >-
+      uv run python scripts/run_exact_reference.py
+      --env factored_tiger
+      --K ${exact_reference.factored_tiger.K}
+      --listen-accuracy ${factored_tiger.env.listen_accuracy}
+      --open-safe-reward ${factored_tiger.env.open_safe_reward}
+      --open-tiger-penalty ${factored_tiger.env.open_tiger_penalty}
+      --listen-cost ${factored_tiger.env.listen_cost}
+      --good-logit ${factored_tiger.env.good_logit}
+      --bad-logit ${factored_tiger.env.bad_logit}
+      --max-steps ${exact_reference.factored_tiger.max_steps}
+      --n-seeds ${exact_reference.n_seeds}
+      --n-episodes ${exact_reference.factored_tiger.n_episodes}
+      --seed ${factored_tiger.runner.seed}
+      --gamma ${exact_reference.gamma}
+      --max-nodes ${exact_reference.max_nodes}
+      --planner-iterations ${factored_tiger.planner.iterations}
+      --planner-damping ${factored_tiger.planner.damping}
+      --bamcp-n-simulations ${factored_tiger.planner.bamcp_n_simulations}
+      --bamcp-ucb-c ${factored_tiger.planner.bamcp_ucb_c}
+      --bamcp-gamma ${factored_tiger.planner.bamcp_gamma}
+      --output output/exact_reference/factored_tiger/reference.json
+    deps:
+      - scripts/run_exact_reference.py
+      - learningpomdp/
+    params:
+      - factored_tiger
+      - exact_reference
+    outs:
+      - output/exact_reference/factored_tiger/reference.json
+
+
+  # Paper tables (scalars 1-4, timing, deferred baselines, sims budget,
+  # pairing) emitted as .tex from the canonical result JSONs, so no
+  # reported number is hand-transcribed. Note: output/tables is a SIBLING
+  # of the per-benchmark result directories, not nested inside any of them
+  # — DVC rejects overlapping deps/outs paths (same constraint as
+  # plot_rock_sample_kscaling). Deps are enumerated by hand and mirror
+  # make_tables.py's planner slate, including the two rock_sample-only
+  # persistent-oracle arms — the emitter warns and skips a missing arm
+  # rather than failing, so a dep left out here is an arm silently absent
+  # from a paper table.
+  tables:
+    cmd: >-
+      uv run python scripts/make_tables.py
+      --input-dir output
+      --output-dir output/tables
+    deps:
+      - scripts/make_tables.py
+      - learningpomdp/experiment/report.py
+      - learningpomdp/experiment/door_code_runner.py
+      - output/door_code/aif.json
+      - output/door_code/vbp.json
+      - output/door_code/psrl.json
+      - output/door_code/belief_q.json
+      - output/door_code/boss.json
+      - output/door_code/bamcp.json
+      - output/door_code/pomcp.json
+      - output/door_code/ids.json
+      - output/door_code/oracle.json
+      - output/door_code/random.json
+      - output/minigrid_door_code/aif.json
+      - output/minigrid_door_code/vbp.json
+      - output/minigrid_door_code/psrl.json
+      - output/minigrid_door_code/belief_q.json
+      - output/minigrid_door_code/boss.json
+      - output/minigrid_door_code/bamcp.json
+      - output/minigrid_door_code/pomcp.json
+      - output/minigrid_door_code/ids.json
+      - output/minigrid_door_code/oracle.json
+      - output/minigrid_door_code/random.json
+      - output/factored_tiger/aif.json
+      - output/factored_tiger/vbp.json
+      - output/factored_tiger/psrl.json
+      - output/factored_tiger/bamcp.json
+      - output/factored_tiger/boss.json
+      - output/factored_tiger/factored_bamcp.json
+      - output/factored_tiger/ids.json
+      - output/factored_tiger/oracle.json
+      - output/factored_tiger/random.json
+      - output/rock_sample/aif.json
+      - output/rock_sample/vbp.json
+      - output/rock_sample/psrl.json
+      - output/rock_sample/bamcp.json
+      - output/rock_sample/boss.json
+      - output/rock_sample/factored_bamcp.json
+      - output/rock_sample/ids.json
+      - output/rock_sample/oracle.json
+      - output/rock_sample/persistent_oracle.json
+      - output/rock_sample/persistent_oracle_vbp.json
+      - output/rock_sample/random.json
+      - output/door_code_simscaling/sims1000/bamcp.json
+      - output/door_code_simscaling/sims10000/bamcp.json
+      - output/door_code_simscaling/sims40000/bamcp.json
+      # The exact Bayes-adaptive appendix tables. Both stages are deferred
+      # from the cluster slate (cluster/preflight.py) and run locally, so
+      # these deps are also what makes `dvc repro tables` refuse to emit a
+      # stale agreement number after a re-solve.
+      - output/exact_reference/door_code/reference.json
+      - output/exact_reference/factored_tiger/reference.json
+    params:
+      # make_tables.py reads the early/final window sizes from here, so a
+      # protocol change must invalidate the tables.
+      - report.windows
+      # simscaling_table globs sims*/ rather than taking the budgets as
+      # arguments, so without this the sweep list could gain a value,
+      # rerun plot_door_code_simscaling (which does declare it) and leave
+      # simscaling.tex a row short with DVC calling `tables` up to date.
+      # Extend the sims<N> deps above alongside the sweep list, exactly as
+      # in plot_door_code_simscaling.
+      - door_code_simscaling.sims_sweep
+      # The appendix captions state the reduced instances (K, blocks,
+      # episodes, max_steps) the exact solver ran on, so a change there
+      # must invalidate the tables even though the JSONs are re-emitted by
+      # the run stages anyway.
+      - exact_reference
+    outs:
+      - output/tables
   # Static benchmark-environment schematics (fig:environments-ch6). No run data:
   # depends only on the plot script and the environment modules it draws from.
   plot_environments:
@@ -513,6 +1481,7 @@ stages:
       --output-dir output/environments
     deps:
       - scripts/plot_environments.py
+      - dissertation_theme.py
       - learningpomdp/environments/rock_sample.py
       - learningpomdp/environments/minigrid_door_code.py
       - learningpomdp/environments/door_code.py

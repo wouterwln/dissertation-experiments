@@ -83,7 +83,13 @@ def main() -> None:
     # runs its own slice with shard_seed = base + idx * 1_000_003);
     # everything else in `config` must match shard 0 or we're silently
     # mixing JSONs from different runs.
-    _PER_SHARD_CONFIG_KEYS = {"n_seeds", "seed"}
+    #
+    # `runtime` is exempt for a different reason: it records the process's
+    # thread/backend regime, which is a property of where a shard ran, and
+    # shards written before the key existed do not have it at all. A
+    # divergence there does not mean the runs are incompatible — it means
+    # the *timings* are not comparable, so it warns instead of aborting.
+    _PER_SHARD_CONFIG_KEYS = {"n_seeds", "seed", "runtime"}
     ref_config = {
         k: v for k, v in shards[0]["config"].items()
         if k not in _PER_SHARD_CONFIG_KEYS
@@ -108,6 +114,16 @@ def main() -> None:
                 f"shard {p} config disagrees with shard 0 on: "
                 + "; ".join(diffs)
             )
+
+    runtimes = [s["config"].get("runtime") for s in shards]
+    if any(r != runtimes[0] for r in runtimes):
+        print(
+            "warning: shards disagree on config.runtime — they ran under "
+            "different thread/backend regimes, so per-decision timings "
+            "from this aggregate are not comparable. Shard 0's record is "
+            "the one retained; check the per-shard JSONs.",
+            flush=True,
+        )
 
     per_episode_keys = list(shards[0]["per_episode"].keys())
     per_episode: dict[str, list[list[float]]] = {}

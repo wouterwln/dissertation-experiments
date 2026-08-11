@@ -63,6 +63,39 @@ def _argmax_int(x):
 
 
 @njit(cache=True, fastmath=False)
+def _argmax_random_tiebreak(x):
+    """Argmax over a 1-D float array, uniform random among all maximisers.
+
+    Used only by the eps-greedy rollout's Q-hat lookup. ``_argmax_int``'s
+    lowest-index tie-break pins that rollout to action 0 whenever Q-hat is
+    flat (see ``bamcp_planner``'s module docstring); this mirrors the
+    random tie-break ``_ucb_select_action`` already uses. No RNG draw is
+    taken unless there is an actual tie, so the unique-maximiser case
+    leaves the stream alone.
+    """
+    best_v = x[0]
+    n_best = 1
+    for i in range(1, x.shape[0]):
+        if x[i] > best_v:
+            best_v = x[i]
+            n_best = 1
+        elif x[i] == best_v:
+            n_best += 1
+    if n_best == 1:
+        return _argmax_int(x)
+    pick = np.random.randint(0, n_best)
+    seen = 0
+    best_i = 0
+    for i in range(x.shape[0]):
+        if x[i] == best_v:
+            if seen == pick:
+                best_i = i
+                break
+            seen += 1
+    return best_i
+
+
+@njit(cache=True, fastmath=False)
 def _step_numba(
     state, theta_flat, action,
     T_eff, B_pos, B_lik_all, lik_obs_card,
@@ -152,12 +185,27 @@ def _rollout_numba(
     T_eff, B_pos, B_lik_all, lik_obs_card,
     reward_table, terminal_table, has_terminal,
     gamma, n_actions, n_likelihood,
+    q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
 ):
-    """Random-action rollout to depth-`depth`."""
+    """Leaf rollout to depth-`depth`.
+
+    ``use_q_rollout=False`` is the uniform-random rollout: the
+    ``and``-short-circuit means no extra RNG draw is taken and no Q-hat
+    element is touched, so the stream stays bit-identical to the
+    pre-rollout-policy behaviour. ``use_q_rollout=True`` is epsilon-greedy
+    in ``q_rollout`` (ties broken uniformly at random), updated off-policy
+    from the step's ``(reward, next_state)``. ``q_rollout`` is owned and
+    pre-allocated by the calling planner (a (1, 1) dummy when unused, and
+    optimistically initialised otherwise) so it survives across plan()
+    calls within a theta_true block.
+    """
     total = 0.0
     gamma_t = 1.0
     for _ in range(depth):
-        action = np.random.randint(0, n_actions)
+        if use_q_rollout and np.random.random() >= rollout_epsilon:
+            action = _argmax_random_tiebreak(q_rollout[state])
+        else:
+            action = np.random.randint(0, n_actions)
         next_state, _, reward, terminal = _step_numba(
             state, theta_flat, action,
             T_eff, B_pos, B_lik_all, lik_obs_card,
@@ -165,6 +213,14 @@ def _rollout_numba(
             n_likelihood,
         )
         total += gamma_t * reward
+        if use_q_rollout:
+            if terminal:
+                target = reward
+            else:
+                target = reward + gamma * q_rollout[next_state].max()
+            q_rollout[state, action] += rollout_q_lr * (
+                target - q_rollout[state, action]
+            )
         if terminal:
             return total
         state = next_state
@@ -180,6 +236,7 @@ def _simulate_iter(
     T_eff, B_pos, B_lik_all, lik_obs_card,
     reward_table, terminal_table, has_terminal,
     ucb_c, gamma, n_actions, n_likelihood,
+    q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
 ):
     """One simulation: descend tree via UCB, expand at first leaf,
     rollout from leaf, back up the path."""
@@ -223,6 +280,7 @@ def _simulate_iter(
                 T_eff, B_pos, B_lik_all, lik_obs_card,
                 reward_table, terminal_table, has_terminal,
                 gamma, n_actions, n_likelihood,
+                q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
             )
             expanded_leaf = True
             break
@@ -254,11 +312,16 @@ def _run_bamcp_numba(
     reward_table, terminal_table, has_terminal,
     ucb_c, gamma, n_likelihood, obs_stride_total,
     seed,
+    q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
 ):
     """Top-level driver. Runs n_simulations rollouts, returns
     ``(visits, totals)`` at the root: per-action visit counts and
     summed returns, both float64[n_actions]. Callers compute Q(a) as
-    totals/max(visits, 1) when they need per-action means."""
+    totals/max(visits, 1) when they need per-action means.
+
+    ``q_rollout`` is caller-owned and mutated in place (see
+    ``_rollout_numba``); it is deliberately NOT allocated here beside the
+    tree buffers, because it must outlive a single plan() call."""
     np.random.seed(seed)
 
     max_nodes = n_simulations + 1
@@ -284,6 +347,7 @@ def _run_bamcp_numba(
             T_eff, B_pos, B_lik_all, lik_obs_card,
             reward_table, terminal_table, has_terminal,
             ucb_c, gamma, n_actions, n_likelihood,
+            q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
         )
 
     visits = np.zeros(n_actions, dtype=np.float64)

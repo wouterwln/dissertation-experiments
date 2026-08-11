@@ -6,10 +6,11 @@ Per-episode metric arrays plus mean / 5th / 95th percentile curves are
 written as JSON. tqdm shows progress over outer seeds.
 
 Open env knobs (see DoorCodeEnv docstring): partitions, lock_doors_fn,
-goal. Not currently wired through CLI flags — edit this script for
-ablations on those axes. Standard config knobs (K, M, lock_length,
-probe_noise, max_steps, horizon, n_seeds, n_episodes, seed,
-learn_on_failure) ARE on the CLI and tracked by params.yaml/dvc.yaml.
+full goal-tensor override. Not currently wired through CLI flags — edit
+this script for ablations on those axes. Standard config knobs (K, M,
+lock_length, probe_noise, success_logit, failure_logit, max_steps,
+horizon, n_seeds, n_episodes, seed, learn_on_failure) ARE on the CLI
+and tracked by params.yaml/dvc.yaml.
 
 Example:
 
@@ -27,7 +28,7 @@ import math
 from pathlib import Path
 
 from learningpomdp.experiment.door_code_runner import run_outer_loop
-from learningpomdp.experiment.io import is_valid_shard_json
+from learningpomdp.experiment.io import invocation_record, is_valid_shard_json
 from learningpomdp.planning.aif_planner import AIFPlanner
 from learningpomdp.planning.belief_state_q import BeliefStateQLearner
 from learningpomdp.planning.boss_planner import BOSSPlanner
@@ -39,7 +40,44 @@ from learningpomdp.planning.random_planner import RandomPlanner
 from learningpomdp.planning.vbp_planner import VBPPlanner
 
 
+# Per-shard RNG stride. Shard i's seeds start at `--seed + i * STRIDE`,
+# and every planner-side RNG base is offset by the same amount so that no
+# two shards share a Monte-Carlo stream.
+SHARD_SEED_STRIDE = 1_000_003
+
+
+def _planner_seeds(args) -> tuple[int, int]:
+    """Per-shard (planner rollout seed, IDS seed).
+
+    The planner RNG bases must vary per shard for the same reason the
+    runner's does: with one base for all shards, every seed a sharded run
+    averages over draws the *same* MCTS/rollout noise, so that noise is
+    common across seeds and the cross-seed CI understates variance.
+
+    Both bases take the same shard offset, so they stay a constant apart
+    at every shard rather than colliding at one particular shard — which
+    is what the old ``--ids-rollout-seed`` default of 1_000_003 (the
+    stride itself) did against shard 1's runner base.
+    """
+    offset = args.shard_index * SHARD_SEED_STRIDE
+    return args.seed + offset, args.ids_rollout_seed + offset
+
+
+def _ids_depth(args) -> int:
+    """IDS's own tree depth, falling back to --bamcp-depth when unset.
+
+    IDS historically borrowed --bamcp-depth; the fallback keeps existing
+    invocations behaving identically while letting params.yaml set the
+    knob independently.
+    """
+    return (
+        args.bamcp_depth if args.ids_bamcp_depth is None
+        else args.ids_bamcp_depth
+    )
+
+
 def _build_planner(args, K: int, M: int, L: int):
+    rollout_seed, ids_seed = _planner_seeds(args)
     if args.planner == "aif":
         return AIFPlanner(
             n_iterations=args.planner_iterations, damping=args.planner_damping,
@@ -60,7 +98,7 @@ def _build_planner(args, K: int, M: int, L: int):
         return BeliefStateQLearner(
             K=K, M=M, L=L,
             lr=args.q_lr, epsilon=args.q_epsilon, gamma=args.q_gamma,
-            rng_seed=args.seed,
+            rng_seed=rollout_seed,
         )
     if args.planner == "boss":
         # Faithful BOSS: merged-POMDP MCTS with augmented action space
@@ -72,7 +110,10 @@ def _build_planner(args, K: int, M: int, L: int):
             depth=args.bamcp_depth,
             ucb_c=args.bamcp_ucb_c,
             gamma=args.bamcp_gamma,
-            rollout_seed=args.seed,
+            rollout_seed=rollout_seed,
+            rollout_policy=args.rollout_policy,
+            rollout_epsilon=args.rollout_epsilon,
+            rollout_q_lr=args.rollout_q_lr,
         )
     if args.planner == "bamcp":
         return BAMCPPlanner(
@@ -80,8 +121,11 @@ def _build_planner(args, K: int, M: int, L: int):
             depth=args.bamcp_depth,
             ucb_c=args.bamcp_ucb_c,
             gamma=args.bamcp_gamma,
-            rollout_seed=args.seed,
+            rollout_seed=rollout_seed,
             resample_theta_per_sim=True,
+            rollout_policy=args.rollout_policy,
+            rollout_epsilon=args.rollout_epsilon,
+            rollout_q_lr=args.rollout_q_lr,
         )
     if args.planner == "pomcp":
         # Literal-POMCP ablation: same MCTS as BAMCP but no theta-aware
@@ -91,21 +135,29 @@ def _build_planner(args, K: int, M: int, L: int):
             depth=args.bamcp_depth,
             ucb_c=args.bamcp_ucb_c,
             gamma=args.bamcp_gamma,
-            rollout_seed=args.seed,
+            rollout_seed=rollout_seed,
             resample_theta_per_sim=False,
+            rollout_policy=args.rollout_policy,
+            rollout_epsilon=args.rollout_epsilon,
+            rollout_q_lr=args.rollout_q_lr,
         )
     if args.planner == "ids":
-        # IDS — Information-Directed Sampling. Δ²/(I+ε) selection rule
-        # with BAMCP as the Q oracle and closed-form I(a) over discrete
-        # θ-dependent observations.
+        # IDS — Information-Directed Sampling. Deterministic argmin of
+        # Δ(a)²/(I(a)+ε) with BAMCP as the Q oracle and closed-form I(a)
+        # over discrete θ-dependent observations. Its BAMCP gets IDS's
+        # OWN depth and rollout seed, which is the only thing making its
+        # Monte-Carlo noise independent of the BAMCP arm's.
         return IDSPlanner(
             bamcp=BAMCPPlanner(
                 n_simulations=args.ids_bamcp_n_simulations,
-                depth=args.bamcp_depth,
+                depth=_ids_depth(args),
                 ucb_c=args.bamcp_ucb_c,
                 gamma=args.bamcp_gamma,
-                rollout_seed=args.seed,
+                rollout_seed=ids_seed,
                 resample_theta_per_sim=True,
+                rollout_policy=args.rollout_policy,
+                rollout_epsilon=args.rollout_epsilon,
+                rollout_q_lr=args.rollout_q_lr,
             ),
             epsilon_info=args.ids_epsilon_info,
         )
@@ -157,14 +209,49 @@ def main() -> None:
         "--bamcp-gamma", type=float, default=0.99,
         help="BAMCP/POMCP return discount factor",
     )
+    # Leaf-rollout policy, shared by BAMCP / POMCP / BOSS / IDS's BAMCP.
+    parser.add_argument(
+        "--rollout-policy", choices=["uniform", "eps_greedy_q"],
+        default="uniform",
+        help="MCTS leaf-rollout policy. 'uniform' (default) is the "
+             "uniform-random rollout; 'eps_greedy_q' is Guez et al. 2012's "
+             "epsilon-greedy rollout in a Q-hat learned off-policy from the "
+             "rollouts themselves, intended for problems whose reward needs "
+             "a carefully selected action sequence.",
+    )
+    parser.add_argument(
+        "--rollout-epsilon", type=float, default=0.1,
+        help="exploration rate of the eps_greedy_q rollout (ignored under "
+             "--rollout-policy uniform)",
+    )
+    parser.add_argument(
+        "--rollout-q-lr", type=float, default=0.1,
+        help="learning rate of the eps_greedy_q rollout's off-policy Q-hat "
+             "update (ignored under --rollout-policy uniform)",
+    )
     # IDS — Information-Directed Sampling hyperparameters
     parser.add_argument(
         "--ids-bamcp-n-simulations", type=int, default=256,
         help="BAMCP simulations used by IDS as its Q oracle",
     )
     parser.add_argument(
+        "--ids-bamcp-depth", type=int, default=None,
+        help="tree+rollout depth of IDS's own BAMCP instance; defaults to "
+             "--bamcp-depth. Independent knob so IDS is not forced to "
+             "share the BAMCP arm's lookahead.",
+    )
+    parser.add_argument(
+        "--ids-rollout-seed", type=int, default=7919,
+        help="RNG base for IDS's own BAMCP instance. Deliberately "
+             "different from --seed so IDS's Monte-Carlo noise is "
+             "independent of the BAMCP arm's instead of being the same "
+             "tree reported twice. Must not differ from --seed by a "
+             "multiple of the shard stride (1_000_003), or the two "
+             "streams coincide on some shard; 7919 is coprime to it.",
+    )
+    parser.add_argument(
         "--ids-epsilon-info", type=float, default=1.0e-6,
-        help="ε regulariser in the IDS information ratio Δ²/(I+ε)",
+        help="ε regulariser in the IDS information ratio Δ(π)²/(I(π)+ε)",
     )
     parser.add_argument(
         "--planner-iterations", type=int, default=150,
@@ -190,6 +277,12 @@ def main() -> None:
                         help="number of doors that must be opened in sequence")
     parser.add_argument("--probe-noise", type=float, default=0.2,
                         help="per-probe bit-flip probability in [0, 0.5]")
+    parser.add_argument("--success-logit", type=float, default=4.0,
+                        help="goal-prior logit on the SUCCESS state "
+                             "(preference strength; door_code.create_goal)")
+    parser.add_argument("--failure-logit", type=float, default=-4.0,
+                        help="goal-prior logit on the FAILURE state "
+                             "(cost of failure; door_code.create_goal)")
 
     # ---- Runner ----
     parser.add_argument("--max-steps", type=int, default=2,
@@ -205,6 +298,15 @@ def main() -> None:
     parser.add_argument("--stochastic", action="store_true",
                         help="sample actions from the planner's distribution "
                              "instead of argmax")
+    parser.add_argument(
+        "--warmup-planner", action="store_true",
+        help="run one discarded plan() per distinct planning horizon before "
+             "the first timed decision, so XLA compiles are not charged to "
+             "planning_time_s. Required for any run whose purpose is a "
+             "timing. AIF/VBP/PSRL/oracle only: the sample-based planners "
+             "draw from an internal RNG inside plan(), so a warm-up call "
+             "would shift their stream and change their results.",
+    )
     parser.add_argument(
         "--learn-on-failure", type=str, choices=["true", "false"], default="true",
         help="if false, skip the Bayesian update on the failure transition: "
@@ -246,7 +348,7 @@ def main() -> None:
             f"shard {args.shard_index}/{args.n_shards} is empty "
             f"(total_seeds={total_seeds}, seeds_per_shard={seeds_per_shard})"
         )
-    shard_seed = args.seed + args.shard_index * 1_000_003
+    shard_seed = args.seed + args.shard_index * SHARD_SEED_STRIDE
 
     if is_valid_shard_json(
         args.output,
@@ -263,6 +365,7 @@ def main() -> None:
 
     env_kwargs = dict(
         K=args.K, probe_noise=args.probe_noise, lock_length=args.lock_length,
+        success_logit=args.success_logit, failure_logit=args.failure_logit,
     )
     if args.M is not None:
         env_kwargs["M"] = args.M
@@ -277,12 +380,16 @@ def main() -> None:
     clip_horizon = args.clip_horizon == "true"
     print(
         f"planner={args.planner}  K={args.K}  M={M}  L={args.lock_length}  "
-        f"probe_noise={args.probe_noise}  max_steps={args.max_steps}  "
+        f"rollout_policy={args.rollout_policy}  "
+        f"probe_noise={args.probe_noise}  "
+        f"goal_logits=({args.success_logit}, {args.failure_logit})  "
+        f"max_steps={args.max_steps}  "
         f"horizon={args.horizon}  n_episodes={args.n_episodes}  "
         f"n_seeds={shard_size}/{total_seeds} "
         f"(shard {args.shard_index}/{args.n_shards}, base seed={shard_seed})  "
         f"deterministic={not args.stochastic}  "
-        f"learn_on_failure={learn_on_failure}  clip_horizon={clip_horizon}",
+        f"learn_on_failure={learn_on_failure}  clip_horizon={clip_horizon}  "
+        f"warmup_planner={args.warmup_planner}",
         flush=True,
     )
 
@@ -298,11 +405,18 @@ def main() -> None:
         learn_on_failure=learn_on_failure,
         clip_horizon=clip_horizon,
         progress_desc=args.planner,
+        warmup_planner=args.warmup_planner,
     )
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     summary = result.to_summary_dict()
     summary["config"]["planner"] = args.planner
+    # `ids_bamcp_depth` is recorded post-fallback: the CLI default is None
+    # and no cluster job script passes the flag, so the raw arg says
+    # nothing about the depth IDS actually searched to.
+    summary["config"]["invocation"] = invocation_record(
+        args, ids_bamcp_depth=_ids_depth(args),
+    )
     with args.output.open("w") as f:
         json.dump(summary, f, indent=2)
 

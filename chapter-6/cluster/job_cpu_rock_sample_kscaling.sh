@@ -3,7 +3,13 @@
 #SBATCH --partition=genoa
 #SBATCH --cpus-per-task=21
 #SBATCH --mem=36G
-#SBATCH --time=10:00:00
+# 2h, mirroring job_cpu_rock_sample.sh — see the reservation note there
+# for why the old 14h was root-cancelled at start. Worst cell is still
+# K=4 IDS, but the info-gain prune (b4b8985/d731c92) takes it from the
+# ~8.2h that sized the 14h to 0.40h projected by scripts/price_slate.py;
+# K=2 and K=3 come out at 0.10h and 0.14h. Planning time only, so a
+# lower bound.
+#SBATCH --time=02:00:00
 #SBATCH --output=logs/cpu_rs_kscaling_%x_%A_%a.out
 #SBATCH --error=logs/cpu_rs_kscaling_%x_%A_%a.err
 # Required env: PLANNER, K, N_SHARDS, WORKERS

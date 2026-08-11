@@ -17,8 +17,6 @@ __pycache__/
 
 # Virtual environments and local Python tooling
 .venv/
-.venv-gpu/
-.venv-cpu/
 venv/
 env/
 ENV/
@@ -47,6 +45,10 @@ pip-wheel-metadata/
 
 # Logs and runtime files
 *.log
+# SLURM stdout/stderr. The cluster job scripts mkdir -p logs/ and write
+# ~1700 *.out/*.err files per full submit_all run; nothing consumes them
+# and they carry absolute home paths and node hostnames.
+logs/
 
 # Experiment output
 output/

@@ -6,6 +6,8 @@ Covers:
 - to_summary_dict() round-trips through json.dumps.
 - theta_seeds override pins thetas explicitly.
 - Custom env knobs (lock_doors_fn, goal) flow through.
+- warmup_planner moves XLA compiles out of the timed region without
+  changing anything the experiments report.
 """
 
 import json
@@ -20,6 +22,7 @@ from learningpomdp.environments.door_code import (
 )
 from learningpomdp.experiment.door_code_runner import (
     OuterLoopResult,
+    _effective_horizons,
     run_outer_loop,
 )
 from learningpomdp.planning.aif_planner import AIFPlanner
@@ -81,6 +84,61 @@ def test_outer_loop_different_seeds_differ(planner: AIFPlanner) -> None:
         horizon=3, max_steps=2, deterministic=True, seed=1,
     )
     assert a.theta_trues != b.theta_trues
+
+
+def test_effective_horizons_enumerates_every_horizon_the_loop_uses() -> None:
+    """How many distinct horizons the warm-up has to cover.
+
+    AIF jits on `horizon`, so under `clip_horizon` this is also how many
+    separate XLA compiles one process pays. At the canonical door_code
+    shape (`runner.horizon=8`, `runner.max_steps=16`) it is eight, and
+    without a warm-up all eight land inside `planning_time_s`.
+    """
+    assert _effective_horizons(8, 16, clip_horizon=True) == [1, 2, 3, 4, 5, 6, 7, 8]
+    assert _effective_horizons(8, 16, clip_horizon=False) == [8]
+    # max_steps below the horizon clips every step.
+    assert _effective_horizons(8, 4, clip_horizon=True) == [1, 2, 3, 4]
+
+
+def test_warmup_planner_changes_only_the_timing(planner: AIFPlanner) -> None:
+    """The warm-up must be free: same decisions, cheaper `planning_time_s`.
+
+    `clip_horizon=True` is the case that matters — it is what makes one
+    process compile several times. Everything the experiments report has
+    to come out bit-identical, otherwise the "timing" stage and the
+    canonical stage are no longer running the same agent.
+
+    Deliberately no assertion on the timings themselves: `_aif_jit_cache`
+    is module-global, so by the time this test runs an earlier test may
+    already have compiled these shapes and the un-warmed run would not be
+    cold. The compile cost is real but not measurable in-suite.
+    """
+    kwargs = dict(
+        env_kwargs=dict(K=3, probe_noise=0.2),
+        planner=planner, n_seeds=2, n_episodes=2,
+        horizon=3, max_steps=5, deterministic=True, seed=0,
+        clip_horizon=True, show_progress=False,
+    )
+    cold = run_outer_loop(**kwargs, warmup_planner=False)
+    warm = run_outer_loop(**kwargs, warmup_planner=True)
+
+    assert cold.theta_trues == warm.theta_trues
+    for attr in (
+        "success", "n_steps", "probe_visits", "posterior_mass_true",
+        "posterior_entropy", "terminal_reward", "cumulative_reward",
+    ):
+        np.testing.assert_array_equal(
+            getattr(cold, attr), getattr(warm, attr),
+            err_msg=f"warm-up changed {attr}",
+        )
+
+    # The regime a timing was measured in is recorded, so a reader of the
+    # JSON can tell whether compiles were excluded.
+    assert cold.config["runtime"]["warmup_planner"] is False
+    assert warm.config["runtime"]["warmup_planner"] is True
+    assert set(warm.config["runtime"]) == {
+        "jax_backend", "schedulable_cpus", "thread_env", "warmup_planner",
+    }
 
 
 def test_theta_seeds_override(planner: AIFPlanner) -> None:

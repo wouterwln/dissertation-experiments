@@ -49,6 +49,67 @@ def damp_log_channel(log_old, log_new, damping, cond_axis):
     return jnp.where(valid, damped - normalizer, LOG_ZERO)
 
 
+def channel_tv_residual(log_old, log_new, cond_axis):
+    """Fixed-point residual of a channel update: worst-conditional total
+    variation distance, measured in probability space.
+
+    Diagnostic only — nothing in the planners consumes this. It answers
+    "how far is this channel from the fixed point of its own update?",
+    which the fixed iteration count alone cannot.
+
+    Probability space, not log space. A log-space `max |Δ log r|` is
+    dominated by entries whose probability is negligible: `safe_log`
+    floors at 1e-30, so a tail entry drifting between p = 1e-25 and
+    p = 1e-30 moves its log by ~11 while moving the distribution by
+    ~1e-25. Those swings put a floor under the max that has nothing to do
+    with convergence, and they hide the decay of the entries that carry
+    the mass. Exponentiating first also removes the need for a LOG_ZERO
+    mask: structurally zero entries have exp(LOG_ZERO) == 0 exactly, so
+    they contribute 0 to the sum on their own.
+
+    Total variation, not max |Δp|, because both arguments are *sets of
+    conditional distributions* over `cond_axis` (that is what
+    `damp_log_channel` normalizes them to be). TV is then the standard
+    distance between the old and new conditional, bounded in [0, 1] and
+    independent of how many entries the conditional has, so the number is
+    interpretable on its own ("the worst conditional moved by X") rather
+    than only relative to itself.
+
+    `log_new` must be the *undamped* image of `log_old` under the channel
+    update, not the damped one. Then the residual is that of the
+    fixed-point map itself, and its scale does not carry a factor of the
+    damping weight, so traces are comparable both across iterations and
+    across damping.
+
+    The guarantee runs one way only. If a channel is at a fixed point of
+    its own update then this is exactly zero; zero (or near-zero) does
+    **not** certify a fixed point of the iteration. Two reasons, both in
+    `aif_planner._aif_planning_impl`: `q_u` is rederived from
+    `backward_pass` on messages that are still moving, and
+    `log_fwd_prev` / `log_bwd_prev` are damped carry state that persists
+    across iterations. Neither is in this residual, so a small residual
+    says the two traced channels have stopped moving relative to their
+    own update — not that the loop as a whole has settled.
+
+    Conditioning slices that are not distributions in both arguments are
+    dropped. Such slices exist: where the forward/backward messages have
+    already ruled the conditioning index out, the whole slice is LOG_ZERO
+    and the update's normalizer is a 0/0, which leaves the slice at
+    log 0 = 0 for every entry — an all-ones "conditional" that no
+    consumer reads but that would otherwise pin the max at
+    (n_cond - 1) / 2 forever. Testing the mass is enough to spot them:
+    every slice a consumer reads sums to 1.
+    """
+    p_old = jnp.exp(log_old)
+    p_new = jnp.exp(log_new)
+    tv = 0.5 * jnp.sum(jnp.abs(p_new - p_old), axis=cond_axis)
+    normalized = (
+        (jnp.abs(p_old.sum(axis=cond_axis) - 1.0) < 1e-3)
+        & (jnp.abs(p_new.sum(axis=cond_axis) - 1.0) < 1e-3)
+    )
+    return jnp.max(jnp.where(normalized, tv, 0.0))
+
+
 # =============================================================================
 # Reduced tensors
 # =============================================================================

@@ -56,8 +56,9 @@ reward directly). Override via CLI / params for canonical-numerics runs.
 
 The AIF/VBP goal prior is a softmax preference over states parameterised
 by good_logit (per opened safe door) and bad_logit (per opened tiger door).
-Sample-based planners (BAMCP/BOSS/PSRL) ignore the goal prior and consume
-the env reward directly.
+The tree-search planners (BAMCP/Factored-BAMCP/BOSS/IDS) ignore the goal
+prior and consume the env reward directly; PSRL and Oracle wrap VBP and
+therefore do read it.
 
 Termination: bounded horizon (max_steps; runner-controlled, no env-side
               terminal absorbing state).
@@ -67,7 +68,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from learningpomdp.environments.base import StepResult
+from learningpomdp.environments.base import SAFE_LOG_FLOOR, StepResult
 from learningpomdp.factors import FactorSpec, ThetaSpec
 from learningpomdp.observations import (
     ModalityRegistry,
@@ -215,8 +216,78 @@ def create_goal(
     hand-picked to satisfy the negative-expected-log-C property; its
     1:2 ratio is intentionally *decoupled* from the reward function's
     ``open_safe_reward : open_tiger_penalty`` ratio (1:10 by default).
-    Treat these as design knobs, not tuned values — a sensitivity
-    sweep over the ratio is left for follow-up.
+    Treat these as design knobs, not tuned values.
+
+    What the transformation preserves
+    --------------------------------
+    For one door k with belief ``p = P(θ_k = 1)``, the two objectives the
+    paper compares are both affine and strictly increasing in ``p``::
+
+        E[Δ log C | OPEN_k]  = p·good_logit       - (1-p)·bad_logit
+        E[Δ reward | OPEN_k] = p·open_safe_reward - (1-p)·open_tiger_penalty
+
+    The softmax normaliser is per-θ and state-independent, so it cancels
+    exactly in every state-to-state difference and hence in the
+    expectation above. Both objectives are sums of these per-door terms,
+    so additivity across doors is preserved as well.
+
+    Preserved for *any* positive (good_logit, bad_logit):
+
+    - **Monotonicity in the belief.** Both objectives induce a threshold
+      rule on the same sufficient statistic ``p``: if OPEN is preferred at
+      ``p`` it is preferred at every ``p' > p``.
+    - **The ranking of doors.** At a fixed belief both objectives prefer
+      opening the door with the largest ``p``, so the commitment *target*
+      never differs between them.
+
+    Not preserved:
+
+    - **The threshold location.** ``E[Δ log C]`` crosses zero at
+      ``p = bad_logit / (good_logit + bad_logit)``; ``E[Δ reward]`` at
+      ``p = open_tiger_penalty / (open_safe_reward + open_tiger_penalty)``.
+      These coincide iff ``good_logit : bad_logit == open_safe_reward :
+      open_tiger_penalty``. The canonical (2, 4) puts the goal prior's
+      threshold at 0.67 against the reward's 0.91 — i.e. it *under*-
+      penalises tigers relative to the reward the results are scored on,
+      so AIF/VBP commit at lower confidence than reward-optimality and
+      pay for it in the reported return. The asymmetry is not a margin
+      granted to the exact-BP planners here. The affine form and the
+      ``bad/(good+bad)`` crossing are checked numerically in
+      ``tests/test_preference_sweeps.py``, not just asserted here.
+    - **Magnitude.** ``log C`` is in nats, reward in env units; only the
+      sign/threshold structure above can be aligned, never the scale.
+    - **Per-action costs.** ``listen_cost`` has no representation at all:
+      the goal prior is a distribution over *states*, so no choice of
+      logits can encode a cost attached to the LISTEN *action*. This is
+      why the default is 0.0 rather than Katt 2019's 1.0 — at
+      ``listen_cost > 0`` the two objectives are not sign-equivalent for
+      any (good_logit, bad_logit), and the gap is a structural limit of
+      the transformation rather than a tuning choice. Because "we could
+      not represent it, so we set it to zero" is not an answer, the
+      ``factored_tiger_listen_cost`` DVC stage runs one AIF arm at the
+      canonical goal prior and Katt's ``listen_cost = 1.0``, and the
+      preference figure reports it against the (2, 4) cell — so the size
+      of the deviation is measured rather than assumed.
+
+    Finally, the argument above covers only the pragmatic (expected
+    log-preference) term of the Expected Free Energy. The epistemic term
+    has no reward counterpart — it is an addition to the objective, not a
+    re-encoding of it. That is precisely why the ratio matters: with
+    ``good_logit >= bad_logit`` the epistemic term can make OPEN
+    attractive purely for the information the reveal yields.
+
+    The ``factored_tiger_preference`` DVC stage sweeps
+    ``good_logit × bad_logit`` at reduced seed count and includes the
+    reward-ratio-matched cell (1, 10), so the sensitivity of the reported
+    results to this knob is measured rather than assumed. (1, 10) rather
+    than (2, 20) because only the *ratio* sets the commit threshold,
+    while the pair's overall scale is bounded from above by float32: with
+    ``bad_logit >= good_logit`` the logits span ``bad_logit·K`` nats, so
+    the smallest normalised entry is ≈ ``exp(-bad_logit·K)`` (6.7e-28 at
+    K=6, bad=10; zero in float32 at bad=20), and ``messages.safe_log``
+    clamps everything below ``1e-30`` onto a single floor value. Past
+    that clamp the objective can no longer tell "4 tigers opened" from
+    "6", which is why this function refuses to return such a goal.
     """
     n_states = n_states_for(K)
     n_static = 2 ** K
@@ -237,7 +308,20 @@ def create_goal(
 
     logits_centered = goal_logits - goal_logits.max(axis=0, keepdims=True)
     g = np.exp(logits_centered)
-    return g / g.sum(axis=0, keepdims=True)
+    goal = g / g.sum(axis=0, keepdims=True)
+    # The planners consume float32 log C via messages.safe_log, which
+    # clamps at log(max(C, 1e-30)); below that the goal is silently
+    # truncated onto one floor value. Checked in float64 — the float32
+    # cast is exact to ~1e-7 relative this far above the subnormal range.
+    if goal.min() < SAFE_LOG_FLOOR:
+        raise ValueError(
+            f"goal prior underflows the safe_log floor at K={K}, "
+            f"(good_logit, bad_logit)=({good_logit}, {bad_logit}): min "
+            f"entry {goal.min():.3e} < {SAFE_LOG_FLOOR:.0e}. The logits "
+            f"span max(good_logit, bad_logit)*K nats; lower them (keeping "
+            f"the ratio) or lower K."
+        )
+    return goal
 
 
 def informative_states_for_door(K: int, r: int) -> frozenset[int]:
@@ -297,9 +381,10 @@ class FactoredTigerEnv:
             for OPEN_k on unopened door with θ_k=0.
         listen_cost: positive magnitude; reward is the negation per LISTEN.
         good_logit / bad_logit: AIF goal-prior asymmetry. ``bad_logit >
-            good_logit`` keeps OPEN-for-info-gain off the table; sample-
-            based planners (BAMCP/BOSS/PSRL) consume env reward directly
-            and ignore these. Defaults are hand-picked design knobs
+            good_logit`` keeps OPEN-for-info-gain off the table; the
+            tree-search planners (BAMCP/Factored-BAMCP/BOSS/IDS) consume
+            env reward directly and ignore these, while PSRL and Oracle
+            read them via VBP. Defaults are hand-picked design knobs
             (1:2 ratio), intentionally decoupled from the reward
             magnitudes — see ``create_goal`` docstring for the rationale.
         obs_seed: stochastic emission RNG seed.

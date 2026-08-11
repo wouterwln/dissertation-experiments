@@ -14,6 +14,8 @@ SIMS_LIST=$(uv run python -c \
     "import yaml; print(' '.join(str(s) for s in yaml.safe_load(open('params.yaml'))['door_code_simscaling']['sims_sweep']))")
 N_SHARDS=$(uv run python -c \
     "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['cpu']['door_code_simscaling']['n_shards'])")
+PACK=$(uv run python -c \
+    "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['cpu']['door_code_simscaling']['pack'])")
 MAX_CONCURRENT=$(uv run python -c \
     "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['cpu']['door_code_simscaling']['max_concurrent'])")
 TOTAL_SEEDS=$(uv run python -c \
@@ -47,10 +49,16 @@ for SIMS in $SIMS_LIST; do
         echo "  sims=${SIMS}: all shards present, aggregate ${AJID}"
         continue
     fi
+    # An array task is a BLOCK of PACK shards, so the array is indexed by
+    # block and the missing-shard list is passed through for the job to
+    # slice. Colon-separated because sbatch --export splits on commas.
+    IFS=',' read -ra MISSING_ARR <<< "$MISSING"
+    N_BLOCKS=$(( (${#MISSING_ARR[@]} + PACK - 1) / PACK ))
+    SHARD_LIST=$(IFS=':'; echo "${MISSING_ARR[*]}")
     JID=$(sbatch --parsable \
         --job-name="dcss-cpu-sims${SIMS}" \
-        --export="ALL,SIMS=${SIMS},N_SHARDS=${N_SHARDS}" \
-        --array="${MISSING}%${MAX_CONCURRENT}" \
+        --export="ALL,SIMS=${SIMS},N_SHARDS=${N_SHARDS},SHARD_LIST=${SHARD_LIST},PACK=${PACK}" \
+        --array="0-$((N_BLOCKS - 1))%${MAX_CONCURRENT}" \
         cluster/job_cpu_door_code_simscaling.sh)
     AJID=$(sbatch --parsable \
         --job-name="agg-cpu-dcss-sims${SIMS}" \
@@ -58,7 +66,8 @@ for SIMS in $SIMS_LIST; do
         --kill-on-invalid-dep=yes \
         --export="ALL,STAGE=door_code_simscaling,PLANNER=bamcp,SIMS=${SIMS}" \
         cluster/job_aggregate.sh)
-    echo "  sims=${SIMS}: array ${JID} (missing=${MISSING}), aggregate ${AJID}"
+    echo "  sims=${SIMS}: array ${JID} (${#MISSING_ARR[@]} shards in ${N_BLOCKS}" \
+         "blocks of ${PACK}), aggregate ${AJID}"
 done
 
 echo ""

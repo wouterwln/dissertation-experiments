@@ -38,6 +38,36 @@ def _argmax_int(x):
 
 
 @njit(cache=True, fastmath=False)
+def _argmax_random_tiebreak(x):
+    """Argmax over a 1-D float array, uniform random among all maximisers.
+
+    Rollout-only, mirroring ``_bamcp_numba._argmax_random_tiebreak``:
+    lowest-index tie-breaking pins the eps-greedy rollout to action 0 under
+    a flat Q-hat. No RNG draw unless there is an actual tie.
+    """
+    best_v = x[0]
+    n_best = 1
+    for i in range(1, x.shape[0]):
+        if x[i] > best_v:
+            best_v = x[i]
+            n_best = 1
+        elif x[i] == best_v:
+            n_best += 1
+    if n_best == 1:
+        return _argmax_int(x)
+    pick = np.random.randint(0, n_best)
+    seen = 0
+    best_i = 0
+    for i in range(x.shape[0]):
+        if x[i] == best_v:
+            if seen == pick:
+                best_i = i
+                break
+            seen += 1
+    return best_i
+
+
+@njit(cache=True, fastmath=False)
 def _step_numba_boss(
     state, theta_flat, action,
     T_eff, B_pos, B_lik_all, lik_obs_card,
@@ -119,12 +149,23 @@ def _rollout_numba_boss(
     T_eff, B_pos, B_lik_all, lik_obs_card,
     reward_table, terminal_table, has_terminal,
     gamma, n_actions, n_likelihood,
+    q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
 ):
-    """Random-action rollout: per step, uniformly pick (action, k)."""
+    """Leaf rollout: per step pick (action, k).
+
+    ``use_q_rollout=False`` keeps the original uniform (action, k) draw
+    bit-for-bit. ``use_q_rollout=True`` makes the *real action*
+    epsilon-greedy in ``q_rollout`` (updated off-policy from the step,
+    ties broken uniformly at random); ``k_idx`` stays uniform because that
+    draw is BOSS's merged-action-space mechanism, not the rollout policy.
+    """
     total = 0.0
     gamma_t = 1.0
     for _ in range(depth):
-        action = np.random.randint(0, n_actions)
+        if use_q_rollout and np.random.random() >= rollout_epsilon:
+            action = _argmax_random_tiebreak(q_rollout[state])
+        else:
+            action = np.random.randint(0, n_actions)
         k_idx = np.random.randint(0, K_samples)
         theta_flat = thetas[k_idx]
         next_state, _, reward, terminal = _step_numba_boss(
@@ -134,6 +175,14 @@ def _rollout_numba_boss(
             n_likelihood,
         )
         total += gamma_t * reward
+        if use_q_rollout:
+            if terminal:
+                target = reward
+            else:
+                target = reward + gamma * q_rollout[next_state].max()
+            q_rollout[state, action] += rollout_q_lr * (
+                target - q_rollout[state, action]
+            )
         if terminal:
             return total
         state = next_state
@@ -150,6 +199,7 @@ def _simulate_iter_boss(
     T_eff, B_pos, B_lik_all, lik_obs_card,
     reward_table, terminal_table, has_terminal,
     ucb_c, gamma, n_actions, n_likelihood,
+    q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
 ):
     path_node = np.empty(max_depth, dtype=np.int32)
     path_action = np.empty(max_depth, dtype=np.int32)
@@ -198,6 +248,7 @@ def _simulate_iter_boss(
                 T_eff, B_pos, B_lik_all, lik_obs_card,
                 reward_table, terminal_table, has_terminal,
                 gamma, n_actions, n_likelihood,
+                q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
             )
             expanded_leaf = True
             break
@@ -229,9 +280,13 @@ def _run_boss_numba(
     reward_table, terminal_table, has_terminal,
     ucb_c, gamma, n_likelihood, obs_stride_total,
     seed,
+    q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
 ):
     """Top-level driver. Returns root visit counts marginalised over k:
-    visits[a] = sum_k action_visits[root, a, k]."""
+    visits[a] = sum_k action_visits[root, a, k].
+
+    ``q_rollout`` is caller-owned and mutated in place so it survives
+    across plan() calls within a theta_true block."""
     np.random.seed(seed)
 
     max_nodes = n_simulations + 1
@@ -257,6 +312,7 @@ def _run_boss_numba(
             T_eff, B_pos, B_lik_all, lik_obs_card,
             reward_table, terminal_table, has_terminal,
             ucb_c, gamma, n_actions, n_likelihood,
+            q_rollout, use_q_rollout, rollout_epsilon, rollout_q_lr,
         )
 
     # Marginalise over k at the root.

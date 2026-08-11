@@ -81,10 +81,12 @@ def _condition_on_persistent(
     )
     q_episodic_slice = q[slicer]
     s = q_episodic_slice.sum()
-    # If the slice has zero mass (the sampled persistent value has zero
-    # marginal — possible only if upstream sampling gave it zero probability,
-    # which by construction it can't), fall back to uniform conditional to
-    # keep the conditioned q_static a valid distribution.
+    # If the slice has zero mass, fall back to a uniform conditional to keep
+    # the conditioned q_static a valid distribution. Unreachable when the
+    # persistent value was *sampled* from q (PSRL/BOSS: a sampled value has
+    # mass by construction); reachable when a caller pins it independently —
+    # `PersistentOraclePlanner` pins the truth, which the filter's float32
+    # softmax can underflow to 0, and warns before calling in.
     safe_size = max(int(np.prod(q_episodic_slice.shape)), 1)
     q_episodic_cond = jnp.where(
         s > 0, q_episodic_slice / (s + EPSILON), jnp.ones_like(q_episodic_slice) / safe_size

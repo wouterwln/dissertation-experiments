@@ -27,11 +27,16 @@ scripts/
   run_minigrid_door_code.py   spatial sibling CLI
   plot_door_code.py           paper figure
   plot_minigrid_door_code.py
+  plot_environments.py        static benchmark schematics (no run data)
+  _cards.py                   per-panel PDF cards (--cards-dir)
 
 tests/                        uv run pytest
 dvc.yaml, params.yaml         canonical pipeline + hyperparams
+dissertation_theme.py         figure colors/rcParams — single source of
+                              truth, shared with DissertationExperiments
+                              chapter-6; a dep of every plot stage
 roadmap.md                    paper direction (parametric BA-POMDP)
-output/                       per-benchmark JSONs + figure.pdf
+output/                       per-benchmark JSONs + figure.pdf + cards/
 ```
 
 ## Commands

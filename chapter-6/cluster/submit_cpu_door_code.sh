@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Submit one SLURM array job per CPU-only planner for the door_code
-# stage. Each array task runs one shard of seeds on a single Genoa core.
+# stage. Each array task runs a BLOCK of `pack` shards concurrently in one
+# 24-core allocation — see cluster/job_cpu_door_code.sh for why the billing
+# floor makes that the unit, and params.yaml cluster.cpu for how it's sized.
 # Aggregation is a separate login-node step (see
 # cluster/aggregate_cpu_all.sh) once the array completes.
 set -euo pipefail
@@ -12,6 +14,8 @@ mkdir -p logs
 CPU_PLANNERS=(belief_q boss bamcp pomcp ids random)
 N_SHARDS=$(uv run python -c \
     "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['cpu']['door_code']['n_shards'])")
+PACK=$(uv run python -c \
+    "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['cpu']['door_code']['pack'])")
 MAX_CONCURRENT=$(uv run python -c \
     "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['cpu']['door_code']['max_concurrent'])")
 TOTAL_SEEDS=$(uv run python -c \
@@ -45,10 +49,16 @@ for planner in "${CPU_PLANNERS[@]}"; do
         echo "  ${planner}: all shards present, aggregate ${AJID}"
         continue
     fi
+    # An array task is a BLOCK of PACK shards, so the array is indexed by
+    # block and the missing-shard list is passed through for the job to
+    # slice. Colon-separated because sbatch --export splits on commas.
+    IFS=',' read -ra MISSING_ARR <<< "$MISSING"
+    N_BLOCKS=$(( (${#MISSING_ARR[@]} + PACK - 1) / PACK ))
+    SHARD_LIST=$(IFS=':'; echo "${MISSING_ARR[*]}")
     JID=$(sbatch --parsable \
         --job-name="dc-cpu-${planner}" \
-        --export="ALL,PLANNER=${planner},N_SHARDS=${N_SHARDS}" \
-        --array="${MISSING}%${MAX_CONCURRENT}" \
+        --export="ALL,PLANNER=${planner},N_SHARDS=${N_SHARDS},SHARD_LIST=${SHARD_LIST},PACK=${PACK}" \
+        --array="0-$((N_BLOCKS - 1))%${MAX_CONCURRENT}" \
         cluster/job_cpu_door_code.sh)
     AJID=$(sbatch --parsable \
         --job-name="agg-cpu-door_code-${planner}" \
@@ -56,7 +66,8 @@ for planner in "${CPU_PLANNERS[@]}"; do
         --kill-on-invalid-dep=yes \
         --export="ALL,STAGE=door_code,PLANNER=${planner}" \
         cluster/job_aggregate.sh)
-    echo "  ${planner}: array ${JID} (missing=${MISSING}), aggregate ${AJID}"
+    echo "  ${planner}: array ${JID} (${#MISSING_ARR[@]} shards in ${N_BLOCKS}" \
+         "blocks of ${PACK}), aggregate ${AJID}"
 done
 
 echo ""

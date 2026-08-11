@@ -45,6 +45,7 @@ from .goal import Goal, is_goal_object, compute_terminal_goal, resolve_goal
 from .messages import LOG_ZERO, safe_log, safe_log_div
 from .bp_core import (
     damp_log_channel,
+    channel_tv_residual,
     forward_pass,
     backward_pass,
 )
@@ -190,8 +191,21 @@ def _aif_planning_impl(
     t_factor_spec: FactorSpec,
     b_factor_specs: tuple[FactorSpec, ...],
     damping=0.25,
+    return_residuals=False,
 ):
-    """Spec-aware AIF planning with precomputed obs channels."""
+    """Spec-aware AIF planning with precomputed obs channels.
+
+    `return_residuals` is a trace-time Python bool. When False the traced
+    computation is exactly the one below with the residual branches
+    absent, so the canonical path is unchanged; when True the function
+    additionally returns a (n_iterations,) trace of the per-iteration
+    fixed-point residual over the two channels updated in the loop (the
+    action channel r(u|x) and the dynamics channel r(x'|x,u)), as the
+    worst-conditional total variation between each channel and its
+    undamped image (`bp_core.channel_tv_residual`). The obs channels
+    converge in their own loop inside `_precompute_obs_channels` and are
+    not covered by that trace.
+    """
     n_states = q_current_state.shape[0]
     n_actions = transition_tensor.shape[-1]
     n_theta_axes_T = (
@@ -261,8 +275,8 @@ def _aif_planning_impl(
     log_dyn_channels = jnp.full(
         (horizon, n_states, n_states, n_actions), -jnp.log(n_states))
 
-    def body_fn(_, carry):
-        q_u, log_fwd_prev, log_bwd_prev, log_r_ux, log_dyn_channels = carry
+    def body_fn(i, carry):
+        q_u, log_fwd_prev, log_bwd_prev, log_r_ux, log_dyn_channels = carry[:5]
 
         dyn_valid = log_dyn_channels > LOG_ZERO / 2
         neg_dyn_ch = jnp.where(dyn_valid, -log_dyn_channels, 0.0)
@@ -296,13 +310,27 @@ def _aif_planning_impl(
         new_log_dyn_channels = damp_log_channel(
             log_dyn_channels, raw_log_dyn_channels, damping, cond_axis=2)
 
-        return (q_u_new, log_fwd_msgs, log_bwd_msgs, new_log_r_ux, new_log_dyn_channels)
+        out = (q_u_new, log_fwd_msgs, log_bwd_msgs, new_log_r_ux, new_log_dyn_channels)
+        if return_residuals:
+            # Against the *raw* (undamped) images, so the trace is the
+            # residual of the fixed-point map and not of the damped step.
+            residual = jnp.maximum(
+                channel_tv_residual(log_r_ux, raw_log_r_ux, cond_axis=2),
+                channel_tv_residual(
+                    log_dyn_channels, raw_log_dyn_channels, cond_axis=2),
+            )
+            out = out + (carry[5].at[i].set(residual),)
+        return out
 
     init_carry = (q_u, log_fwd_prev, log_bwd_prev, log_r_ux, log_dyn_channels)
-    q_u, _, _, _, _ = lax.fori_loop(0, n_iterations, body_fn, init_carry)
+    if return_residuals:
+        init_carry = init_carry + (jnp.zeros(n_iterations),)
+    carry = lax.fori_loop(0, n_iterations, body_fn, init_carry)
 
-    action_dist = q_u[0]
+    action_dist = carry[0][0]
     action_dist = action_dist / (action_dist.sum() + 1e-10)
+    if return_residuals:
+        return action_dist, carry[5]
     return action_dist
 
 
@@ -310,8 +338,12 @@ _aif_jit_cache: dict[tuple, callable] = {}
 
 
 def _get_jitted_aif(horizon, n_iterations, theta_spec, t_factor_spec,
-                    b_factor_specs):
-    key = (horizon, n_iterations, theta_spec, t_factor_spec, b_factor_specs)
+                    b_factor_specs, return_residuals=False):
+    # `return_residuals` is part of the key because it changes the traced
+    # output signature. The canonical (False) variant keeps its own entry
+    # and compiles the same program as before.
+    key = (horizon, n_iterations, theta_spec, t_factor_spec, b_factor_specs,
+           return_residuals)
     fn = _aif_jit_cache.get(key)
     if fn is not None:
         return fn
@@ -323,6 +355,7 @@ def _get_jitted_aif(horizon, n_iterations, theta_spec, t_factor_spec,
             q_current_state, q_static_state, transition_tensor,
             B_list, goal, horizon, n_iterations,
             theta_spec, t_factor_spec, b_factor_specs, damping,
+            return_residuals,
         )
 
     _aif_jit_cache[key] = _impl
@@ -348,7 +381,15 @@ class AIFPlanner:
         t_factor_spec: FactorSpec,
         b_factor_specs: tuple[FactorSpec, ...],
         theta_mask: list[bool] | None = None,
-    ) -> jnp.ndarray:
+        return_residuals: bool = False,
+    ) -> jnp.ndarray | tuple[jnp.ndarray, jnp.ndarray]:
+        """Plan one action distribution.
+
+        return_residuals: if True, also return the (n_iterations,) trace
+            of per-iteration channel residuals from the fixed-point loop
+            (see `_aif_planning_impl`). Off by default — the runners never
+            pass it, so the canonical path is untouched.
+        """
         # theta_mask is informational; the per-channel θ axis layout is
         # carried by b_factor_specs.
         if is_goal_object(goal):
@@ -363,6 +404,7 @@ class AIFPlanner:
         jitted = _get_jitted_aif(
             horizon, self._n_iterations,
             theta_spec, t_factor_spec, b_factor_specs,
+            return_residuals,
         )
         return jitted(
             q_state, q_static, T, B_list, goal_array, self._damping,

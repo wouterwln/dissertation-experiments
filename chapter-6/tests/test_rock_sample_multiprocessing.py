@@ -7,8 +7,9 @@ because:
 
 - Each worker constructs its own ``RockSampleEnv`` from the same
   ``env_kwargs + obs_seed = seed*10_000 + s`` recipe.
-- Each worker constructs its own planner via ``planner_factory()``,
-  which produces a freshly-seeded ``np.random.Generator``.
+- Each worker constructs its own planner via ``planner_factory(s)``,
+  which produces an ``np.random.Generator`` seeded from the *same* outer
+  seed index in both paths.
 - ``run_block(seed=seed*10_000+s)`` uses the same per-seed offset.
 
 So the parallel path is a re-ordering of the sequential one — same
@@ -23,11 +24,13 @@ from learningpomdp.experiment.rock_sample_runner import run_outer_loop
 from learningpomdp.planning.bamcp_planner import BAMCPPlanner
 
 
-def _factory():
-    # Module-level closure so it's pickle-friendly under spawn.
+def _factory(seed_index):
+    # Module-level closure so it's pickle-friendly under spawn. Mirrors the
+    # run script's recipe: the base rollout seed plus the outer-seed index,
+    # so each seed gets its own MCTS stream in both paths.
     return BAMCPPlanner(
         n_simulations=32, depth=3, ucb_c=1.0, gamma=0.99,
-        rollout_seed=0,
+        rollout_seed=0 + seed_index,
     )
 
 

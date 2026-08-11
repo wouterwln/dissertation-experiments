@@ -1,4 +1,5 @@
-"""Shard-output IO helpers: idempotency check for `scripts/run_*.py`.
+"""Shard-output IO helpers: idempotency check and invocation provenance
+for `scripts/run_*.py`.
 
 A shard JSON is "valid" if it parses, has the required top-level keys,
 and its per-episode arrays have shape (expected_n_seeds, n_episodes).
@@ -6,6 +7,10 @@ That lets `scripts/run_*.py` and `cluster/submit_*.sh` short-circuit
 when a previous run already produced a shard, so resubmitting a SLURM
 array converges to a complete `output/` tree without recomputing
 finished shards.
+
+`invocation_record` writes the CLI values a run was invoked with into
+`config.invocation`, so a result JSON is auditable without reference to
+`params.yaml` git history.
 """
 
 from __future__ import annotations
@@ -132,3 +137,56 @@ def missing_shard_indices(
 def format_array_spec(indices: Iterable[int]) -> str:
     """Format `indices` as a SLURM `--array=` spec (comma-separated)."""
     return ",".join(str(i) for i in indices)
+
+
+# Args excluded from `invocation_record`, all for the same reason: they
+# differ between shards of one run. `aggregate_shards.py` aborts when
+# shards disagree on any `config` key outside its own small exemption
+# set, and that check is the reason the record is worth writing at all —
+# it is what makes "every shard used the same bamcp_depth" a verified
+# property rather than an assumption. Anything shard-varying must
+# therefore stay out. Nothing is excluded for being uninteresting.
+_SHARD_VARYING_ARGS = frozenset({
+    "output", "video_dir", "n_shards", "shard_index", "total_seeds",
+    "n_seeds", "seed",
+})
+
+
+def invocation_record(args, **resolved) -> dict:
+    """The CLI values this run was invoked with, for `config.invocation`.
+
+    Written because `config` previously carried the planner *name* and
+    nothing else about the planner: `bamcp_depth` sets the tree-search
+    family's total simulated lookahead, and no file under `output/`
+    recorded it, so which depth produced a published number could only be
+    recovered from `params.yaml` git history. That is exactly the axis a
+    reviewer contested, and history is not an artifact a reader has.
+
+    Default-include, with an explicit exclude set, rather than an
+    allowlist of planner knobs. The failure mode being fixed is a knob
+    nobody wrote down, so a knob added later has to be captured without
+    anyone remembering to extend this function. The cost is that the
+    record repeats the env/runner values `config` already holds, which is
+    harmless and leaves the record readable on its own.
+
+    `resolved` carries values computed in the run script rather than read
+    off the CLI, which therefore cannot be reconstructed from
+    `params.yaml`: pass `ids_bamcp_depth` post-`_ids_depth`-fallback, for
+    instance. Keys must be shard-invariant for the same reason as
+    `_SHARD_VARYING_ARGS` — the shard-offset RNG seeds are not, and are
+    omitted deliberately (each shard's is already in `config["seed"]`,
+    and `SHARD_SEED_STRIDE` is a documented constant).
+    """
+    record = {
+        key: (str(value) if isinstance(value, Path) else value)
+        for key, value in sorted(vars(args).items())
+        if key not in _SHARD_VARYING_ARGS
+    }
+    overlap = _SHARD_VARYING_ARGS.intersection(resolved)
+    if overlap:
+        raise ValueError(
+            f"resolved keys {sorted(overlap)} are shard-varying; recording "
+            "them would make aggregate_shards.py reject every multi-shard run"
+        )
+    record.update(resolved)
+    return record

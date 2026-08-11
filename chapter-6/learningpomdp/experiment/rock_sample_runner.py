@@ -515,6 +515,13 @@ def run_block(
         int(c) for c in np.unravel_index(block_theta_true, theta_spec.component_sizes)
     )
 
+    # Block-level planner setup, once before the episode loop (distinct
+    # from prepare_episode, which fires per episode). BAMCP/BOSS reset
+    # their rollout Q-hat here — learned within a block, dropped across
+    # blocks. Planners without the hook are untouched.
+    if hasattr(planner, "prepare_block"):
+        planner.prepare_block(q_static, rng)
+
     episodes: list[RockSampleEpisodeResult] = []
     for _ep_idx in range(n_episodes):
         q_static = reset_episode_theta(q_static, theta_spec)
@@ -658,7 +665,7 @@ def _stack(blocks: list[RockSampleBlockResult], attr: str, dtype) -> np.ndarray:
 
 def _run_one_seed_worker(
     env_kwargs: dict[str, Any],
-    planner_factory: Callable[[], Planner],
+    planner_factory: Callable[[int], Planner],
     block_theta: int,
     n_episodes: int,
     horizon: int,
@@ -666,12 +673,13 @@ def _run_one_seed_worker(
     deterministic: bool,
     seed: int,
     clip_horizon: bool,
+    seed_index: int,
 ) -> RockSampleBlockResult:
     """Subprocess entry point: builds a fresh env + planner, runs one
     seed's block. Spawned workers can't share the parent's planner
     instance (RNG state, JAX side effects), so this rebuilds locally."""
     env = RockSampleEnv(**env_kwargs)
-    planner = planner_factory()
+    planner = planner_factory(seed_index)
     return run_block(
         env, planner, block_theta_true=block_theta, n_episodes=n_episodes,
         horizon=horizon, max_steps=max_steps, deterministic=deterministic,
@@ -694,7 +702,7 @@ def run_outer_loop(
     progress_desc: str = "rock-sample",
     env_factory: Callable[[dict[str, Any]], RockSampleEnv] | None = None,
     workers: int = 1,
-    planner_factory: Optional[Callable[[], Planner]] = None,
+    planner_factory: Optional[Callable[[int], Planner]] = None,
 ) -> RockSampleOuterLoopResult:
     """Run n_seeds blocks of n_episodes. Each block samples a fresh
     block-level θ and constructs a fresh env (independent obs RNG per
@@ -718,7 +726,7 @@ def run_outer_loop(
                 "instances are not pickle-safe across processes."
             )
         # Probe planner type via the factory.
-        probe = planner_factory()
+        probe = planner_factory(0)
         if isinstance(probe, GPU_PLANNER_TYPES):
             warnings.warn(
                 f"Planner type {type(probe).__name__} uses JAX/GPU; "
@@ -774,6 +782,7 @@ def run_outer_loop(
                     deterministic,
                     seed * 10_000 + s,
                     clip_horizon,
+                    s,
                 )
                 for s in range(n_seeds)
             ]
@@ -791,9 +800,13 @@ def run_outer_loop(
     else:
         # Sequential path. When `planner_factory` is provided, build a
         # fresh planner per seed so workers=1 is a true sequential
-        # re-ordering of workers>1 (each seed sees an independent
-        # planner._rng). The legacy `planner=` direct-instance API
-        # retains single-instance reuse.
+        # re-ordering of workers>1. The factory is handed the outer-seed
+        # index `s`, which is what actually makes each seed's
+        # `planner._rng` independent: a fresh instance alone is not
+        # enough, since `default_rng(<same int>)` replays the same stream
+        # and the per-plan() draw count is fixed by n_simulations. The
+        # legacy `planner=` direct-instance API retains single-instance
+        # reuse (and hence one shared stream — it is used only by tests).
         iterator = range(n_seeds)
         if show_progress:
             iterator = tqdm(iterator, desc=progress_desc, unit="seed")
@@ -804,7 +817,7 @@ def run_outer_loop(
             kwargs["obs_seed"] = seed * 10_000 + s
             env = env_factory(kwargs)
             seed_planner = (
-                planner_factory() if planner_factory is not None else planner
+                planner_factory(s) if planner_factory is not None else planner
             )
             block = run_block(
                 env, seed_planner, block_theta_true=block_thetas[s],

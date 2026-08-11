@@ -23,6 +23,37 @@ Specialised for the BA-POMDP setting:
 Same generative model and online setting as AIF/PSRL/VBP/BeliefQ. No
 pre-training. Direct sample-based competitor to AIF.
 
+Rollout policy: `rollout_policy="uniform"` (the default) draws leaf
+rollout actions uniformly. `rollout_policy="eps_greedy_q"` is the
+rollout Guez et al. 2012 actually prescribe — epsilon-greedy in a
+Q-hat(x, a) learned off-policy from the rollouts' own (reward,
+next_state) transitions — introduced there precisely for problems whose
+reward requires a carefully selected action sequence, which is exactly
+the fail-deadly lock corridor of door_code. Q-hat is planner-owned,
+persists across plan() calls, and is reset per theta_true block by
+`prepare_block()`. Epsilon-greedy is scale-invariant, so it is safe
+across the two reward conventions in this file (the legacy path derives
+{+1, -1, 0} from the outcome channel; the Numba path reads the env's
+true reward scale from `reward_table`). A softmax/Boltzmann rollout
+would NOT be safe across those, which is why it is not offered.
+
+Two details of the greedy branch are load-bearing and are NOT
+scale-invariant, so they are pinned here:
+
+- Ties in Q-hat are broken uniformly at random (`_argmax_random_tiebreak`),
+  not by lowest index. Lowest-index tie-breaking makes the greedy rollout
+  degenerate: on door_code action 0 is VISIT_PROBE_0, whose reward is 0,
+  so its Q-hat entry never moves off its initial value while every failed
+  OPEN_DOOR goes negative — greedy then never leaves probe 0 and the
+  rollout is *worse* than uniform at finding the lock corridor.
+- Q-hat is initialised optimistically, to an upper bound on one-step
+  reward (`1.0` on the legacy path, whose reward is {+1, -1, 0};
+  `reward_table.max()` on the Numba path, which knows the env's true
+  scale). Zero-initialisation is optimism only by accident of the reward
+  sign; the optimistic init is what makes greedy *explore* untried
+  (state, action) pairs instead of latching onto the first one whose
+  value happens not to have been pushed down.
+
 Literal-POMCP ablation: with `resample_theta_per_sim=False`, theta is
 sampled once per `plan()` call and reused across all simulations.
 This drops the BAMCP-specific theta-aware root resample while keeping
@@ -55,6 +86,21 @@ import numpy as np
 if TYPE_CHECKING:
     from learningpomdp.factors import FactorSpec, ThetaSpec
     from learningpomdp.observations import ModalityRegistry
+
+
+def _argmax_random_tiebreak(x: np.ndarray, rng: np.random.Generator) -> int:
+    """Argmax over a 1-D array, uniform random among all maximisers.
+
+    Same tie-break `_ucb_select_action` documents, applied to the
+    eps-greedy rollout's Q-hat lookup: `np.argmax` returns the lowest
+    index, which pins the rollout to action 0 whenever Q-hat is flat (see
+    the module docstring). No RNG draw is consumed unless there is an
+    actual tie, so the single-maximiser case leaves the stream alone.
+    """
+    best = np.flatnonzero(x == x.max())
+    if best.shape[0] == 1:
+        return int(best[0])
+    return int(best[rng.integers(0, best.shape[0])])
 
 
 @dataclass
@@ -96,8 +142,18 @@ class BAMCPPlanner:
 
     Args:
         n_simulations: simulations per call to plan() (root tree budget).
-        depth: maximum tree+rollout depth (caps both expansion and
-            rollout horizon).
+        depth: bound on the TOTAL simulated lookahead of one simulation
+            — tree descent PLUS leaf rollout, not tree depth with free
+            rollouts beneath it. A simulation that descends d tree levels
+            gets exactly ``depth - d`` rollout steps, so every simulation
+            takes at most ``depth`` env steps. This is the quantity that
+            must be matched against AIF-MP's ``runner.horizon`` for the
+            two planner families to have equal lookahead; ``params.yaml``
+            keeps ``bamcp_depth == runner.horizon`` on every benchmark.
+            The effective bound is ``min(depth, max(horizon, 1))`` — the
+            clamp still binds late in an episode under
+            ``runner.clip_horizon``, which shrinks the horizon passed to
+            plan() as the step budget runs out.
         ucb_c: UCB1 exploration constant.
         gamma: discount factor for returns.
         rollout_seed: RNG seed for theta-sampling and probe noise during
@@ -107,6 +163,12 @@ class BAMCPPlanner:
             (literal-POMCP ablation), sample theta once per plan() call
             and reuse across all simulations — same MCTS machinery, no
             theta-aware root resample.
+        rollout_policy: leaf-rollout behaviour, ``"uniform"`` (default)
+            or ``"eps_greedy_q"``. See the module docstring.
+        rollout_epsilon: exploration rate of the ``"eps_greedy_q"``
+            rollout. Ignored under ``"uniform"``.
+        rollout_q_lr: learning rate of the off-policy Q-hat update.
+            Ignored under ``"uniform"``.
     """
 
     def __init__(
@@ -118,23 +180,75 @@ class BAMCPPlanner:
         rollout_seed: int = 0,
         resample_theta_per_sim: bool = True,
         factored_root_sample: bool = False,
+        rollout_policy: str = "uniform",
+        rollout_epsilon: float = 0.1,
+        rollout_q_lr: float = 0.1,
     ) -> None:
+        if rollout_policy not in ("uniform", "eps_greedy_q"):
+            raise ValueError(
+                f"rollout_policy must be 'uniform' or 'eps_greedy_q', "
+                f"got {rollout_policy!r}"
+            )
         self.n_simulations = n_simulations
         self.depth = depth
         self.ucb_c = ucb_c
         self.gamma = gamma
         self.resample_theta_per_sim = resample_theta_per_sim
         self.factored_root_sample = factored_root_sample
+        self.rollout_policy = rollout_policy
+        self.rollout_epsilon = float(rollout_epsilon)
+        self.rollout_q_lr = float(rollout_q_lr)
         self._rng = np.random.default_rng(rollout_seed)
+        # Rollout Q-hat, (n_states, n_actions) float64. None under
+        # "uniform" (and before the first plan() call, which is where the
+        # state/action cardinalities become known). Persists across
+        # plan() calls, reset per theta_true block by prepare_block().
+        self._q_rollout: Optional[np.ndarray] = None
 
-    # ----- runner hooks (BAMCP is stateless across episodes) -----
+    # ----- runner hooks (the tree itself is stateless across episodes) ----
 
     def prepare_episode(
         self, q_static: jnp.ndarray, rng: np.random.Generator,
     ) -> None:
         # No persistent state between episodes; each plan() call builds
-        # a fresh tree.
+        # a fresh tree. Q-hat deliberately survives an episode boundary —
+        # it is reset per block by prepare_block().
         pass
+
+    def prepare_block(
+        self, q_static: jnp.ndarray, rng: np.random.Generator,
+    ) -> None:
+        """Reset the rollout Q-hat at the start of a theta_true block.
+
+        Q-hat is learned from the agent's own simulated experience, so
+        its scope must match the scope of what the agent is allowed to
+        remember: within a block theta_true is pinned and q(theta) is
+        carried across episodes, so Q-hat carries too; across blocks
+        theta_true is redrawn, so carrying Q-hat would leak the previous
+        block's system identity. No-op under ``"uniform"``.
+        """
+        self._q_rollout = None
+
+    def _ensure_q_rollout(
+        self, n_states: int, n_actions: int, q_init: float,
+    ) -> None:
+        """Lazily allocate Q-hat once the cardinalities are known.
+
+        `q_init` is the optimistic initial value — an upper bound on the
+        one-step reward, so untried (state, action) pairs look at least as
+        good as anything already tried and greedy keeps exploring. It is
+        NOT scale-free, hence a parameter: callers pass the reward scale
+        they actually know (see the module docstring).
+        """
+        if self.rollout_policy == "uniform":
+            return
+        if (
+            self._q_rollout is None
+            or self._q_rollout.shape != (n_states, n_actions)
+        ):
+            self._q_rollout = np.full(
+                (n_states, n_actions), q_init, dtype=np.float64,
+            )
 
     # ----- internal: forward-simulate one (state, action, theta) step ----
 
@@ -269,6 +383,9 @@ class BAMCPPlanner:
         }
 
         max_depth = min(self.depth, max(horizon, 1))
+        # Legacy reward is {+1, -1, 0} from the outcome channel, so +1 is
+        # the optimistic bound.
+        self._ensure_q_rollout(n_states, n_actions, 1.0)
 
         theta_fixed = (
             None
@@ -387,18 +504,39 @@ class BAMCPPlanner:
         probe_state_set: set[int],
         n_actions: int,
     ) -> float:
-        """Random-action rollout to depth-`depth`."""
+        """Rollout to depth-`depth` under ``self.rollout_policy``.
+
+        Under ``"uniform"`` (default) this is the uniform-random rollout
+        and ``q_hat is None``, so no extra RNG draw is consumed and the
+        stream is bit-identical to the pre-rollout-policy behaviour.
+        Under ``"eps_greedy_q"`` actions are epsilon-greedy in Q-hat and
+        Q-hat is updated off-policy (max over next actions) from the
+        ``(reward, next_state)`` the step already returns; ties in Q-hat
+        are broken uniformly at random, not by lowest index.
+        """
+        q_hat = self._q_rollout
         total = 0.0
         gamma_t = 1.0
         for _ in range(depth):
-            action = int(self._rng.integers(0, n_actions))
+            if q_hat is None or self._rng.random() < self.rollout_epsilon:
+                action = int(self._rng.integers(0, n_actions))
+            else:
+                action = _argmax_random_tiebreak(q_hat[state], self._rng)
             next_state, obs_idx, reward = self._step(
                 state, theta, action, T, B_position, B_probe, B_outcome,
                 probe_state_set, self._rng,
             )
             total += gamma_t * reward
             outcome = obs_idx % 3
-            if outcome == 1 or outcome == 2:
+            terminal = outcome == 1 or outcome == 2
+            if q_hat is not None:
+                target = reward if terminal else (
+                    reward + self.gamma * q_hat[next_state].max()
+                )
+                q_hat[state, action] += self.rollout_q_lr * (
+                    target - q_hat[state, action]
+                )
+            if terminal:
                 return total
             state = next_state
             gamma_t *= self.gamma
@@ -594,9 +732,17 @@ class BAMCPPlanner:
         else:
             reward_table = np.asarray(reward_table, dtype=np.float64)
 
-        terminal_table = np.zeros((n_states, n_actions, n_static), dtype=np.bool_)
+        # Allocated at full size only when there is a terminal_fn to fill
+        # it with. Both factored runners pass `terminal_fn=None` on every
+        # call (RockSample and Factored Tiger are bounded-horizon), so the
+        # full table was 5.5 MB of zeros built and discarded per decision
+        # on RockSample. `_step_numba` reads it only under `has_terminal`,
+        # the same use-flag pattern `q_rollout` already relies on.
         has_terminal = terminal_fn is not None
         if terminal_fn is not None:
+            terminal_table = np.zeros(
+                (n_states, n_actions, n_static), dtype=np.bool_,
+            )
             for theta_flat in range(n_static):
                 theta_components = theta_spec.unravel(theta_flat)
                 for s in range(n_states):
@@ -604,8 +750,14 @@ class BAMCPPlanner:
                         terminal_table[s, a, theta_flat] = bool(terminal_fn(
                             s, a, 0, theta_components,
                         ))
+        else:
+            terminal_table = np.zeros((1, 1, 1), dtype=np.bool_)
 
         max_depth = min(self.depth, max(horizon, 1))
+        # reward_table carries the env's true reward scale, so its max is
+        # the optimistic bound here (the legacy path's +1 would be wrong
+        # on e.g. factored_tiger's +10 / -100).
+        self._ensure_q_rollout(n_states, n_actions, float(reward_table.max()))
 
         # Batch-sample θ̃ and root state for all simulations in one shot
         # (avoids 1024 JAX dispatches per plan() call).
@@ -631,6 +783,18 @@ class BAMCPPlanner:
 
         seed = int(self._rng.integers(0, 2**31 - 1))
 
+        # @njit cannot close over Python state or accept None, so Q-hat is
+        # passed in as a buffer plus a use-flag. Passing it IN (rather than
+        # allocating it beside the tree buffers) is what lets it survive
+        # across plan() calls within a block. Under "uniform" a (1, 1)
+        # dummy is passed and every Q-hat branch is skipped, so the RNG
+        # stream and the results are unchanged.
+        use_q_rollout = self._q_rollout is not None
+        q_rollout = (
+            self._q_rollout if use_q_rollout
+            else np.zeros((1, 1), dtype=np.float64)
+        )
+
         visits, totals = _run_bamcp_numba(
             self.n_simulations, max_depth, n_actions,
             theta_samples, root_states,
@@ -639,6 +803,8 @@ class BAMCPPlanner:
             float(self.ucb_c), float(self.gamma),
             n_likelihood, obs_stride_total,
             seed,
+            q_rollout, use_q_rollout,
+            float(self.rollout_epsilon), float(self.rollout_q_lr),
         )
 
         if visits.sum() > 0:

@@ -48,7 +48,7 @@ from typing import Callable
 
 import numpy as np
 
-from learningpomdp.environments.base import StepResult
+from learningpomdp.environments.base import SAFE_LOG_FLOOR, StepResult
 from learningpomdp.factors import FactorSpec, ThetaSpec
 from learningpomdp.observations import (
     ModalityRegistry,
@@ -362,7 +362,14 @@ def create_goal(
     failure_logit: float = -4.0,
     L: int = 1,
 ) -> np.ndarray:
-    """(n_states, n_static) softmax preference: SUCCESS preferred, FAILURE not."""
+    """(n_states, n_static) softmax preference: SUCCESS preferred, FAILURE not.
+
+    Unlike the factored envs, the logit span here is
+    ``success_logit - failure_logit`` and does not grow with K, so the
+    swept ``door_code_preference`` grid clears the ``safe_log`` floor by
+    ~20 decades. The guard is still applied so the three preference sweeps
+    fail the same way if a future grid pushes the span far enough.
+    """
     n_states = n_states_for(M, L)
     n_static = n_static_for_K(K)
     layout = state_indices(M, L)
@@ -372,7 +379,19 @@ def create_goal(
     logits[layout["FAILURE"], :] = failure_logit
 
     exp_logits = np.exp(logits - logits.max(axis=0, keepdims=True))
-    return exp_logits / exp_logits.sum(axis=0, keepdims=True)
+    goal = exp_logits / exp_logits.sum(axis=0, keepdims=True)
+    # The planners consume float32 log C via messages.safe_log, which
+    # clamps at log(max(C, 1e-30)); below that the goal is silently
+    # truncated onto one floor value.
+    if goal.min() < SAFE_LOG_FLOOR:
+        raise ValueError(
+            f"goal prior underflows the safe_log floor at "
+            f"(success_logit, failure_logit)=({success_logit}, "
+            f"{failure_logit}): min entry {goal.min():.3e} < "
+            f"{SAFE_LOG_FLOOR:.0e}. The logits span "
+            f"success_logit - failure_logit nats; narrow the gap."
+        )
+    return goal
 
 
 def create_modality_registry(K: int, M: int, L: int = 1) -> ModalityRegistry:
@@ -434,6 +453,10 @@ class DoorCodeEnv:
             lock_length cells of pi in order.
         goal: optional override for the goal preference tensor with
             shape (n_states, n_static). If None, uses create_goal.
+        success_logit: goal-prior logit on the SUCCESS state (preference
+            strength). Ignored when `goal` is given.
+        failure_logit: goal-prior logit on the FAILURE state (cost of
+            failure). Ignored when `goal` is given.
         obs_seed: seed for the env's stochastic-emission RNG.
     """
 
@@ -446,6 +469,8 @@ class DoorCodeEnv:
         lock_length: int = 1,
         lock_doors_fn: Callable[[tuple[int, ...]], tuple[int, ...]] | None = None,
         goal: np.ndarray | None = None,
+        success_logit: float = 4.0,
+        failure_logit: float = -4.0,
         obs_seed: int | None = 0,
     ) -> None:
         if K < 2:
@@ -505,7 +530,10 @@ class DoorCodeEnv:
             K, self._partition_table, probe_noise=probe_noise, L=lock_length,
         )
         if goal is None:
-            self._goal = create_goal(K, M, L=lock_length)
+            self._goal = create_goal(
+                K, M, success_logit=success_logit,
+                failure_logit=failure_logit, L=lock_length,
+            )
         else:
             expected_shape = (self.n_states, self.n_static)
             if goal.shape != expected_shape:

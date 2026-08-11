@@ -7,10 +7,46 @@
 plot:
   paper_slate: true
 
+# Scalar-table early/final window sizes, in episodes, read by
+# scripts/make_tables.py. They must match the protocol paragraph in the
+# paper's sections/evaluation.tex; they live here rather than inside the
+# emitter so the reporting protocol is a tracked parameter (the `tables`
+# DVC stage declares `report.windows`) instead of a literal that can
+# drift from the paper with nothing able to detect it.
+#
+# n_early + n_final > runner.n_episodes means the two windows overlap, so
+# the contrast is partly computed on the same episodes instead of being a
+# before/after-learning contrast. Every pair below is disjoint, and
+# make_tables.py warns on stderr and discloses the overlap in the caption
+# should a future n_episodes change make one of them overlap.
+#
+# factored_tiger was (3, 3) of 5 episodes, which shared episode 3 between
+# the windows -- a third of each. Corrected to (2, 2), leaving episode 3
+# as a gap, which the other three benchmarks already have. Measured from
+# the same runs, the overlap understated the early-to-final improvement
+# for every arm (AIF-MP +0.27 -> +0.41, PSRL +3.77 -> +5.66, BOSS
+# +4.64 -> +6.97) without changing the method ordering. This moved the
+# published early/final cells of Table 3; see PUBLISHED_SCALARS in
+# tests/test_report.py.
+report:
+  windows:
+    door_code:          { n_early: 5, n_final: 5 }  # of runner.n_episodes 25, gap 15
+    minigrid_door_code: { n_early: 5, n_final: 3 }  # of 10, gap 2
+    factored_tiger:     { n_early: 2, n_final: 2 }  # of 5, gap 1
+    rock_sample:        { n_early: 5, n_final: 3 }  # of 10, gap 2
+
 env:
   K: 6              # number of doors / symbols  [reduced 8→6 after K=8 OOM'd CPU and exceeded GPU wallclock]
   lock_length: 4    # doors to open in sequence per episode
   probe_noise: 0.2  # per-probe bit-flip probability in [0, 0.5]
+  # AIF/VBP/PSRL/Oracle goal prior (door_code.create_goal). Canonical
+  # (4, -4), lifted here from run_door_code.py's argparse defaults so the
+  # headline benchmark's preference is DVC-tracked rather than implicit.
+  # BAMCP/POMCP/BOSS/IDS/Belief-Q/Random ignore C and plan on env
+  # reward; PSRL and Oracle do read it (both wrap VBP). Swept in
+  # door_code_preference.
+  success_logit: 4
+  failure_logit: -4
 
 runner:
   n_seeds: 100      # outer-loop theta_true samples (m)  [paper-grade]
@@ -40,13 +76,29 @@ planner:
   # resample_theta_per_sim flag differs (False instead of True).
   # 10000 simulations matches the Guez 2012 BAMCP paper-grade norm.
   bamcp_n_simulations: 10000
-  bamcp_depth: 6
+  # Deliberately matched to runner.horizon (8): `depth` bounds the TOTAL
+  # simulated lookahead per simulation (tree descent + leaf rollout), so
+  # depth == horizon gives the tree-search family and AIF-MP equal total
+  # lookahead. Keep the two in lockstep — tests/test_params_consistency.py
+  # asserts it on every benchmark.
+  bamcp_depth: 8
   bamcp_ucb_c: 1.0
   bamcp_gamma: 0.99
   # IDS — Information-Directed Sampling. Reuses BAMCP for the Q oracle
   # (mirrors bamcp_n_simulations by default) and adds closed-form
   # information gain I(a) over discrete θ-dependent observations.
+  # ids_bamcp_depth / ids_rollout_seed are IDS's own knobs: the depth
+  # matches runner.horizon like bamcp_depth, and the rollout seed is
+  # deliberately DIFFERENT from runner.seed so IDS's Monte-Carlo noise is
+  # independent of BAMCP's rather than a relabelling of the same tree.
+  # The run scripts offset BOTH bases by shard_index * 1_000_003, so
+  # ids_rollout_seed must not differ from runner.seed by a multiple of
+  # that stride or the two streams coincide on some shard — which is what
+  # the old value (1_000_003, the stride itself) did on shard 1.
+  # tests/test_params_consistency.py asserts it on every benchmark.
   ids_bamcp_n_simulations: 10000
+  ids_bamcp_depth: 8
+  ids_rollout_seed: 7919
   ids_epsilon_info: 1.0e-6
 
 # M2 — Farama-MiniGrid-backed spatial sibling of door_code. Small-grid
@@ -84,11 +136,19 @@ minigrid:
     # resample_theta_per_sim flag differs at the call site).
     # 10000 simulations matches the Guez 2012 BAMCP paper-grade norm.
     bamcp_n_simulations: 10000
-    bamcp_depth: 15
+    # Deliberately matched to minigrid.runner.horizon (25). See the
+    # door_code block: `depth` bounds TOTAL simulated lookahead (tree +
+    # rollout), so it must equal the AIF-MP planning horizon for the two
+    # planner families to get equal lookahead.
+    bamcp_depth: 25
     bamcp_ucb_c: 1.0
     bamcp_gamma: 0.99
-    # IDS — Information-Directed Sampling.
+    # IDS — Information-Directed Sampling. Own depth (matched to
+    # runner.horizon) and own rollout seed (!= runner.seed) so its
+    # Monte-Carlo noise is independent of BAMCP's.
     ids_bamcp_n_simulations: 10000
+    ids_bamcp_depth: 25
+    ids_rollout_seed: 7919
     ids_epsilon_info: 1.0e-6
 
 # M4 — RockSample BA-POMDP. Factorized θ split into K rock-quality
@@ -106,7 +166,10 @@ rock_sample:
     # Asymmetric goal prior so AIF/VBP can't exploit SAMPLE for free
     # info gain under uniform quality belief. With bad_logit > good_logit,
     # E[log C | sample under uniform] < 0, forcing SENSE-first behaviour.
-    # Sample-based planners (PSRL/BAMCP/BOSS/Factored-BAMCP) ignore C.
+    # BAMCP/BOSS/Factored-BAMCP/IDS/Random ignore C; PSRL and Oracle read
+    # it (both wrap VBP).
+    # Swept in rock_sample_preference; see rock_sample.create_goal for
+    # what the log-C / reward transformation does and does not preserve.
     good_logit: 2.0
     bad_logit: 4.0
     layout_seed: 0
@@ -131,12 +194,20 @@ rock_sample:
     # Sample-based BA-RL — BAMCP / BOSS / Factored BA-POMCP. 10000
     # simulations matches the Guez 2012 BAMCP paper-grade norm.
     bamcp_n_simulations: 10000
-    bamcp_depth: 6
+    # Deliberately matched to rock_sample.runner.horizon (15). See the
+    # door_code block: `depth` bounds TOTAL simulated lookahead (tree +
+    # rollout), so it must equal the AIF-MP planning horizon for the two
+    # planner families to get equal lookahead.
+    bamcp_depth: 15
     bamcp_ucb_c: 1.0
     bamcp_gamma: 0.99
     boss_n_samples: 10
-    # IDS — Information-Directed Sampling.
+    # IDS — Information-Directed Sampling. Own depth (matched to
+    # runner.horizon) and own rollout seed (!= runner.seed) so its
+    # Monte-Carlo noise is independent of BAMCP's.
     ids_bamcp_n_simulations: 10000
+    ids_bamcp_depth: 15
+    ids_rollout_seed: 7919
     ids_epsilon_info: 1.0e-6
   # K-scaling sweep — reuse rock_sample.{env, runner, planner} hyperparams
   # and vary only K across this list. K=5 needs ~59 GB peak VRAM at
@@ -156,16 +227,23 @@ factored_tiger:
     listen_accuracy: 0.85      # P(LISTEN_k emits correct bit | θ_k)
     open_safe_reward: 10.0     # canonical Katt 2019 magnitudes
     open_tiger_penalty: 100.0
-    listen_cost: 0.0           # set >0 for canonical-numerics; default 0
-                                # so AIF/VBP's goal-prior optimization
-                                # cleanly matches the reward structure
-                                # (per-action LISTEN cost can't be folded
-                                # into a state-only goal).
+    # DEVIATION from Katt 2019, which uses listen_cost = 1.0. A per-action
+    # LISTEN cost cannot be folded into a state-only goal prior, so at
+    # listen_cost > 0 no (good_logit, bad_logit) makes AIF/VBP's objective
+    # sign-equivalent to the env reward the results are scored on (see
+    # FactoredTigerEnv.create_goal). The suite therefore runs at 0.0 so the
+    # two objectives stay comparable — and the
+    # factored_tiger_listen_cost stage runs one AIF arm at the canonical
+    # 1.0 so the size of the deviation is measured, not assumed.
+    listen_cost: 0.0
     # Asymmetric goal prior so AIF/VBP can't exploit OPEN for free info
-    # gain. Sample-based planners ignore C and use env reward directly.
+    # gain. BAMCP/Factored-BAMCP/BOSS/IDS/Random use env reward directly
+    # and ignore C; PSRL and Oracle read it (both wrap VBP).
     # Hand-picked 1:2 ratio; intentionally decoupled from the reward
     # function's 1:10 magnitudes — see FactoredTigerEnv.create_goal
-    # docstring. Treat as a design knob, not a tuned value.
+    # docstring. Treat as a design knob, not a tuned value. Swept in
+    # factored_tiger_preference, whose (1, 10) cell puts the goal prior's
+    # commit threshold at the reward function's 0.91.
     good_logit: 2.0
     bad_logit: 4.0
   runner:
@@ -181,11 +259,19 @@ factored_tiger:
     damping: 0.9
     # 10000 simulations matches the Guez 2012 BAMCP paper-grade norm.
     bamcp_n_simulations: 10000
-    bamcp_depth: 6
+    # Deliberately matched to factored_tiger.runner.horizon (10). See the
+    # door_code block: `depth` bounds TOTAL simulated lookahead (tree +
+    # rollout), so it must equal the AIF-MP planning horizon for the two
+    # planner families to get equal lookahead.
+    bamcp_depth: 10
     bamcp_ucb_c: 1.0
     bamcp_gamma: 0.99
     boss_n_samples: 10
+    # IDS — own depth (matched to runner.horizon) and own rollout seed
+    # (!= runner.seed) so its Monte-Carlo noise is independent of BAMCP's.
     ids_bamcp_n_simulations: 10000
+    ids_bamcp_depth: 10
+    ids_rollout_seed: 7919
     ids_epsilon_info: 1.0e-6
 
 # BAMCP sims-budget ablation on door_code — shows the 0.00 flatline is
@@ -196,6 +282,267 @@ factored_tiger:
 door_code_simscaling:
   sims_sweep: [1000, 10000, 40000]
   n_seeds: 25
+
+# Goal-prior preference ablation on door_code — AIF only. BAMCP/POMCP/
+# BOSS/IDS/Belief-Q/Random ignore the goal prior and plan on env reward,
+# so there is nothing to sweep for them; PSRL and Oracle *do* read C
+# (both wrap VBP) but are left out to bound GPU cost, so the swept cells
+# have no baseline counterpart. Sweeps the two free parameters of
+# door_code.create_goal: success_logit (preference strength) and
+# failure_logit (cost of failure). The (4, -4) cell reproduces the
+# canonical goal prior at reduced seed count, same convention as
+# door_code_simscaling.
+door_code_preference:
+  success_logits: [1, 2, 4, 8]
+  failure_logits: [-1, -2, -4, -8]
+  n_seeds: 25
+
+# AIF-MP convergence sensitivity report on door_code — AIF only (the
+# axis is the message-passing fixed-point iteration, which the
+# sample-based baselines do not have). Sweeps the two knobs of the damped
+# channel iteration, planner.iterations x planner.damping, which the
+# canonical config pins at (70, 0.9) with no stopping criterion.
+#
+# This is a SENSITIVITY REPORT, not a hyperparameter search. No cell is
+# selected from it and the canonical (70, 0.9) cell is reproduced inside
+# the grid at reduced seed count, same convention as
+# door_code_simscaling; the appendix's "no per-environment
+# hyperparameter search was performed" still holds. The point is to show
+# what does and does not move when the iteration count and damping move,
+# because the fixed 70 iterations are not justified by a convergence
+# criterion anywhere.
+#
+# iterations_sweep brackets the canonical 70 on both sides (10 -> 140).
+# damping_sweep brackets the canonical 0.9. Note the direction: the update
+# is damped = (1-alpha)*log_old + alpha*log_new, so alpha is the weight on
+# the NEW channel — 0.5 is the heaviest damping in the sweep (an equal
+# geometric blend of old and new) and 0.99 is the lightest (nearly
+# undamped, alpha=1 being no damping at all).
+aif_convergence:
+  iterations_sweep: [10, 20, 40, 70, 140]
+  damping_sweep: [0.5, 0.7, 0.9, 0.99]
+  n_seeds: 25
+
+# Matched-hardware timing anchor. The compute table runs the
+# message-passing planners on an A100 and the sample-based ones on EPYC
+# cores, so its wall-clock numbers are not comparable. This stage runs
+# canonical-config AIF on the CPU partition through .venv-cpu, giving the
+# table an AIF column measured on the same hardware family as the
+# tree-search baselines.
+#
+# Seeds and episodes are reduced on purpose: the stage measures SECONDS
+# PER DECISION (per_episode.planning_time_s / n_steps, median), which is
+# shape-determined and independent of how many blocks are run. Its
+# returns are NOT a result — do not read them as one; the canonical
+# door_code stage owns returns.
+#
+# NOTHING READS THIS STAGE'S JSON YET. The seconds-per-decision division
+# above is a description of what a consumer must do, not of code that
+# exists: no stage deps on output/aif_cpu_timing/aif.json and the only
+# `/ n_steps` conversion in the repo is in plot_door_code.py, which reads
+# output/door_code/. Land the consumer before paying for the run.
+aif_cpu_timing:
+  n_seeds: 10
+  n_episodes: 5
+# Goal-prior preference ablation on RockSample — AIF only, same reason as
+# door_code_preference: BAMCP/Factored-BAMCP/BOSS/IDS/Random ignore C and
+# plan on the env reward table, while PSRL and Oracle do read C (both
+# wrap VBP) but are left out to bound GPU cost. Sweeps the two free
+# parameters of rock_sample.create_goal. The axis matters here because
+# RockSample is where the separate positive/negative scaling does real
+# work: the canonical asymmetry (bad_logit > good_logit) is what stops
+# AIF from treating SAMPLE as a free info-gain action under a uniform
+# quality belief, so it encodes "commit-before-sensing is a mistake" by
+# hand.
+# A 6-cell CROSS through the canonical (2, 4) cell, not the full 3 x 4
+# grid. This stage is AIF on RockSample, the most expensive planner x
+# benchmark pair in the suite (~6 h per shard, ~77 A100-hours), so the
+# full grid priced at 11295 SBU — 58% of the whole six-PR increase. The
+# cross halves that (~5650 SBU saved) and still carries everything the
+# reviewer asked for; what it drops is only the saturated interior.
+#   bad axis: good=2 x bad in [1, 2, 4, 8] — the ratio axis, which is
+#          what reviewer item 3 is about. (2, 2) sits at the
+#          *environment's own* reward ratio, symmetric ±sample_reward,
+#          i.e. the cell where C is calibrated to the reward; (2, 1) is
+#          the documented bad < good failure regime and bounds the sweep
+#          from below.
+#   good axis: bad=4 x good in [1, 2, 4] — the orthogonal axis, so the
+#          sweep is not one-dimensional; (4, 4) is the second
+#          reward-ratio-matched cell.
+#   (2, 4) is shared by both arms and reproduces the canonical goal prior
+#          at reduced seed count, same convention as door_code_simscaling.
+# Cells are enumerated rather than crossed because DVC's `matrix:` is a
+# cross product and would regenerate all 12; the stage uses `foreach:`
+# over this dict. Keys are for readability (they become the DVC stage
+# suffix); output subdirectories are built from the values.
+rock_sample_preference:
+  cells:
+    good2_bad1: { good: 2, bad: 1 }
+    good2_bad2: { good: 2, bad: 2 }
+    good2_bad4: { good: 2, bad: 4 }
+    good2_bad8: { good: 2, bad: 8 }
+    good1_bad4: { good: 1, bad: 4 }
+    good4_bad4: { good: 4, bad: 4 }
+  n_seeds: 25
+
+# Goal-prior preference ablation on Factored Tiger — AIF only, same
+# reason as above. Sweeps the two free parameters of
+# factored_tiger.create_goal.
+#   (2, 4) reproduces the canonical goal prior at reduced seed count.
+#   (1, 10) matches the *environment's own* reward ratio,
+#          open_safe_reward : open_tiger_penalty = 10 : 100 = 1 : 10 —
+#          the cell that answers "the goal prior's 1:2 is a different
+#          problem from the reward's 1:10".
+#   (2, 2) / (4, 4) are symmetric (no designer-supplied commit penalty);
+#   (4, 2) inverts the asymmetry. Together they bracket the ratio.
+#   (1, 2) and (2, 4) are the same 1:2 ratio at two temperatures, so
+#          ratio and sharpness stay separable within the grid.
+# bad_logit is capped at 10 deliberately. create_goal's logits span
+# bad_logit·K nats, so the smallest normalised entry is ≈ exp(-bad·K):
+# at K=6 that is 6.7e-28 for bad=10 but underflows float32 for bad=20,
+# and messages.safe_log clamps everything below 1e-30 onto one floor
+# value (2002 / 53248 entries at (2, 20), 91 of them exactly 0.0) — a
+# bad=20 cell could not tell 4 tigers apart from 6. The 1:10 ratio is
+# therefore realised by the softer pair (1, 10) rather than by (2, 20):
+# only the ratio fixes the commit threshold, and the overall scale of
+# log C is not comparable to reward units anyway (see the create_goal
+# docstring). tests/test_preference_sweeps.py pins this for every cell.
+# Note listen_cost = 0 across the grid: a per-action LISTEN cost cannot be
+# folded into a state-only goal prior, so that part of the reward
+# structure is outside the *grid's* reach (see create_goal docstring).
+# listen_cost_arm covers it separately.
+# 3 x 3 = 9 cells + 1 listen-cost arm.
+factored_tiger_preference:
+  good_logits: [1, 2, 4]
+  bad_logits: [2, 4, 10]
+  # Matches every sibling sweep. Referenced by both the 3x3 grid and the
+  # listen_cost arm, so the arm is comparable to the canonical cell by
+  # construction rather than by coincidence.
+  n_seeds: 25
+  # Katt 2019's canonical listen_cost, run by the factored_tiger_listen_cost
+  # stage as ONE extra AIF cell at the canonical (2, 4) goal prior. Not a
+  # third grid axis: it is not a goal-prior setting, it is the one reward
+  # term the goal prior cannot encode at all, so the arm measures the size
+  # of the deviation rather than sweeping it. The figure reports it as a
+  # caption note against the (2, 4) cell.
+  listen_cost_arm: 1.0
+# MCTS depth-sensitivity ablation on door_code — the lookahead axis.
+# `bamcp_depth` bounds TOTAL simulated lookahead per simulation (tree
+# descent + leaf rollout), so it is the tree-search family's counterpart
+# to AIF-MP's runner.horizon.
+#
+# The sweep STOPS at the canonical H=8, and that is not a gap in the
+# design: the planner applies `max_depth = min(self.depth, max(horizon, 1))`
+# and the runner never passes a horizon above runner.horizon, so
+# `bamcp_depth > runner.horizon` is UNREACHABLE — a depth-12 cell would be
+# bit-identical to depth-8, including the RNG stream, and its flat right
+# tail would be flat by construction rather than measured. The positive
+# corollary is the stronger fairness argument: matched lookahead is the
+# SATURATION POINT of the depth axis, not a tuned parameter. There is no
+# setting of `bamcp_depth` that buys the tree-search family more lookahead
+# than AIF-MP's horizon, so the matched value is the most generous one
+# available to the baselines. Cells below H remain fully informative.
+#
+# BAMCP and IDS only: BOSS and POMCP take their action values from the same
+# MCTS machinery, so they would trace the same curve (same convention as
+# door_code_simscaling). Reduced seed count (vs runner.n_seeds=100) keeps
+# the 4-cell x 2-planner grid cluster-feasible.
+door_code_depth:
+  depth_sweep: [2, 4, 6, 8]
+  n_seeds: 25
+
+# MCTS depth-sensitivity ablation on rock_sample — same axis and same
+# planner subset as door_code_depth, running from well below the canonical
+# H=15 up to H itself. RockSample is the benchmark where the old unmatched
+# depth was most severe (AIF-MP saw 15 steps of lookahead, every
+# tree-search baseline saw 6), so this is the curve that shows how much
+# of the reported gap was lookahead rather than method.
+#
+# As in door_code_depth, the sweep stops at H because above-H cells are
+# unreachable: `max_depth = min(depth, max(horizon, 1))` saturates and
+# `depth` enters nowhere else, so a depth-20 cell is bit-identical to
+# depth-15. Matched lookahead is therefore the saturation point of this
+# axis, not a tuned choice — see the door_code_depth block.
+#
+# IDS is deliberately not swept over depth at all, and that is a cost
+# decision with a measurement behind it. Per-seed planning cost on this
+# benchmark (from output/rock_sample/{bamcp,ids}.json) is BAMCP 2.1 min vs
+# IDS 232.8 min — IDS's bottleneck is the closed-form joint-observation
+# enumeration in its information term, not tree depth, so its cost is
+# depth-INVARIANT: 8.07 h at the shallow end vs 8.18 h at the deep end, a
+# 1.4% spread across the whole range (that deep-end profile was taken at
+# depth 20, which is the same run as depth 15). Even the two endpoint
+# cells alone — the cheapest sampling that would still span the axis —
+# cost ~3043 SBU, 46% of the genoa budget remaining at the time of the
+# run, to place markers on a line those profiles already show is flat.
+# The profiling numbers are therefore the argument, not a stand-in for a
+# missing measurement. An endpoint-only IDS stage was carried here for a
+# while, frozen and unwired from the cluster slate; it was removed rather
+# than shipped half-present. To take the measurement anyway, add an `ids`
+# matrix cell alongside rock_sample_depth in dvc.yaml — the runner, the
+# aggregate job and the plot script all already handle an IDS series.
+rock_sample_depth:
+  depth_sweep: [3, 6, 10, 15]
+  n_seeds: 25
+
+# Rollout-policy ablation on door_code — uniform (the shipped default)
+# vs epsilon-greedy in a Q-hat learned off-policy inside the rollout
+# (Guez et al. 2012 BAMCP supplies exactly this for problems where
+# reward needs a carefully selected action sequence). This is the
+# decisive experiment for the paper's claim that BAMCP/BOSS/IDS earn
+# 0.00 on the fail-deadly lock corridor: if the flatline survives a
+# competent rollout the result stands; if it does not, the claim must be
+# withdrawn. BAMCP and BOSS only — those are the two planners whose
+# rollout policy this PR makes configurable.
+door_code_rollout:
+  policies: [uniform, eps_greedy_q]
+  epsilon: 0.1
+  q_lr: 0.1
+  n_seeds: 25
+
+# Exact Bayes-adaptive reference — the exact per-episode optimum, measured
+# rather than assumed. Solves the finite-horizon Bayes-adaptive optimum exactly
+# on a *reduced* instance of two benchmarks by memoized expectimax over
+# reachable action-observation histories (learningpomdp/planning/exact_ba.py),
+# sharing the runners' one Bayesian filter and optimizing env reward (not the
+# AIF goal prior) so it is comparable to the sample-based slate. A solver has no
+# lookahead knob, so this doubles as the lookahead-parity control: max_steps
+# below is the shared total lookahead of all arms, which
+# scripts/run_exact_reference.py runs on the same seeds. The exact arm is run
+# twice, under the lowest- and highest-index tie-break, because optimal actions
+# tie structurally here and the choice moves the *block* return even though
+# every member is equally optimal per episode.
+#
+# Instances are reduced through existing CLI flags only — no new env code.
+# They sit inside the tractability boundary measured on this hardware
+# (expanded nodes per episode at max_steps=6): door_code K=3/L=2 → 823,
+# K=4/L=2 → 7211, K=4/L=3 → 7427; factored_tiger K=2 → 553, K=3 → 3687,
+# K=4 → 17277. Growth is roughly ×5 per +2 steps. max_nodes sits ~2 orders
+# above the door_code cell so a mis-sized edit fails in seconds with the
+# node count in the message rather than hanging a job.
+#
+# Those counts are per arm and depend on the trajectory the arm takes, so read
+# them as orders of magnitude: a deterministic lowest-index tie-break keeps
+# listening to the same Factored Tiger door, which leaves q(θ) more diffuse and
+# so widens the reachable set — ~2.5k nodes observed at K=2, still ~80x under
+# the cap. run_exact_reference.py reports the observed max per tie-break arm.
+#
+# n_episodes is pinned per benchmark here rather than inherited from the
+# canonical runner blocks: these are paper reference numbers, and a retune of
+# a canonical block's episode count must not silently move them.
+exact_reference:
+  door_code:
+    K: 3              # 3! = 6 permutations — the whole θ space is enumerable
+    lock_length: 2    # still a 2-step commit, so the lock structure survives
+    max_steps: 6      # 4 probe visits + 2 lock opens
+    n_episodes: 25    # matches runner.n_episodes at the time of writing
+  factored_tiger:
+    K: 2              # 2^2 = 4 persistent θ
+    max_steps: 6
+    n_episodes: 5     # matches factored_tiger.runner.n_episodes at writing
+  n_seeds: 25         # same reduced count as door_code_simscaling
+  max_nodes: 200000   # cap on expanded expectimax nodes per episode
+  gamma: 1.0          # undiscounted — exactly the return the runners report
 
 # Snellius cluster — number of SLURM array tasks (= shards) per stage.
 # Each shard runs ceil(n_seeds / n_shards) seeds with an independent base
@@ -210,6 +557,18 @@ cluster:
   rock_sample: { n_shards: 2 }           # 50 seeds / 25 per shard (+ workers=4)
   rock_sample_kscaling: { n_shards: 2 }  # 25 seeds/shard × 3 K per planner; K=4 AIF needed split to fit 16h GPU wallclock
   factored_tiger: { n_shards: 1 }        # 100 seeds, workers=4 handles parallelism
+  aif_convergence: { n_shards: 5 }       # 25 seeds / 5 per shard, per (iterations, damping) cell
+
+  # Goal-prior preference sweeps. AIF is the only planner in these
+  # stages and AIF is GPU-eligible, so they are GPU-only — there is no
+  # cluster.cpu counterpart because there is no CPU-only planner to
+  # submit. Each submit script loops its 6-16 cells and sbatches one
+  # array per cell.
+  door_code_preference: { n_shards: 5 }        # 25 seeds / 5 per shard (no workers)
+  rock_sample_preference: { n_shards: 2 }      # 25 seeds / 13 per shard (+ workers)
+  factored_tiger_preference: { n_shards: 1 }   # 25 seeds, workers handles parallelism
+                                               # (factored_tiger_listen_cost reuses
+                                               # this — same runner, same seeds)
 
   # CPU-partition (genoa) submission knobs. door_code and minigrid runners
   # have no --workers flag, so we shard heavily (one seed per shard, single
@@ -223,9 +582,66 @@ cluster:
   # scratch incident. Set it >= n_shards on the long-running rock_sample stages
   # so their few-but-multi-hour shards still run fully in parallel.
   cpu:
-    door_code: { n_shards: 100, max_concurrent: 20 }          # 1 seed per shard, 1 core
-    door_code_simscaling: { n_shards: 25, max_concurrent: 20 } # 1 seed per shard, 1 core
-    minigrid_door_code: { n_shards: 100, max_concurrent: 20 } # 1 seed per shard, 1 core
+    # `pack` = shard invocations run concurrently inside ONE array task, for
+    # the stages whose runner has no --workers. Genoa bills
+    # max(cpus-per-task, ceil(mem_MiB / 1792), 24) per job — 24 being the
+    # 1/8-node floor, since a 192-core node is shared by at most 8 jobs — so
+    # a 1-seed shard on 2 cores is billed for 24 it never uses. Packing runs
+    # `pack` of those unchanged invocations in one 24-core allocation, which
+    # cuts the job count (and the bill) by ~`pack`.
+    #
+    # Bit-identity is why this is `pack` and not `workers`: every per-seed
+    # stream is f(shard_seed, s) with shard_seed = seed + shard_index *
+    # 1_000_003, so changing n_shards changes every result. Packing leaves
+    # n_shards, shard_index and the commands untouched — the parallelism is
+    # between processes, so the JSONs are byte-identical to the unpacked run.
+    #
+    # `pack` is bounded by MEMORY, not cores: 24 billed cores buys
+    # 24 * 1792 MiB = 42 GiB, and exceeding it raises the bill above 24
+    # rather than being refused. Values below leave headroom on the
+    # per-shard --mem in each job script (3G here, 4G for minigrid) —
+    # rock_sample and factored_tiger below both had to cut workers after
+    # OOMs, so the headroom is not theoretical.
+    # max_concurrent throttles the SLURM array, and for a packed stage an
+    # array element is a BLOCK, so what runs at once is max_concurrent *
+    # pack processes, not max_concurrent. Packing dropped the block count
+    # below the old value and the throttle silently stopped binding:
+    # door_code went from 100 shards at %20 (20 processes per planner) to
+    # 10 blocks at %20, which is no limit at all — so all 10 blocks ran,
+    # 100 processes per planner, six planners at once. Each process imports
+    # the whole jax/numpy/numba stack out of .venv-cpu, and genoa compute
+    # nodes are diskless (/scratch-local is GPFS, not local disk), so that
+    # is ~600 simultaneous walks of a 15k-file venv against one shared
+    # metadata server. That is the storm setup_env_cpu.sh warns about, and
+    # it is what got every wave after the first killed on allocation.
+    #
+    # 2 restores the pre-packing regime exactly: 2 blocks * 10 = 20
+    # processes per planner, which is what 100 shards at %20 used to give.
+    # Drop to 1 if jobs are still killed — the burst is spikier than the
+    # old one at equal process count, because a block launches all `pack`
+    # shards in the same instant while separate jobs were staggered by the
+    # scheduler. Costs wall-clock only: genoa bills elapsed per job, and
+    # throttling changes neither the job count nor any job's elapsed.
+    door_code: { n_shards: 100, pack: 10, max_concurrent: 2 }           # 1 seed/shard; 10 x 3G = 30G
+    door_code_simscaling: { n_shards: 25, pack: 9, max_concurrent: 2 }   # 3 blocks of 9/9/7
+    door_code_depth: { n_shards: 25, pack: 9, max_concurrent: 2 }        # 3 blocks of 9/9/7
+    door_code_rollout: { n_shards: 25, pack: 9, max_concurrent: 2 }      # 3 blocks of 9/9/7
+    minigrid_door_code: { n_shards: 100, pack: 10, max_concurrent: 2 }  # 1 seed/shard; 10 x 4G = 40G
     rock_sample: { n_shards: 10, workers: 4, max_concurrent: 10 }      # 5 seeds/shard; reduced workers 10→4 after 40G OOM
     rock_sample_kscaling: { n_shards: 10, workers: 4, max_concurrent: 10 }
+    rock_sample_depth: { n_shards: 5, workers: 4, max_concurrent: 10 }  # 5 seeds/shard
     factored_tiger: { n_shards: 20, workers: 2, max_concurrent: 8 }   # 5 seeds/shard; reduced workers 10→2 after 20G OOM at K=8
+    # Matched-hardware AIF timing anchor. One seed per shard, on the same
+    # partition and per-task core budget as the door_code CPU baselines
+    # (genoa, cpus-per-task=2) with the same single environment override
+    # (JAX_PLATFORMS=cpu) and no thread caps on either side, so the
+    # seconds-per-decision it produces goes in the same table as theirs.
+    # max_concurrent is kept low so shards don't contend over one node —
+    # the number this stage exists to produce is a timing, so isolation
+    # matters more than throughput.
+    #
+    # One seed per shard is isolation, not free parallelism: each process
+    # pays its own XLA compiles (up to one per distinct clipped horizon),
+    # which is why the stage runs with --warmup-planner. See
+    # cluster/README.md.
+    aif_timing: { n_shards: 10, max_concurrent: 4 }

@@ -44,7 +44,7 @@ from learningpomdp.environments.minigrid_door_code import (
     N_ACTIONS,
 )
 from learningpomdp.experiment.door_code_runner import run_outer_loop
-from learningpomdp.experiment.io import is_valid_shard_json
+from learningpomdp.experiment.io import invocation_record, is_valid_shard_json
 from learningpomdp.planning.aif_planner import AIFPlanner
 from learningpomdp.planning.bamcp_planner import BAMCPPlanner
 from learningpomdp.planning.belief_state_q import BeliefStateQLearner
@@ -56,7 +56,26 @@ from learningpomdp.planning.random_planner import RandomPlanner
 from learningpomdp.planning.vbp_planner import VBPPlanner
 
 
+# Per-shard RNG stride. Shard i's seeds start at `--seed + i * STRIDE`,
+# and every planner-side RNG base is offset by the same amount so that no
+# two shards share a Monte-Carlo stream.
+SHARD_SEED_STRIDE = 1_000_003
+
+
+def _planner_seeds(args) -> tuple[int, int]:
+    """Per-shard (planner rollout seed, IDS seed).
+
+    Planner RNG bases must vary per shard, or every seed a sharded run
+    averages over draws the same MCTS noise and the cross-seed CI
+    understates variance. Both bases take the same shard offset so they
+    stay a constant apart at every shard. See run_door_code.py.
+    """
+    offset = args.shard_index * SHARD_SEED_STRIDE
+    return args.seed + offset, args.ids_rollout_seed + offset
+
+
 def _build_planner(args, K: int, M: int, L: int, n_states: int):
+    rollout_seed, ids_seed = _planner_seeds(args)
     if args.planner == "aif":
         return AIFPlanner(
             n_iterations=args.planner_iterations, damping=args.planner_damping,
@@ -79,7 +98,7 @@ def _build_planner(args, K: int, M: int, L: int, n_states: int):
             K=K, M=M, L=L,
             n_states=n_states, n_actions=N_ACTIONS,
             lr=args.q_lr, epsilon=args.q_epsilon, gamma=args.q_gamma,
-            rng_seed=args.seed,
+            rng_seed=rollout_seed,
         )
     if args.planner == "boss":
         # Faithful BOSS: merged-POMDP MCTS with augmented action space
@@ -90,7 +109,10 @@ def _build_planner(args, K: int, M: int, L: int, n_states: int):
             depth=args.bamcp_depth,
             ucb_c=args.bamcp_ucb_c,
             gamma=args.bamcp_gamma,
-            rollout_seed=args.seed,
+            rollout_seed=rollout_seed,
+            rollout_policy=args.rollout_policy,
+            rollout_epsilon=args.rollout_epsilon,
+            rollout_q_lr=args.rollout_q_lr,
         )
     if args.planner == "bamcp":
         return BAMCPPlanner(
@@ -98,8 +120,11 @@ def _build_planner(args, K: int, M: int, L: int, n_states: int):
             depth=args.bamcp_depth,
             ucb_c=args.bamcp_ucb_c,
             gamma=args.bamcp_gamma,
-            rollout_seed=args.seed,
+            rollout_seed=rollout_seed,
             resample_theta_per_sim=True,
+            rollout_policy=args.rollout_policy,
+            rollout_epsilon=args.rollout_epsilon,
+            rollout_q_lr=args.rollout_q_lr,
         )
     if args.planner == "pomcp":
         # Literal-POMCP ablation: same MCTS as BAMCP but no theta-aware
@@ -109,18 +134,30 @@ def _build_planner(args, K: int, M: int, L: int, n_states: int):
             depth=args.bamcp_depth,
             ucb_c=args.bamcp_ucb_c,
             gamma=args.bamcp_gamma,
-            rollout_seed=args.seed,
+            rollout_seed=rollout_seed,
             resample_theta_per_sim=False,
+            rollout_policy=args.rollout_policy,
+            rollout_epsilon=args.rollout_epsilon,
+            rollout_q_lr=args.rollout_q_lr,
         )
     if args.planner == "ids":
+        # IDS's BAMCP gets IDS's OWN depth and rollout seed, which is the
+        # only thing making its Monte-Carlo noise independent of the
+        # BAMCP arm's (see IDSPlanner's module docstring).
         return IDSPlanner(
             bamcp=BAMCPPlanner(
                 n_simulations=args.ids_bamcp_n_simulations,
-                depth=args.bamcp_depth,
+                depth=(
+                    args.bamcp_depth if args.ids_bamcp_depth is None
+                    else args.ids_bamcp_depth
+                ),
                 ucb_c=args.bamcp_ucb_c,
                 gamma=args.bamcp_gamma,
-                rollout_seed=args.seed,
+                rollout_seed=ids_seed,
                 resample_theta_per_sim=True,
+                rollout_policy=args.rollout_policy,
+                rollout_epsilon=args.rollout_epsilon,
+                rollout_q_lr=args.rollout_q_lr,
             ),
             epsilon_info=args.ids_epsilon_info,
         )
@@ -161,14 +198,45 @@ def main() -> None:
                         help="BAMCP max tree+rollout depth")
     parser.add_argument("--bamcp-ucb-c", type=float, default=1.0)
     parser.add_argument("--bamcp-gamma", type=float, default=0.99)
+    # Leaf-rollout policy, shared by BAMCP / POMCP / BOSS / IDS's BAMCP.
+    parser.add_argument(
+        "--rollout-policy", choices=["uniform", "eps_greedy_q"],
+        default="uniform",
+        help="MCTS leaf-rollout policy. 'uniform' (default) is the "
+             "uniform-random rollout; 'eps_greedy_q' is Guez et al. 2012's "
+             "epsilon-greedy rollout in a Q-hat learned off-policy from the "
+             "rollouts themselves.",
+    )
+    parser.add_argument(
+        "--rollout-epsilon", type=float, default=0.1,
+        help="exploration rate of the eps_greedy_q rollout (ignored under "
+             "--rollout-policy uniform)",
+    )
+    parser.add_argument(
+        "--rollout-q-lr", type=float, default=0.1,
+        help="learning rate of the eps_greedy_q rollout's off-policy Q-hat "
+             "update (ignored under --rollout-policy uniform)",
+    )
     # IDS
     parser.add_argument(
         "--ids-bamcp-n-simulations", type=int, default=256,
         help="BAMCP simulations used by IDS as its Q oracle",
     )
     parser.add_argument(
+        "--ids-bamcp-depth", type=int, default=None,
+        help="tree+rollout depth of IDS's own BAMCP instance; defaults to "
+             "--bamcp-depth",
+    )
+    parser.add_argument(
+        "--ids-rollout-seed", type=int, default=7919,
+        help="RNG base for IDS's own BAMCP instance; deliberately != --seed "
+             "so IDS's Monte-Carlo noise is independent of the BAMCP arm's. "
+             "Must not differ from --seed by a multiple of the shard stride "
+             "(1_000_003); 7919 is coprime to it.",
+    )
+    parser.add_argument(
         "--ids-epsilon-info", type=float, default=1.0e-6,
-        help="ε regulariser in the IDS information ratio Δ²/(I+ε)",
+        help="ε regulariser in the IDS information ratio Δ(π)²/(I(π)+ε)",
     )
 
     # ---- Environment ----
@@ -235,7 +303,7 @@ def main() -> None:
             f"shard {args.shard_index}/{args.n_shards} is empty "
             f"(total_seeds={total_seeds}, seeds_per_shard={seeds_per_shard})"
         )
-    shard_seed = args.seed + args.shard_index * 1_000_003
+    shard_seed = args.seed + args.shard_index * SHARD_SEED_STRIDE
 
     if is_valid_shard_json(
         args.output,
@@ -314,6 +382,16 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     summary = result.to_summary_dict()
     summary["config"]["planner"] = args.planner
+    # `ids_bamcp_depth` is recorded post-fallback: the CLI default is None
+    # and no cluster job script passes the flag, so the raw arg says
+    # nothing about the depth IDS actually searched to.
+    summary["config"]["invocation"] = invocation_record(
+        args,
+        ids_bamcp_depth=(
+            args.bamcp_depth if args.ids_bamcp_depth is None
+            else args.ids_bamcp_depth
+        ),
+    )
     with args.output.open("w") as f:
         json.dump(summary, f, indent=2)
 

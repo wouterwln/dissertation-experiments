@@ -4,9 +4,12 @@ Reads output/door_code_simscaling/sims<N>/bamcp.json for the simulation
 budgets in params.door_code_simscaling.sims_sweep and overlays one curve
 per budget:
 
-  Left:   terminal reward per episode (mean ± 90% CI across seeds)
+  Left:   terminal reward per episode (mean ± 95% CI of the mean)
   Middle: success rate per episode
   Right:  probe visits per episode
+
+All three bands are 1.96·SEM across seeds, the same convention as the
+main results figures.
 
 Evidence that BAMCP's 0.00 flatline on door-code is budget-invariant
 around the canonical 10000 simulations (Guez 2012 paper-grade norm),
@@ -52,14 +55,20 @@ def _discover_sims_values(input_dir: Path) -> list[int]:
     return sorted(sims)
 
 
-def _reward_curve(summary: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Mean ± 90% CI of terminal reward per episode across seeds."""
-    rewards = np.asarray(summary["per_episode"]["terminal_reward"], dtype=float)
-    return (
-        rewards.mean(axis=0),
-        np.percentile(rewards, 5, axis=0),
-        np.percentile(rewards, 95, axis=0),
-    )
+def _mean_ci_curve(
+    summary: dict, metric: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Mean ± 95% CI of the mean, per episode across seeds.
+
+    1.96·SEM, matching every main results figure
+    (`plot_door_code.py:110-116`). The `curves` block in the JSON stores
+    p05/p95 instead, which is the spread of per-seed values rather than a
+    confidence interval of the mean, so it is not used here.
+    """
+    raw = np.asarray(summary["per_episode"][metric], dtype=float)
+    mean = raw.mean(axis=0)
+    band = 1.96 * raw.std(axis=0, ddof=1) / np.sqrt(raw.shape[0])
+    return mean, mean - band, mean + band
 
 
 def main() -> None:
@@ -109,20 +118,16 @@ def main() -> None:
         s = runs[sims]
         c = colors[sims]
         lab = f"{sims} sims"
-        mean, p05, p95 = _reward_curve(s)
-        ax_reward.plot(eps, mean, color=c, label=lab, lw=2)
-        ax_reward.fill_between(eps, p05, p95, color=c, alpha=0.15)
-        for ax, metric in ((ax_succ, "success"), (ax_probe, "probe_visits")):
-            curve = s["curves"][metric]
-            ax.plot(eps, np.array(curve["mean"]), color=c, label=lab, lw=2)
-            ax.fill_between(
-                eps, np.array(curve["p05"]), np.array(curve["p95"]),
-                color=c, alpha=0.15,
-            )
+        for ax, metric in ((ax_reward, "terminal_reward"),
+                           (ax_succ, "success"),
+                           (ax_probe, "probe_visits")):
+            mean, lo, hi = _mean_ci_curve(s, metric)
+            ax.plot(eps, mean, color=c, label=lab, lw=2)
+            ax.fill_between(eps, lo, hi, color=c, alpha=0.15)
 
     ax_reward.set_xlabel("episode within block")
     ax_reward.set_ylabel("terminal reward")
-    ax_reward.set_title("Terminal reward (mean ± 90% CI)")
+    ax_reward.set_title("Terminal reward (mean ± 95% CI)")
     ax_reward.axhline(0, color=theme.PALETTE["ink"], lw=0.5, alpha=0.4)
     ax_reward.legend(loc="best", fontsize=9)
     ax_reward.grid(True, alpha=0.3)

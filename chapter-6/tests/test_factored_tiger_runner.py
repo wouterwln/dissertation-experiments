@@ -73,7 +73,7 @@ def test_run_outer_loop_smoke_handles_all_tiger_normalisation():
     env_kwargs = dict(K=2, listen_accuracy=1.0, max_steps=4)
     result = run_outer_loop(
         env_kwargs=env_kwargs,
-        planner_factory=RandomPlanner,
+        planner_factory=lambda seed_index: RandomPlanner(),
         n_seeds=2,
         n_episodes=2,
         horizon=3,

@@ -7,7 +7,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
 mkdir -p logs
 
-GPU_PLANNERS=(aif vbp psrl oracle)
+# persistent_oracle{,_vbp} are rock_sample-only (they need both persistent
+# and episodic θ components to differ from `oracle`).
+GPU_PLANNERS=(aif vbp psrl oracle persistent_oracle persistent_oracle_vbp)
 N_SHARDS=$(uv run python -c \
     "import yaml; print(yaml.safe_load(open('params.yaml'))['cluster']['rock_sample']['n_shards'])")
 TOTAL_SEEDS=$(uv run python -c \

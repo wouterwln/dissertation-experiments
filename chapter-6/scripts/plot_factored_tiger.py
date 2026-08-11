@@ -59,7 +59,7 @@ PLANNER_LABELS = {
     "boss": "BOSS",
     "factored_bamcp": "Factored BA-POMCP",
     "ids": "IDS",
-    "oracle": "Oracle",
+    "oracle": r"Known-$\theta$ VBP",
     "random": "Random",
 }
 PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
@@ -181,7 +181,10 @@ def main() -> None:
     listen_accuracy = env_cfg["listen_accuracy"]
     max_steps = cfg["max_steps"]
 
-    fig, axes = plt.subplots(3, 3, figsize=(16, 12))
+    # 3x3 at 5.0 x 4.5 in per panel — the same per-panel geometry as the
+    # other three benchmark dashboards (2x4 at (20, 9), 3x4 at (20, 13.5)),
+    # so a card cropped from here composes with theirs at the same scale.
+    fig, axes = plt.subplots(3, 3, figsize=(15, 13.5))
     title = (
         f"Factored Tiger: K={K}, listen_accuracy={listen_accuracy}, "
         f"max_steps={max_steps}, n_seeds={n_seeds}, n_episodes={n_episodes}"
@@ -205,16 +208,16 @@ def main() -> None:
         mk = PLANNER_MARKERS.get(name, "")
         _curve_with_band(ax_reward, s, "cumulative_reward", c, lab, linestyle=ls, marker=mk)
         _curve_with_band(ax_norm, s, "reward_normalised", c, lab, linestyle=ls, marker=mk)
-        _curve_with_band(
-            ax_persistent, s, "posterior_entropy_persistent", c, lab,
-            linestyle=ls, marker=mk,
-        )
-        # Oracle is excluded from the identification panels (mass, Brier):
-        # it plans on a one-hot at theta-star, so the logged filter mass
-        # only measures what a Bayesian filter would learn from watching
-        # purely exploitative behaviour — a reward bound, not an
+        # Oracle is excluded from the identification panels (entropy, mass,
+        # Brier): it plans on a one-hot at theta-star, so its logged
+        # posterior only measures what a Bayesian filter would learn from
+        # watching purely exploitative behaviour — a reward bound, not an
         # identification baseline. Random stays (passive floor).
         if name != "oracle":
+            _curve_with_band(
+                ax_persistent, s, "posterior_entropy_persistent", c, lab,
+                linestyle=ls, marker=mk,
+            )
             _curve_with_band(
                 ax_mass, s, "posterior_mass_on_persistent_theta", c, lab,
                 linestyle=ls, marker=mk,
@@ -250,12 +253,12 @@ def main() -> None:
     ax_norm.grid(True, alpha=0.3)
 
     ax_persistent.set_xlabel("episode within block")
-    ax_persistent.set_ylabel("H(q(θ))")
+    ax_persistent.set_ylabel(r"$H(q(\theta))$")
     ax_persistent.set_title("Persistent θ entropy (across-block)")
     ax_persistent.grid(True, alpha=0.3)
 
     ax_mass.set_xlabel("episode within block")
-    ax_mass.set_ylabel("q(θ = truth)")
+    ax_mass.set_ylabel(r"$q(\theta = \mathrm{truth})$")
     ax_mass.set_title("Posterior mass on true θ")
     ax_mass.set_ylim(-0.05, 1.05)
     ax_mass.axhline(1.0, color=theme.PALETTE["ink"], lw=0.5, ls=":", alpha=0.5)
@@ -291,7 +294,7 @@ def main() -> None:
     ax_ptime.grid(True, alpha=0.3, axis="y", which="both")
 
     ax_brier.set_xlabel("episode within block")
-    ax_brier.set_ylabel("Brier score on q(persistent θ)")
+    ax_brier.set_ylabel(r"Brier score on $q(\mathrm{persistent}\ \theta)$")
     ax_brier.set_title("Posterior calibration (Brier)")
     ax_brier.grid(True, alpha=0.3)
 

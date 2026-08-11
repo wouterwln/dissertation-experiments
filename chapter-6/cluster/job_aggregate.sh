@@ -7,7 +7,10 @@
 #SBATCH --output=logs/aggregate_%x_%A.out
 #SBATCH --error=logs/aggregate_%x_%A.err
 # Required env: STAGE, PLANNER. For rock_sample_kscaling, also K.
-# For door_code_simscaling, also SIMS.
+# For door_code_simscaling, also SIMS. For aif_convergence, also ITERS
+# and DAMP. For door_code_depth / rock_sample_depth, also DEPTH. For
+# door_code_rollout, also POLICY. For the *_preference sweeps, also CELL
+# (the good<G>_bad<B> / succ<S>_fail<F> subdirectory name).
 #
 # Tiny postprocess job. One instance is submitted per (planner [, K])
 # combination by the submit scripts, with --dependency=afterok on the
@@ -35,6 +38,27 @@ elif [ "$STAGE" = "door_code_simscaling" ]; then
     SIMS_VAL="${SIMS:?SIMS not set for door_code_simscaling}"
     OUT_DIR="output/door_code_simscaling/sims${SIMS_VAL}"
     LABEL="sims=${SIMS_VAL} ${PLANNER}"
+elif [ "$STAGE" = "aif_convergence" ]; then
+    ITERS_VAL="${ITERS:?ITERS not set for aif_convergence}"
+    DAMP_VAL="${DAMP:?DAMP not set for aif_convergence}"
+    OUT_DIR="output/aif_convergence/iter${ITERS_VAL}_damp${DAMP_VAL}"
+    LABEL="iters=${ITERS_VAL} damping=${DAMP_VAL} ${PLANNER}"
+elif [ "$STAGE" = "door_code_depth" ] || [ "$STAGE" = "rock_sample_depth" ]; then
+    DEPTH_VAL="${DEPTH:?DEPTH not set for ${STAGE}}"
+    OUT_DIR="output/${STAGE}/depth${DEPTH_VAL}"
+    LABEL="depth=${DEPTH_VAL} ${PLANNER}"
+elif [ "$STAGE" = "door_code_rollout" ]; then
+    POLICY_VAL="${POLICY:?POLICY not set for door_code_rollout}"
+    OUT_DIR="output/door_code_rollout/${POLICY_VAL}"
+    LABEL="policy=${POLICY_VAL} ${PLANNER}"
+elif [ "$STAGE" = "door_code_preference" ] \
+    || [ "$STAGE" = "rock_sample_preference" ] \
+    || [ "$STAGE" = "factored_tiger_preference" ]; then
+    # The preference sweeps are 2-D, so the cell directory name is passed
+    # verbatim rather than reassembled from its two axes here.
+    CELL_VAL="${CELL:?CELL not set for ${STAGE}}"
+    OUT_DIR="output/${STAGE}/${CELL_VAL}"
+    LABEL="${CELL_VAL} ${PLANNER}"
 else
     OUT_DIR="output/${STAGE}"
     LABEL="${PLANNER}"

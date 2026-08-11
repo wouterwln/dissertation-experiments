@@ -16,6 +16,10 @@ dependencies = [
     "numba>=0.65.1",
     "numpy>=1.24.0",
     "optax>=0.2.8",
+    # Declared explicitly: cluster/preflight.py and the cluster job
+    # scripts read params.yaml / dvc.yaml. It previously resolved only as
+    # a transitive dependency of flax.
+    "pyyaml>=6.0",
     "tqdm>=4.65.0",
 ]
 

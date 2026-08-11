@@ -47,7 +47,7 @@ PLANNER_LABELS = {
     "bamcp": "BAMCP",
     "pomcp": "POMCP (literal)",
     "ids": "IDS",
-    "oracle": "Oracle",
+    "oracle": r"Known-$\theta$ VBP",
     "random": "Random",
 }
 PLANNER_COLORS = {name: theme.planner_color(name) for name in PLANNER_LABELS}
@@ -253,7 +253,7 @@ def main() -> None:
     ax_succ.grid(True, alpha=0.3)
 
     ax_mass.set_xlabel("episode within block")
-    ax_mass.set_ylabel("q(theta_true)")
+    ax_mass.set_ylabel(r"$q(\theta_{\mathrm{true}})$")
     ax_mass.set_title("Posterior mass on true θ")
     ax_mass.set_ylim(-0.02, 1.02)
     ax_mass.grid(True, alpha=0.3)
@@ -310,7 +310,7 @@ def main() -> None:
     ax_ptime.grid(True, alpha=0.3, axis="y", which="both")
 
     ax_brier.set_xlabel("episode within block")
-    ax_brier.set_ylabel("Brier score (1 − q(θ*))²")
+    ax_brier.set_ylabel(r"Brier score $(1 - q(\theta^\star))^2$")
     ax_brier.set_title("Posterior calibration (Brier)")
     ax_brier.grid(True, alpha=0.3)
 
@@ -349,7 +349,7 @@ def main() -> None:
     ax_identify.set_xticklabels(
         [PLANNER_LABELS[n] for n in ident_names], rotation=30, ha="right",
     )
-    ax_identify.set_ylabel("episodes until q(θ*) ≥ 0.9")
+    ax_identify.set_ylabel(r"episodes until $q(\theta^\star) \geq 0.9$")
     ax_identify.set_title("Sample efficiency (median + IQR)")
     ax_identify.grid(True, alpha=0.3, axis="y")
 

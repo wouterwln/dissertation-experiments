@@ -7,8 +7,9 @@ Per-episode metric arrays plus mean / 5th / 95th percentile curves are
 written as JSON.
 
 Wired planners: AIF, VBP, PSRL, BAMCP, BOSS, Factored BA-POMCP, Oracle,
-Random. BeliefQ is deferred (its belief feature is door-code-specific
-and needs a separate env-agnostic redesign).
+Persistent-Oracle (AIF inner solve, plus a `_vbp` diagnostic), Random.
+BeliefQ is deferred (its belief feature is door-code-specific and needs a
+separate env-agnostic redesign).
 
 Example:
 
@@ -26,13 +27,14 @@ import math
 from functools import partial
 from pathlib import Path
 
-from learningpomdp.experiment.io import is_valid_shard_json
+from learningpomdp.experiment.io import invocation_record, is_valid_shard_json
 from learningpomdp.experiment.rock_sample_runner import run_outer_loop
 from learningpomdp.planning.aif_planner import AIFPlanner
 from learningpomdp.planning.bamcp_planner import BAMCPPlanner
 from learningpomdp.planning.boss_planner import BOSSPlanner
 from learningpomdp.planning.ids_planner import IDSPlanner
 from learningpomdp.planning.oracle_planner import OraclePlanner
+from learningpomdp.planning.persistent_oracle_planner import PersistentOraclePlanner
 from learningpomdp.planning.psrl_planner import PSRLPlanner
 from learningpomdp.planning.random_planner import RandomPlanner
 from learningpomdp.planning.vbp_planner import VBPPlanner
@@ -40,61 +42,139 @@ from learningpomdp.planning.vbp_planner import VBPPlanner
 
 # Module-level factory helpers — must be top-level (not lambdas) so the
 # multiprocessing 'spawn' context can pickle them.
+#
+# Every helper takes ``seed_index`` last: the runner calls the factory once
+# per outer-loop seed and passes that seed's index, and the MCTS families
+# fold it into their ``rollout_seed``. Without it all m seeds construct
+# ``default_rng(<same int>)`` and — since the draws per plan() call are
+# deterministic given n_simulations — draw a bit-identical Monte-Carlo
+# stream, which makes the tree-search noise *common* across seeds and the
+# cross-seed ±1.96·SEM understate planner variance. ``seed_index`` is at
+# most the shard's seed count (tens), so it stays far below
+# SHARD_SEED_STRIDE and per-seed offsets can never reach into the next
+# shard's range. Index 0 is unshifted, so seed 0 of every shard keeps its
+# previous stream.
+#
+# Planners with no planner-side RNG (AIF / VBP / Oracle / PSRL / Random
+# draw from the per-seed generator the runner hands to prepare_episode /
+# plan) accept and ignore the argument, so the factory protocol stays
+# uniform across the slate.
 
-def _make_aif(iterations, damping):
+def _make_aif(iterations, damping, seed_index):
     return AIFPlanner(n_iterations=iterations, damping=damping)
 
 
-def _make_vbp(iterations, damping):
+def _make_vbp(iterations, damping, seed_index):
     return VBPPlanner(n_iterations=iterations, damping=damping)
 
 
-def _make_oracle(iterations, damping):
+def _make_oracle(iterations, damping, seed_index):
     return OraclePlanner(VBPPlanner(n_iterations=iterations, damping=damping))
 
 
-def _make_random():
+def _make_persistent_oracle(iterations, damping, seed_index):
+    return PersistentOraclePlanner(
+        AIFPlanner(n_iterations=iterations, damping=damping)
+    )
+
+
+def _make_persistent_oracle_vbp(iterations, damping, seed_index):
+    return PersistentOraclePlanner(
+        VBPPlanner(n_iterations=iterations, damping=damping)
+    )
+
+
+def _make_random(seed_index):
     return RandomPlanner()
 
 
-def _make_psrl(iterations, damping):
+def _make_psrl(iterations, damping, seed_index):
     return PSRLPlanner(VBPPlanner(n_iterations=iterations, damping=damping))
 
 
-def _make_bamcp(n_sims, depth, ucb_c, gamma, seed, factored):
+def _make_bamcp(
+    n_sims, depth, ucb_c, gamma, seed, factored,
+    rollout_policy, rollout_epsilon, rollout_q_lr, seed_index,
+):
     return BAMCPPlanner(
         n_simulations=n_sims, depth=depth, ucb_c=ucb_c, gamma=gamma,
-        rollout_seed=seed, factored_root_sample=factored,
+        rollout_seed=seed + seed_index, factored_root_sample=factored,
+        rollout_policy=rollout_policy, rollout_epsilon=rollout_epsilon,
+        rollout_q_lr=rollout_q_lr,
     )
 
 
-def _make_boss(n_samples, n_sims, depth, ucb_c, gamma, seed):
+def _make_boss(
+    n_samples, n_sims, depth, ucb_c, gamma, seed,
+    rollout_policy, rollout_epsilon, rollout_q_lr, seed_index,
+):
     return BOSSPlanner(
         n_samples=n_samples, n_simulations=n_sims, depth=depth,
-        ucb_c=ucb_c, gamma=gamma, rollout_seed=seed,
+        ucb_c=ucb_c, gamma=gamma, rollout_seed=seed + seed_index,
+        rollout_policy=rollout_policy, rollout_epsilon=rollout_epsilon,
+        rollout_q_lr=rollout_q_lr,
     )
 
 
-def _make_ids(ids_n_sims, depth, ucb_c, gamma, seed, epsilon_info):
+def _make_ids(
+    ids_n_sims, depth, ucb_c, gamma, seed, epsilon_info,
+    rollout_policy, rollout_epsilon, rollout_q_lr, seed_index,
+):
     return IDSPlanner(
         bamcp=BAMCPPlanner(
             n_simulations=ids_n_sims, depth=depth, ucb_c=ucb_c, gamma=gamma,
-            rollout_seed=seed, resample_theta_per_sim=True,
+            rollout_seed=seed + seed_index, resample_theta_per_sim=True,
+            rollout_policy=rollout_policy, rollout_epsilon=rollout_epsilon,
+            rollout_q_lr=rollout_q_lr,
         ),
         epsilon_info=epsilon_info,
     )
 
 
+# Per-shard RNG stride. Shard i's seeds start at `--seed + i * STRIDE`,
+# and every planner-side RNG base is offset by the same amount so that no
+# two shards share a Monte-Carlo stream.
+SHARD_SEED_STRIDE = 1_000_003
+
+
+def _planner_seeds(args) -> tuple[int, int]:
+    """Per-shard (planner rollout seed, IDS seed).
+
+    Planner RNG bases must vary per shard, or every seed a sharded run
+    averages over draws the same MCTS noise and the cross-seed CI
+    understates variance. Both bases take the same shard offset so they
+    stay a constant apart at every shard. See run_door_code.py.
+    """
+    offset = args.shard_index * SHARD_SEED_STRIDE
+    return args.seed + offset, args.ids_rollout_seed + offset
+
+
 def _build_planner_factory(args):
-    """Return a picklable factory callable that constructs a fresh
-    planner. ``functools.partial`` over top-level constructors so the
-    multiprocessing 'spawn' context can pickle them."""
+    """Return a picklable ``factory(seed_index) -> Planner``.
+
+    ``functools.partial`` over top-level constructors so the
+    multiprocessing 'spawn' context can pickle them; ``seed_index`` is
+    supplied by the runner per outer-loop seed (a counter inside the
+    factory would not work — the parallel path re-pickles the factory for
+    every task, so each worker copy would restart at zero)."""
+    rollout_seed, ids_seed = _planner_seeds(args)
+    rollout = (args.rollout_policy, args.rollout_epsilon, args.rollout_q_lr)
     if args.planner == "aif":
         return partial(_make_aif, args.planner_iterations, args.planner_damping)
     if args.planner == "vbp":
         return partial(_make_vbp, args.planner_iterations, args.planner_damping)
     if args.planner == "oracle":
         return partial(_make_oracle, args.planner_iterations, args.planner_damping)
+    if args.planner == "persistent_oracle":
+        return partial(
+            _make_persistent_oracle,
+            args.planner_iterations, args.planner_damping,
+        )
+    if args.planner == "persistent_oracle_vbp":
+        return partial(
+            _make_persistent_oracle_vbp,
+            args.planner_iterations, args.planner_damping,
+        )
     if args.planner == "random":
         return _make_random
     if args.planner == "psrl":
@@ -103,25 +183,30 @@ def _build_planner_factory(args):
         return partial(
             _make_bamcp,
             args.bamcp_n_simulations, args.bamcp_depth, args.bamcp_ucb_c,
-            args.bamcp_gamma, args.seed, False,
+            args.bamcp_gamma, rollout_seed, False, *rollout,
         )
     if args.planner == "factored_bamcp":
         return partial(
             _make_bamcp,
             args.bamcp_n_simulations, args.bamcp_depth, args.bamcp_ucb_c,
-            args.bamcp_gamma, args.seed, True,
+            args.bamcp_gamma, rollout_seed, True, *rollout,
         )
     if args.planner == "boss":
         return partial(
             _make_boss,
             args.boss_n_samples, args.bamcp_n_simulations, args.bamcp_depth,
-            args.bamcp_ucb_c, args.bamcp_gamma, args.seed,
+            args.bamcp_ucb_c, args.bamcp_gamma, rollout_seed, *rollout,
         )
     if args.planner == "ids":
+        # IDS's own depth and rollout seed (not the BAMCP arm's) so its
+        # Monte-Carlo noise is independent.
         return partial(
             _make_ids,
-            args.ids_bamcp_n_simulations, args.bamcp_depth,
-            args.bamcp_ucb_c, args.bamcp_gamma, args.seed, args.ids_epsilon_info,
+            args.ids_bamcp_n_simulations,
+            args.bamcp_depth if args.ids_bamcp_depth is None
+            else args.ids_bamcp_depth,
+            args.bamcp_ucb_c, args.bamcp_gamma, ids_seed,
+            args.ids_epsilon_info, *rollout,
         )
     raise ValueError(f"unknown planner: {args.planner}")
 
@@ -134,7 +219,8 @@ def main() -> None:
         "--planner",
         choices=[
             "aif", "vbp", "psrl", "bamcp", "boss", "factored_bamcp",
-            "ids", "oracle", "random",
+            "ids", "oracle", "persistent_oracle", "persistent_oracle_vbp",
+            "random",
         ],
         required=True,
     )
@@ -191,6 +277,25 @@ def main() -> None:
     parser.add_argument("--bamcp-ucb-c", type=float, default=1.0)
     parser.add_argument("--bamcp-gamma", type=float, default=0.99)
     parser.add_argument("--boss-n-samples", type=int, default=4)
+    # Leaf-rollout policy, shared by BAMCP / Factored-BAMCP / BOSS / IDS.
+    parser.add_argument(
+        "--rollout-policy", choices=["uniform", "eps_greedy_q"],
+        default="uniform",
+        help="MCTS leaf-rollout policy. 'uniform' (default) is the "
+             "uniform-random rollout; 'eps_greedy_q' is Guez et al. 2012's "
+             "epsilon-greedy rollout in a Q-hat learned off-policy from the "
+             "rollouts themselves.",
+    )
+    parser.add_argument(
+        "--rollout-epsilon", type=float, default=0.1,
+        help="exploration rate of the eps_greedy_q rollout (ignored under "
+             "--rollout-policy uniform)",
+    )
+    parser.add_argument(
+        "--rollout-q-lr", type=float, default=0.1,
+        help="learning rate of the eps_greedy_q rollout's off-policy Q-hat "
+             "update (ignored under --rollout-policy uniform)",
+    )
     # IDS — Information-Directed Sampling
     parser.add_argument(
         "--ids-bamcp-n-simulations", type=int, default=1024,
@@ -198,8 +303,20 @@ def main() -> None:
              "default mirrors --bamcp-n-simulations)",
     )
     parser.add_argument(
+        "--ids-bamcp-depth", type=int, default=None,
+        help="tree+rollout depth of IDS's own BAMCP instance; defaults to "
+             "--bamcp-depth",
+    )
+    parser.add_argument(
+        "--ids-rollout-seed", type=int, default=7919,
+        help="RNG base for IDS's own BAMCP instance; deliberately != --seed "
+             "so IDS's Monte-Carlo noise is independent of the BAMCP arm's. "
+             "Must not differ from --seed by a multiple of the shard stride "
+             "(1_000_003); 7919 is coprime to it.",
+    )
+    parser.add_argument(
         "--ids-epsilon-info", type=float, default=1.0e-6,
-        help="ε regulariser in the IDS information ratio Δ²/(I+ε)",
+        help="ε regulariser in the IDS information ratio Δ(π)²/(I(π)+ε)",
     )
 
     # ---- Multiprocessing (CPU-only sample-based planners) ----
@@ -235,7 +352,7 @@ def main() -> None:
             f"shard {args.shard_index}/{args.n_shards} is empty "
             f"(total_seeds={total_seeds}, seeds_per_shard={seeds_per_shard})"
         )
-    shard_seed = args.seed + args.shard_index * 1_000_003
+    shard_seed = args.seed + args.shard_index * SHARD_SEED_STRIDE
 
     if is_valid_shard_json(
         args.output,
@@ -294,6 +411,16 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     summary = result.to_summary_dict()
     summary["config"]["planner"] = args.planner
+    # `ids_bamcp_depth` is recorded post-fallback: the CLI default is None
+    # and no cluster job script passes the flag, so the raw arg says
+    # nothing about the depth IDS actually searched to.
+    summary["config"]["invocation"] = invocation_record(
+        args,
+        ids_bamcp_depth=(
+            args.bamcp_depth if args.ids_bamcp_depth is None
+            else args.ids_bamcp_depth
+        ),
+    )
     with args.output.open("w") as f:
         json.dump(summary, f, indent=2)
 

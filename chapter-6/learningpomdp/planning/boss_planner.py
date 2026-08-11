@@ -46,7 +46,10 @@ import jax.numpy as jnp
 import numpy as np
 
 from learningpomdp.inference.state_inference import sample_persistent_theta
-from learningpomdp.planning.bamcp_planner import BAMCPPlanner
+from learningpomdp.planning.bamcp_planner import (
+    BAMCPPlanner,
+    _argmax_random_tiebreak,
+)
 
 if TYPE_CHECKING:
     from learningpomdp.factors import FactorSpec, ThetaSpec
@@ -96,10 +99,23 @@ class BOSSPlanner:
         n_samples: number of theta samples per episode (the K of BOSS).
             n=1 reduces to a fixed-theta MCTS for the episode.
         n_simulations: MCTS rollouts per call to plan().
-        depth: max tree+rollout depth (caps both expansion and rollout).
+        depth: bound on the TOTAL simulated lookahead of one simulation —
+            tree descent PLUS leaf rollout, not tree depth with free
+            rollouts beneath it. A simulation that descends d tree levels
+            gets exactly ``depth - d`` rollout steps. Must be matched
+            against AIF-MP's ``runner.horizon`` for the two planner
+            families to have equal lookahead; see BAMCPPlanner.
         ucb_c: UCB1 exploration constant (over (a, k) pairs).
         gamma: discount factor for returns.
         rollout_seed: RNG seed for theta-sampling and forward sims.
+        rollout_policy: leaf-rollout behaviour, ``"uniform"`` (default)
+            or ``"eps_greedy_q"`` — see BAMCPPlanner. Applied here too so
+            the optimistic baseline is not left mis-set once BAMCP's
+            rollout is fixed. Only the *action* draw changes; the uniform
+            ``k_idx`` draw is BOSS's merged-action-space mechanism, not
+            part of the rollout policy, and is left alone.
+        rollout_epsilon: exploration rate of the eps-greedy rollout.
+        rollout_q_lr: learning rate of the off-policy Q-hat update.
     """
 
     def __init__(
@@ -110,16 +126,30 @@ class BOSSPlanner:
         ucb_c: float = 1.0,
         gamma: float = 0.99,
         rollout_seed: int = 0,
+        rollout_policy: str = "uniform",
+        rollout_epsilon: float = 0.1,
+        rollout_q_lr: float = 0.1,
     ) -> None:
         if n_samples < 1:
             raise ValueError(f"n_samples must be >= 1, got {n_samples}")
+        if rollout_policy not in ("uniform", "eps_greedy_q"):
+            raise ValueError(
+                f"rollout_policy must be 'uniform' or 'eps_greedy_q', "
+                f"got {rollout_policy!r}"
+            )
         self.n_samples = n_samples
         self.n_simulations = n_simulations
         self.depth = depth
         self.ucb_c = ucb_c
         self.gamma = gamma
+        self.rollout_policy = rollout_policy
+        self.rollout_epsilon = float(rollout_epsilon)
+        self.rollout_q_lr = float(rollout_q_lr)
         self._rng = np.random.default_rng(rollout_seed)
         self._sampled_thetas: list[int] | None = None
+        # Rollout Q-hat over (state, real action); None under "uniform".
+        # Persists across plan() calls, reset per block by prepare_block().
+        self._q_rollout: np.ndarray | None = None
 
     @property
     def current_samples(self) -> list[int] | None:
@@ -170,6 +200,36 @@ class BOSSPlanner:
             sampled.append(int(rng.choice(q_cond_flat.size, p=q_cond_flat)))
         self._sampled_thetas = sampled
         return list(sampled)
+
+    def prepare_block(
+        self, q_static: jnp.ndarray, rng: np.random.Generator,
+    ) -> None:
+        """Reset the rollout Q-hat at the start of a theta_true block.
+
+        Same scoping argument as BAMCPPlanner.prepare_block: Q-hat is
+        learned from simulated experience under the block's pinned
+        theta_true, so carrying it across blocks would leak the previous
+        block's system identity. No-op under ``"uniform"``.
+        """
+        self._q_rollout = None
+
+    def _ensure_q_rollout(
+        self, n_states: int, n_actions: int, q_init: float,
+    ) -> None:
+        """Lazily allocate Q-hat once the cardinalities are known.
+
+        ``q_init`` is the optimistic initial value — same argument as
+        BAMCPPlanner._ensure_q_rollout.
+        """
+        if self.rollout_policy == "uniform":
+            return
+        if (
+            self._q_rollout is None
+            or self._q_rollout.shape != (n_states, n_actions)
+        ):
+            self._q_rollout = np.full(
+                (n_states, n_actions), q_init, dtype=np.float64,
+            )
 
     # ----- main planning -----
 
@@ -235,6 +295,8 @@ class BOSSPlanner:
         }
 
         max_depth = min(self.depth, max(horizon, 1))
+        # Legacy reward is {+1, -1, 0} from the outcome channel.
+        self._ensure_q_rollout(n_states, n_actions, 1.0)
 
         root = _Node()
         for _ in range(self.n_simulations):
@@ -336,11 +398,22 @@ class BOSSPlanner:
         K: int,
         thetas: list[int],
     ) -> float:
-        """Random-action rollout over augmented (a, k) pairs."""
+        """Rollout over augmented (a, k) pairs under self.rollout_policy.
+
+        The real action follows the rollout policy; ``k_idx`` stays
+        uniform (that draw is the merged-action-space mechanism, not the
+        rollout policy). Under ``"uniform"`` ``q_hat is None``, so no
+        extra RNG draw is consumed and the stream is unchanged. Ties in
+        Q-hat are broken uniformly at random, not by lowest index.
+        """
+        q_hat = self._q_rollout
         total = 0.0
         gamma_t = 1.0
         for _ in range(depth):
-            action = int(self._rng.integers(0, n_actions))
+            if q_hat is None or self._rng.random() < self.rollout_epsilon:
+                action = int(self._rng.integers(0, n_actions))
+            else:
+                action = _argmax_random_tiebreak(q_hat[state], self._rng)
             k_idx = int(self._rng.integers(0, K))
             theta = thetas[k_idx]
             next_state, obs_idx, reward = BAMCPPlanner._step(
@@ -349,7 +422,15 @@ class BOSSPlanner:
             )
             total += gamma_t * reward
             outcome = obs_idx % 3
-            if outcome == 1 or outcome == 2:
+            terminal = outcome == 1 or outcome == 2
+            if q_hat is not None:
+                target = reward if terminal else (
+                    reward + self.gamma * q_hat[next_state].max()
+                )
+                q_hat[state, action] += self.rollout_q_lr * (
+                    target - q_hat[state, action]
+                )
+            if terminal:
                 return total
             state = next_state
             gamma_t *= self.gamma
@@ -435,9 +516,14 @@ def _plan_numba_impl(
     else:
         reward_table = np.asarray(reward_table, dtype=np.float64)
 
-    terminal_table = np.zeros((n_states, n_actions, n_static), dtype=np.bool_)
+    # Full-size only when there is a terminal_fn to fill it; see the same
+    # branch in BAMCPPlanner._plan_numba for why (both factored runners
+    # pass None, so this was megabytes of zeros per decision).
     has_terminal = terminal_fn is not None
     if terminal_fn is not None:
+        terminal_table = np.zeros(
+            (n_states, n_actions, n_static), dtype=np.bool_,
+        )
         for theta_flat in range(n_static):
             theta_components = theta_spec.unravel(theta_flat)
             for s in range(n_states):
@@ -445,8 +531,12 @@ def _plan_numba_impl(
                     terminal_table[s, a, theta_flat] = bool(terminal_fn(
                         s, a, 0, theta_components,
                     ))
+    else:
+        terminal_table = np.zeros((1, 1, 1), dtype=np.bool_)
 
     max_depth = min(self.depth, max(horizon, 1))
+    # reward_table carries the env's true reward scale (see BAMCP).
+    self._ensure_q_rollout(n_states, n_actions, float(reward_table.max()))
 
     # BOSS thetas were sampled in prepare_episode and frozen for the
     # episode (deduplicated). Convert to int32 array for Numba.
@@ -465,6 +555,15 @@ def _plan_numba_impl(
 
     seed = int(self._rng.integers(0, 2**31 - 1))
 
+    # @njit takes no None: pass a (1, 1) dummy under "uniform" and let the
+    # use-flag skip every Q-hat branch. Passing the real buffer IN is what
+    # lets it survive across plan() calls within a block.
+    use_q_rollout = self._q_rollout is not None
+    q_rollout = (
+        self._q_rollout if use_q_rollout
+        else np.zeros((1, 1), dtype=np.float64)
+    )
+
     visits = _run_boss_numba(
         self.n_simulations, max_depth, n_actions,
         thetas, K_samples, root_states,
@@ -473,6 +572,8 @@ def _plan_numba_impl(
         float(self.ucb_c), float(self.gamma),
         n_likelihood, obs_stride_total,
         seed,
+        q_rollout, use_q_rollout,
+        float(self.rollout_epsilon), float(self.rollout_q_lr),
     )
 
     if visits.sum() > 0:

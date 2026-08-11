@@ -6,6 +6,12 @@ import pytest
 
 from learningpomdp.environments.door_code import DoorCodeEnv
 from learningpomdp.experiment.door_code_runner import run_block, run_outer_loop
+from learningpomdp.factors import FactorSpec, ThetaSpec
+from learningpomdp.observations import (
+    ModalityRegistry,
+    ObservationModality,
+    ThetaDependence,
+)
 from learningpomdp.planning.bamcp_planner import BAMCPPlanner
 
 
@@ -231,4 +237,157 @@ def test_root_state_is_sampled_from_q_state() -> None:
     assert not np.allclose(dist_a, dist_b, atol=1e-3), (
         f"different RNGs gave identical visit dists -> root_state likely "
         f"collapsed to argmax: a={dist_a}, b={dist_b}"
+    )
+
+
+# --- Depth semantics ---------------------------------------------------------
+#
+# `depth` bounds the TOTAL simulated lookahead of one simulation — tree
+# descent PLUS leaf rollout — and the effective bound is
+# min(depth, max(horizon, 1)). Every other test in this file uses
+# depth == horizon, which makes `min(depth, horizon)`, depth-only and
+# horizon-only indistinguishable and would let an off-by-one in the
+# `depth - 1` recursion pass the whole suite. These tests separate the two
+# knobs and pin the step budget exactly.
+
+
+def _non_terminating_env(n_states: int, n_actions: int, n_static: int = 1):
+    """A chain with no SUCCESS/FAILURE state, so nothing short-circuits.
+
+    Early termination is the one thing that could legitimately make a
+    simulation shorter than `max_depth`, so it must be absent for the
+    step count to be a clean assertion about the depth budget.
+    """
+    T = np.zeros((n_states, n_states, n_static, n_actions), dtype=np.float64)
+    for theta in range(n_static):
+        for action in range(n_actions):
+            for s in range(n_states):
+                # Advance along the chain, absorbing at the end.
+                T[min(s + 1, n_states - 1), s, theta, action] = 1.0
+    B_position = np.eye(n_states, dtype=np.float64)
+    B_probe = np.zeros((3, n_states, n_static), dtype=np.float64)
+    B_probe[2, :, :] = 1.0
+    # outcome 0 == NEUTRAL everywhere: no terminal, no reward.
+    B_outcome = np.zeros((3, n_states), dtype=np.float64)
+    B_outcome[0, :] = 1.0
+    return T, [B_position, B_probe, B_outcome]
+
+
+@pytest.mark.parametrize(
+    "depth, horizon, expected_max_depth",
+    [
+        (3, 8, 3),   # depth < horizon -> depth binds
+        (8, 3, 3),   # depth > horizon -> horizon binds (clip_horizon case)
+        (4, 4, 4),   # equal, the only case the old suite covered
+    ],
+)
+def test_steps_per_simulation_equals_max_depth(
+    monkeypatch, depth, horizon, expected_max_depth,
+) -> None:
+    """Total env steps per simulation == min(depth, horizon), exactly.
+
+    n_actions=1 forces every simulation down the same branch, so after the
+    first few the descent is deep rather than shallow — which is what
+    exercises the `depth - 1` recursion and its `depth <= 0` guard, not
+    just the root-level rollout.
+    """
+    n_simulations = 6
+    T, B_list = _non_terminating_env(n_states=12, n_actions=1)
+
+    step_calls = []
+    original_step = BAMCPPlanner._step
+
+    def counting_step(*args, **kwargs):
+        step_calls.append(1)
+        return original_step(*args, **kwargs)
+
+    monkeypatch.setattr(BAMCPPlanner, "_step", staticmethod(counting_step))
+
+    planner = BAMCPPlanner(
+        n_simulations=n_simulations, depth=depth, rollout_seed=0,
+    )
+    q_state = jnp.zeros(12, dtype=jnp.float32).at[0].set(1.0)
+    q_static = jnp.ones(1, dtype=jnp.float32)
+    planner.plan(
+        q_state, q_static,
+        jnp.asarray(T, dtype=jnp.float32),
+        [jnp.asarray(B, dtype=jnp.float32) for B in B_list],
+        goal=None, horizon=horizon,
+    )
+
+    assert len(step_calls) == n_simulations * expected_max_depth, (
+        f"depth={depth}, horizon={horizon}: expected "
+        f"{n_simulations} x {expected_max_depth} = "
+        f"{n_simulations * expected_max_depth} env steps, "
+        f"got {len(step_calls)}"
+    )
+
+
+@pytest.mark.parametrize(
+    "depth, horizon, expected_max_depth",
+    [(3, 8, 3), (8, 3, 3), (4, 4, 4)],
+)
+def test_numba_path_root_value_equals_max_depth(
+    depth, horizon, expected_max_depth,
+) -> None:
+    """Same assertion for the Numba path, read off the returned Q.
+
+    `_step` cannot be monkeypatched inside an @njit function, so instead
+    every (state, action) pays reward exactly 1 and gamma is exactly 1.
+    The backed-up root value is then the undiscounted sum over the whole
+    simulation, i.e. the number of env steps it took — so Q(a) at the root
+    must equal max_depth on the nose. This is what a depth off-by-one in
+    either the descent or the `max_depth - d - 1` rollout budget would
+    break.
+    """
+    n_states, n_actions, n_static = 12, 1, 1
+    T, B_list = _non_terminating_env(n_states, n_actions, n_static)
+    # The Numba path takes a θ-independent T with the θ axis dropped, and
+    # θ-independent B channels without a θ tail. Same dynamics as the
+    # legacy 4-D layout above, re-laid-out.
+    T_3d = np.ascontiguousarray(T[:, :, 0, :])
+    B_list = [B_list[0], np.ascontiguousarray(B_list[1][:, :, 0]), B_list[2]]
+
+    registry = ModalityRegistry(modalities=(
+        ObservationModality(
+            name="position", cardinality=n_states,
+            theta_dependence=ThetaDependence.INDEPENDENT,
+        ),
+        ObservationModality(
+            name="probe", cardinality=3,
+            theta_dependence=ThetaDependence.INDEPENDENT,
+        ),
+        ObservationModality(
+            name="outcome", cardinality=3,
+            theta_dependence=ThetaDependence.INDEPENDENT,
+        ),
+    ))
+    reward_table = np.ones((n_states, n_actions, n_static), dtype=np.float64)
+
+    planner = BAMCPPlanner(
+        n_simulations=6, depth=depth, gamma=1.0, rollout_seed=0,
+    )
+    q_values, _ = planner.plan(
+        jnp.zeros(n_states, dtype=jnp.float32).at[0].set(1.0),
+        jnp.ones(n_static, dtype=jnp.float32),
+        jnp.asarray(T_3d, dtype=jnp.float32),
+        [jnp.asarray(B, dtype=jnp.float32) for B in B_list],
+        goal=None, horizon=horizon,
+        theta_spec=ThetaSpec(component_sizes=(n_static,)),
+        t_factor_spec=FactorSpec(theta_components=()),
+        b_factor_specs=(
+            FactorSpec(theta_components=()),
+            FactorSpec(theta_components=()),
+            FactorSpec(theta_components=()),
+        ),
+        registry=registry,
+        reward_fn=lambda *a, **k: 1.0,
+        terminal_fn=None,
+        reward_table=reward_table,
+        return_q_values=True,
+    )
+    q = float(np.asarray(q_values)[0])
+    assert q == pytest.approx(float(expected_max_depth), abs=1e-4), (
+        f"depth={depth}, horizon={horizon}: root Q should equal the step "
+        f"budget {expected_max_depth}, got {q}"
     )
