@@ -3761,8 +3761,8 @@ stages:
       size: 34495437
     - path: scripts/plot_door_code_depth.py
       hash: md5
-      md5: 851838bbaeba33a626c0dfc72d513a2d
-      size: 7625
+      md5: 8258e656ef3a744d58a197e72a1415d3
+      size: 7266
     params:
       params.yaml:
         door_code_depth.depth_sweep:
@@ -3774,8 +3774,8 @@ stages:
     outs:
     - path: output/door_code_depth/figure.pdf
       hash: md5
-      md5: b20679fef1ac884b2265c92321bd68cc
-      size: 24628
+      md5: 9350b502de790f1ce65183c5df187354
+      size: 23115
   door_code_rollout@uniform-bamcp:
     cmd: uv run python scripts/run_door_code.py --planner bamcp --K 6 
       --lock-length 4 --probe-noise 0.2 --n-seeds 25 --n-episodes 25 --max-steps
@@ -7414,8 +7414,8 @@ stages:
       size: 9417818
     - path: scripts/plot_rock_sample_depth.py
       hash: md5
-      md5: b44639ab4304c3c4b58190113f3270e8
-      size: 11894
+      md5: 4b6029ab55dfb5933ece3bc2f1ffd363
+      size: 12039
     params:
       params.yaml:
         rock_sample.runner.horizon: 15
@@ -7427,8 +7427,8 @@ stages:
     outs:
     - path: output/rock_sample_depth/figure.pdf
       hash: md5
-      md5: 69cb4494a824ea8cb17ab79e35cfb161
-      size: 28030
+      md5: 34bb2a6d8ea37b59cc8cefe920e2bd5c
+      size: 23198
   factored_tiger@aif:
     cmd: uv run python scripts/run_factored_tiger.py --planner aif --K 6 
       --listen-accuracy 0.85 --open-safe-reward 10.0 --open-tiger-penalty 100.0 

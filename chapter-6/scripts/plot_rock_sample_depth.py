@@ -76,12 +76,18 @@ def _discover_depths(input_dir: Path) -> list[int]:
     return sorted(depths)
 
 
-def _block_mean(summary: dict, metric: str) -> tuple[float, float]:
-    """Per-seed block mean of `metric`, aggregated as mean ± 1.96·SEM.
+def _block_mean(
+    summary: dict, metric: str, last: int | None = None,
+) -> tuple[float, float]:
+    """Per-seed mean of `metric`, aggregated as mean ± 1.96·SEM.
 
-    NaN-safe: reward_normalised is NaN on episodes with no good rock.
+    With `last`, only the final `last` episodes of each block enter the
+    per-seed mean (the final window). NaN-safe: reward_normalised is NaN
+    on episodes with no good rock.
     """
     per_ep = np.asarray(summary["per_episode"][metric], dtype=float)
+    if last is not None:
+        per_ep = per_ep[:, -last:]
     per_seed = np.nanmean(per_ep, axis=1)
     n = max(np.count_nonzero(~np.isnan(per_seed)), 1)
     sem = np.nanstd(per_seed, ddof=1) / np.sqrt(n) if n > 1 else 0.0
@@ -105,6 +111,11 @@ def main() -> None:
         "--horizon", type=int, default=None,
         help="AIF-MP planning horizon to mark on the depth axis "
              "(params rock_sample.runner.horizon)",
+    )
+    parser.add_argument(
+        "--final-window", type=int, default=3,
+        help="episodes in the final window of the reward panel "
+             "(params windows.rock_sample.n_final)",
     )
     args = parser.parse_args()
 
@@ -162,21 +173,15 @@ def main() -> None:
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     ax_reward, ax_sense, ax_entropy = axes
-    fig.suptitle(
-        f"RockSample MCTS depth sensitivity — K={cfg['env']['K']}, "
-        f"grid={cfg['env']['grid_size']}, "
-        f"n_seeds={cfg['n_seeds']}, n_episodes={cfg['n_episodes']} "
-        f"(depth bounds tree + rollout lookahead)",
-        fontsize=11,
-    )
 
     panels = (
         (ax_reward, "reward_normalised", False,
-         "block-mean reward / max_possible", "Normalised reward"),
+         f"normalized reward, last {args.final_window} episodes",
+         "Final normalized reward"),
         (ax_sense, "n_senses", False,
-         "SENSE actions / episode", "Sensing effort"),
+         "sensing actions per episode", "Sensing effort"),
         (ax_entropy, "posterior_entropy_persistent", True,
-         "H(q(θ_sensor)) at final episode", "Terminal persistent entropy"),
+         "persistent entropy, final episode", "Terminal persistent entropy"),
     )
 
     for ax, metric, terminal, ylabel, title in panels:
@@ -189,8 +194,12 @@ def main() -> None:
                 )
                 errs = np.zeros_like(means)
             else:
+                # The reward panel reports the final window, the quantity
+                # the robustness appendix quotes; the others stay block means.
+                window = args.final_window if ax is ax_reward else None
                 stats = [
-                    _block_mean(runs[(d, planner)], metric) for d in p_depths
+                    _block_mean(runs[(d, planner)], metric, window)
+                    for d in p_depths
                 ]
                 means = np.array([m for m, _ in stats])
                 errs = np.array([e for _, e in stats])
@@ -261,17 +270,12 @@ def main() -> None:
             f"invariance is reported from that timing, not measured here"
         )
     if notes:
-        # State the reduced sampling on the figure itself, not only in the
-        # legend entry — a reader skimming panels must not read two markers
-        # as a sampled curve, nor a missing planner as an untested one.
-        fig.text(
-            0.5, 0.005,
-            f"Reduced sampling: {'; '.join(notes)}. "
-            f"See params.yaml rock_sample_depth.",
-            ha="center", fontsize=8, color=theme.PALETTE["ink"],
-        )
+        # Printed, not drawn: the note documents the sweep for the reader
+        # of the log, and the caption carries what the figure needs.
+        print(f"Reduced sampling: {'; '.join(notes)}. "
+              f"See params.yaml rock_sample_depth.")
 
-    plt.tight_layout(rect=(0, 0, 1, 0.93))
+    plt.tight_layout()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(args.output, dpi=150, bbox_inches="tight")
     plt.close(fig)

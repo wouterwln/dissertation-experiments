@@ -134,14 +134,6 @@ def main() -> None:
         ("probe_visits", "probe visits / episode", "Probe visits per episode"),
     )
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(
-        f"Door-code MCTS depth sensitivity — K={cfg['env']['K']}, "
-        f"L={cfg['env'].get('lock_length', 1)}, "
-        f"probe_noise={cfg['env']['probe_noise']}, "
-        f"n_seeds={cfg['n_seeds']}, n_episodes={cfg['n_episodes']} "
-        f"(depth bounds tree + rollout lookahead)",
-        fontsize=11,
-    )
 
     for ax, (metric, ylabel, title) in zip(axes, metrics):
         for planner in PLANNERS:
@@ -187,7 +179,7 @@ def main() -> None:
     axes[0].legend(loc="best", fontsize=9)
     axes[1].set_ylim(-0.02, 1.02)
 
-    plt.tight_layout(rect=(0, 0, 1, 0.93))
+    plt.tight_layout()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(args.output, dpi=150, bbox_inches="tight")
     plt.close(fig)
