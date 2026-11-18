@@ -247,7 +247,7 @@ def draw_panel(ax, traj, method_label):
 
     total_reward, outcome = classify_outcome(traj, terrain)
     n_steps = len(actions)
-    ax.set_xlabel(f"R={total_reward:+.0f}, {n_steps} steps, {outcome}", fontsize=8)
+    ax.set_xlabel(f"R={total_reward:+.0f}, {n_steps} step{'' if n_steps == 1 else 's'}, {outcome}", fontsize=8)
 
 
 def add_legend(fig):
@@ -261,7 +261,7 @@ def add_legend(fig):
                label="A  agent start"),
         Line2D([0], [0], marker="o", markerfacecolor=CELL_COLOR, markeredgecolor=SENSE_COLOR,
                markersize=10, markeredgewidth=1.8, linestyle="None",
-               label="S  SENSE action"),
+               label="S  scan"),
         Line2D([0], [0], color=ARROW_COLOR, lw=2.0, marker=">", markersize=6,
                label="trajectory (numbered)"),
     ]

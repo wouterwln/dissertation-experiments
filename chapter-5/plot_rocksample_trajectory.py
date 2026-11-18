@@ -259,7 +259,7 @@ def draw_panel(ax, traj, method_label):
     n_good = sum(qualities)
     good_collected = sum(1 for r in range(n_rocks)
                          if (final_mask >> r) & 1 and qualities[r] > 0.5)
-    ax.set_xlabel(f"R={total_reward:+.0f}, {n_steps} steps, "
+    ax.set_xlabel(f"R={total_reward:+.0f}, {n_steps} step{'' if n_steps == 1 else 's'}, "
                   f"{good_collected}/{n_good} good rocks", fontsize=8)
 
 
@@ -280,10 +280,10 @@ def add_legend(fig):
                linestyle="None", label="A  agent start"),
         Line2D([0], [0], marker="o", markerfacecolor=CELL_COLOR,
                markeredgecolor=SENSE_COLOR, markersize=10, markeredgewidth=1.8,
-               linestyle="None", label="S  SENSE"),
+               linestyle="None", label="S  check"),
         Line2D([0], [0], marker="s", markerfacecolor="none",
                markeredgecolor=SAMPLE_COLOR, markersize=10, markeredgewidth=2.6,
-               linestyle="None", label="SAMPLE (collected)"),
+               linestyle="None", label="sampled rock"),
         Line2D([0], [0], color=theme.PALETTE["arrow"], lw=2.2, marker=">",
                markersize=6, label="trajectory (light→dark)"),
     ]
