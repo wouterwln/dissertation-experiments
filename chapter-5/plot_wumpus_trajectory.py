@@ -204,9 +204,11 @@ def draw_panel(ax, traj, method_label):
             arrowprops=dict(
                 arrowstyle="-|>",
                 color=ARROW_COLOR,
-                lw=2.0,
-                mutation_scale=14,
-                shrinkA=14, shrinkB=14,
+                lw=1.6,
+                mutation_scale=10,
+                # cells are ~25 pt wide at this panel size; a larger shrink
+                # eats the whole shaft and leaves only the arrowhead
+                shrinkA=4, shrinkB=4,
             ),
         )
         # Step number along the move (perpendicular offset) — carries the order
@@ -214,7 +216,7 @@ def draw_panel(ax, traj, method_label):
         mx, my = (c_from + c_to) / 2, (r_from + r_to) / 2
         dx, dy = c_to - c_from, r_to - r_from
         dnorm = (dx * dx + dy * dy) ** 0.5 or 1.0
-        lx, ly = mx + (-dy / dnorm) * 0.20, my + (dx / dnorm) * 0.20
+        lx, ly = mx + (-dy / dnorm) * 0.30, my + (dx / dnorm) * 0.30
         ax.text(lx, ly, str(t + 1), ha="center", va="center",
                 fontsize=theme.CELL_BADGE_SIZE, fontweight="bold", color=INK, zorder=9,
                 bbox=dict(boxstyle="circle,pad=0.10", fc=CELL_COLOR,
