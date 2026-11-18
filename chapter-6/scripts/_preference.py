@@ -61,7 +61,7 @@ PLANNER_LABELS = {
 # Tick-sized labels for the heatmap reference columns.
 PLANNER_TICK_LABELS = {
     "pomcp": "POMCP",
-    "factored_bamcp": "F-BAMCP",
+    "factored_bamcp": "F-BA-POMCP",
     "belief_q": "BeliefQ",
 }
 
@@ -208,7 +208,7 @@ def legend_handles(references: Iterable[Reference]) -> list[mlines.Line2D]:
     return [
         mlines.Line2D(
             [], [], color=ref.color, linestyle=ref.linestyle, lw=1.6,
-            label=f"{ref.label} (canonical, ignores C)",
+            label=f"{ref.label} (canonical, ignores preferences)",
         )
         for ref in references
     ]

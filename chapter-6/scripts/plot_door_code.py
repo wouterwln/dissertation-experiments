@@ -305,7 +305,7 @@ def main() -> None:
     width = 0.4
     ax_outcome.bar(xs - width / 2, deaths_means, width, yerr=deaths_stds,
                    color=theme.PALETTE["penalty"], alpha=0.9, capsize=3,
-                   label="catastrophes (FAILURE)")
+                   label="failures")
     ax_outcome.bar(xs + width / 2, truncs_means, width, yerr=truncs_stds,
                    color=theme.PALETTE["muted"], alpha=0.6, capsize=3,
                    label="truncations (no commit)")

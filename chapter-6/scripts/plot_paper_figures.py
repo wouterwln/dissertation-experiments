@@ -199,8 +199,8 @@ def plot_kscaling(input_root: Path, output: Path) -> None:
                     marker="o", ms=3, capsize=2,
                     label=PLANNER_LABELS[name])
     ax.set_xticks(ks)
-    ax.set_xlabel(r"number of parameter components $K$")
-    ax.set_ylabel("final-episode normalised reward")
+    ax.set_xlabel(r"number of rocks $K$")
+    ax.set_ylabel("final-episode normalized reward")
     ax.grid(True, alpha=0.25, lw=0.4)
     ax.legend(frameon=False, ncol=2)
     fig.tight_layout()

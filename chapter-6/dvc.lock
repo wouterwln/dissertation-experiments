@@ -559,21 +559,21 @@ stages:
       size: 6799
     - path: scripts/plot_door_code.py
       hash: md5
-      md5: 29ce8fdbd7e87ed818426b81b4cc6ab3
-      size: 17735
+      md5: 5904d3b6a029bcbb0c9c1d565e2dab01
+      size: 17721
     params:
       params.yaml:
         plot.paper_slate: true
     outs:
     - path: output/door_code/cards
       hash: md5
-      md5: a8a5551da44b2380a388be246d69a831.dir
-      size: 163767
+      md5: 0c42d3c10bdb8b3c3f995f4d1471bc1b.dir
+      size: 162936
       nfiles: 9
     - path: output/door_code/figure.pdf
       hash: md5
-      md5: ef376f1b35e7f99e25a3181f40c61606
-      size: 60316
+      md5: 9c47be2a3f1f177a3b37689d971d7f51
+      size: 59778
   minigrid_door_code@aif:
     cmd: uv run python scripts/run_minigrid_door_code.py --planner aif --K 3 
       --lock-length 3 --probe-noise 0.1 --grid-size 7 --slip-prob 0.1 
@@ -2920,8 +2920,8 @@ stages:
       size: 6799
     - path: scripts/_preference.py
       hash: md5
-      md5: 5af3e0df30c9e19e1b3fc188e50505d3
-      size: 9595
+      md5: dd647966ae1200c721a6e1c49d8e7f7e
+      size: 9608
     - path: scripts/plot_door_code_preference.py
       hash: md5
       md5: eb31dd2d9ca1a2f5ceef712b5d12a065
@@ -2945,12 +2945,12 @@ stages:
     outs:
     - path: output/door_code_preference/cards
       hash: md5
-      md5: f9291d3cbd9fd8d9075319875b2c115d.dir
+      md5: ee0c68f0e399ec9454ec4afd2c07e268.dir
       size: 81526
       nfiles: 4
     - path: output/door_code_preference/figure.pdf
       hash: md5
-      md5: c06574d8f571722164b5f2c0f2c4f01f
+      md5: 9485a3b519379411884536fb16b9647d
       size: 52056
   door_code@ids:
     cmd: uv run python scripts/run_door_code.py --planner ids --K 6 
@@ -7067,8 +7067,8 @@ stages:
       size: 6799
     - path: scripts/_preference.py
       hash: md5
-      md5: 5af3e0df30c9e19e1b3fc188e50505d3
-      size: 9595
+      md5: dd647966ae1200c721a6e1c49d8e7f7e
+      size: 9608
     - path: scripts/plot_rock_sample_preference.py
       hash: md5
       md5: 9899f3adb7b99a076ee1c2efbf5c2213
@@ -7100,13 +7100,13 @@ stages:
     outs:
     - path: output/rock_sample_preference/cards
       hash: md5
-      md5: 83d2798317476b80103e645f2f26fefd.dir
-      size: 122023
+      md5: 95fdf32d25bf5f26af5c1dadba0ac508.dir
+      size: 122716
       nfiles: 11
     - path: output/rock_sample_preference/figure.pdf
       hash: md5
-      md5: edd2bf4e1445e07f4d9df2c9eab21092
-      size: 36724
+      md5: 7230a3273a24b023d4d26ca0fea36caa
+      size: 36742
   rock_sample_depth@3-bamcp:
     cmd: uv run python scripts/run_rock_sample.py --planner bamcp --K 4 
       --grid-size 5 --sensor-noise-eta 0.3 --sample-reward 1.0 --good-logit 2.0 
@@ -8454,8 +8454,8 @@ stages:
       size: 6799
     - path: scripts/_preference.py
       hash: md5
-      md5: 5af3e0df30c9e19e1b3fc188e50505d3
-      size: 9595
+      md5: dd647966ae1200c721a6e1c49d8e7f7e
+      size: 9608
     - path: scripts/plot_factored_tiger_preference.py
       hash: md5
       md5: 563fe71ac51e28243bcabab54212f8fe
@@ -8476,13 +8476,13 @@ stages:
     outs:
     - path: output/factored_tiger_preference/cards
       hash: md5
-      md5: d28f14b3f5b2c9dee63e187681f4bc99.dir
-      size: 92909
+      md5: 40e40dc17afdad49c9d18a65cfb7dd80.dir
+      size: 92642
       nfiles: 5
     - path: output/factored_tiger_preference/figure.pdf
       hash: md5
-      md5: 9f1170de48e7fca94879caee0cbc743d
-      size: 56929
+      md5: e0dcc7ce2d689146e7fe2b3fe852fbe0
+      size: 56570
   exact_reference_door_code:
     cmd: uv run python scripts/run_exact_reference.py --env door_code --K 3 
       --lock-length 2 --probe-noise 0.2 --max-steps 6 --n-seeds 25 --n-episodes 
