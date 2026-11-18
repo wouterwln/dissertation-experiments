@@ -80,7 +80,7 @@ stochastic_maze:
   plots:
     aif_label: "Direct-prior MP"
     aif_select: auto
-    bp_label: "Region-BP marginal"
+    bp_label: "Marginal inference"
     bp_select: auto
 
 # Bethe Free Energy convergence study for the Nuijten-MP planner.

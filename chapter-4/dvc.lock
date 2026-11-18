@@ -192,13 +192,13 @@ stages:
       size: 612539
     - path: scripts/convergence/plot_convergence.py
       hash: md5
-      md5: 0719c55da97d04387c554572bd7505f7
-      size: 4175
+      md5: 5f68898b41713324b9331d9bcde680e8
+      size: 4155
     outs:
     - path: data/convergence_plots
       hash: md5
-      md5: 13b1d0b8c36d5856c6e83abeb5478c29.dir
-      size: 392358
+      md5: 6f1127fdd0b0664d7f483734e38b06d6.dir
+      size: 380608
       nfiles: 6
   stochastic_maze_bp_marginal:
     cmd: uv run python scripts/stochastic_maze/experiment_bp.py --n-episodes 
@@ -459,7 +459,7 @@ stages:
       size: 81786
   stochastic_maze_trajectory_bp:
     cmd: uv run python scripts/stochastic_maze/plot_trajectory.py --results 
-      data/stochastic_maze/bp_marginal/results.json --label "Region-BP marginal"
+      data/stochastic_maze/bp_marginal/results.json --label "Marginal inference"
       --select auto --output data/stochastic_maze/plots/trajectory_bp --format 
       both
     deps:
@@ -484,14 +484,14 @@ stages:
         stochastic_maze.plots:
           aif_label: Direct-prior MP
           aif_select: auto
-          bp_label: Region-BP marginal
+          bp_label: Marginal inference
           bp_select: auto
     outs:
     - path: data/stochastic_maze/plots/trajectory_bp.pdf
       hash: md5
-      md5: dc84b0b89f014c73ff066d0ad03e5077
-      size: 31818
+      md5: 221ef7bfa9e200ba2ed7abdb07ad03e4
+      size: 31536
     - path: data/stochastic_maze/plots/trajectory_bp.png
       hash: md5
-      md5: fd1c2c257a7cebfab9bdf99ad4049f1c
-      size: 93481
+      md5: 1bfb357d86318a8042dd4be73a0bfdb0
+      size: 91064

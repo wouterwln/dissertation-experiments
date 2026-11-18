@@ -30,8 +30,8 @@ MP_COLOR = theme.PALETTE["direct_prior_mp"]
 TRACE_COLOR = theme.PALETTE["muted"]  # faint individual BFE traces (neutral grey)
 
 ENV_LABELS = {
-    "tmaze": "T-Maze",
-    "stochastic_maze": "Stochastic Maze",
+    "tmaze": "T-maze",
+    "stochastic_maze": "Stochastic grid",
 }
 
 
@@ -64,7 +64,7 @@ def plot_env(ax, arr, env):
     ax.fill_between(iters, q25, q75, alpha=0.25, color=MP_COLOR, zorder=2)
     ax.plot(iters, median, color=MP_COLOR, linewidth=2.0, zorder=3,
             label=f"median ({arr.shape[0]} traces)")
-    ax.set_xlabel("Message-passing iteration")
+    ax.set_xlabel("Sweep")
     ax.set_ylabel("Bethe Free Energy")
     ax.set_title(f"{ENV_LABELS.get(env, env)}: Direct-prior MP convergence")
     ax.legend(fontsize=8)
