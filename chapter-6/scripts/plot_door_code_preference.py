@@ -64,6 +64,7 @@ import dissertation_theme as theme  # noqa: E402
 
 import _preference as pref  # noqa: E402
 from _cards import HEATMAP_CARD_SIZE_IN, save_panel_cards  # noqa: E402
+from learningpomdp.experiment.door_code_runner import episodes_to_identify  # noqa: E402
 
 # Float-tolerant: DVC formats each cell directory from the params value, so
 # a `4.0` in params.yaml yields `succ4.0_fail-4.0`. An `\d+`-only pattern
@@ -95,13 +96,18 @@ def _cell_metrics(summary: dict, early_window: int) -> dict[str, float]:
     mass = np.asarray(
         summary["per_episode"]["posterior_mass_on_true_theta"], dtype=float,
     )
-    ident = summary["derived"]["episodes_to_identify"]
+    # Right-censored median crossing episode, counted from one: the
+    # convention of the scalar tables (make_tables.scalar_row). The runner's
+    # `derived` block holds the zero-indexed median over crossing blocks
+    # only, which reads low against the tables.
+    ident = episodes_to_identify(mass)
+    censored = ident["censored_median"]
     return {
         "early_reward": float(reward[:, :early_window].mean()),
         "early_probes": float(probes[:, :early_window].mean()),
         "final_mass": float(mass[:, -1].mean()),
         "identify_median": (
-            float(ident["median"]) if ident["median"] is not None else np.nan
+            float(censored) + 1.0 if censored is not None else np.nan
         ),
         "identify_fraction": float(ident["fraction_identified"]),
     }

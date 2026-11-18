@@ -2924,8 +2924,8 @@ stages:
       size: 9608
     - path: scripts/plot_door_code_preference.py
       hash: md5
-      md5: eb31dd2d9ca1a2f5ceef712b5d12a065
-      size: 11861
+      md5: 831f9308aed85280a1d480a813cd1df4
+      size: 12232
     params:
       params.yaml:
         door_code_preference:
@@ -2945,13 +2945,13 @@ stages:
     outs:
     - path: output/door_code_preference/cards
       hash: md5
-      md5: ee0c68f0e399ec9454ec4afd2c07e268.dir
-      size: 81526
+      md5: 528f0a101328ae94505f2f5f1f3afaf2.dir
+      size: 82556
       nfiles: 4
     - path: output/door_code_preference/figure.pdf
       hash: md5
-      md5: 9485a3b519379411884536fb16b9647d
-      size: 52056
+      md5: 67d9deb868ee4e1c6238ab55c25b69f4
+      size: 52213
   door_code@ids:
     cmd: uv run python scripts/run_door_code.py --planner ids --K 6 
       --lock-length 4 --probe-noise 0.2 --success-logit 4 --failure-logit -4 
