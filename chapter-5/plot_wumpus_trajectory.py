@@ -191,6 +191,7 @@ def draw_panel(ax, traj, method_label):
                         fontsize=theme.CELL_LABEL_SIZE, fontweight="bold",
                         color=TERRAIN_LETTER_COLORS[cell])
 
+    badge_xy = []  # step-badge centres, so the S badges can avoid them
     for t in range(len(actions)):
         p_from = int(positions[t])
         p_to = int(positions[t + 1])
@@ -217,6 +218,7 @@ def draw_panel(ax, traj, method_label):
         dx, dy = c_to - c_from, r_to - r_from
         dnorm = (dx * dx + dy * dy) ** 0.5 or 1.0
         lx, ly = mx + (-dy / dnorm) * 0.30, my + (dx / dnorm) * 0.30
+        badge_xy.append((lx, ly))
         ax.text(lx, ly, str(t + 1), ha="center", va="center",
                 fontsize=theme.CELL_BADGE_SIZE, fontweight="bold", color=INK, zorder=9,
                 bbox=dict(boxstyle="circle,pad=0.10", fc=CELL_COLOR,
@@ -235,7 +237,15 @@ def draw_panel(ax, traj, method_label):
     for sense_step in sense_steps:
         p_sense = int(positions[sense_step])
         r_s, c_s = pos_to_rc(p_sense, g)
-        ax.text(c_s - 0.3, r_s - 0.3, "S",
+        # Top-left corner by default; if a step badge sits there, try
+        # bottom-left, then top-right.
+        corners = [(c_s - 0.3, r_s - 0.3), (c_s - 0.3, r_s + 0.3), (c_s + 0.3, r_s - 0.3)]
+        sx, sy = next(
+            ((x, y) for x, y in corners
+             if all((bx - x) ** 2 + (by - y) ** 2 >= 0.35 ** 2 for bx, by in badge_xy)),
+            corners[0],
+        )
+        ax.text(sx, sy, "S",
                 ha="center", va="center",
                 fontsize=theme.CELL_BADGE_SIZE, fontweight="bold", color=INK,
                 bbox=dict(boxstyle="circle,pad=0.12", fc=CELL_COLOR, ec=SENSE_COLOR, lw=1.2))

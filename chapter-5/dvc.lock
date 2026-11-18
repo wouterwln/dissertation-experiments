@@ -822,13 +822,13 @@ stages:
       size: 20135
     - path: plot_wumpus_trajectory.py
       hash: md5
-      md5: 26af2bb7b08ae9b7acb19f64d8f1829d
-      size: 14747
+      md5: 45f51a789e6e477617d83b4bcb7d514c
+      size: 15225
     outs:
     - path: data/plots/wumpus_world
       hash: md5
-      md5: 00b255d9ead6573f36f18dd5dc3bdc7b.dir
-      size: 2733051
+      md5: 919135df330f725ff6fc192d597da5f7.dir
+      size: 2786682
       nfiles: 50
   rocksample@loopy:
     cmd: uv run python run_rocksample.py --planning-method loopy --grid-size 4 
