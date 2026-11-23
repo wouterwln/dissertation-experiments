@@ -295,6 +295,7 @@ def main() -> None:
                 ax.text(
                     j, i, label, ha="center", va="center", fontsize=9,
                     fontweight="bold" if bold else "normal",
+                    color=pref.annotation_color(im, grid[i, j]),
                 )
         if references:
             ax.axvline(n_cols, color=ink, lw=0.8, alpha=0.5)

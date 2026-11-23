@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
+import matplotlib.colors as mcolors
 import matplotlib.lines as mlines
 import numpy as np
 
@@ -183,6 +184,32 @@ def value_limits(grid: np.ndarray) -> tuple[float, float]:
     if not values:
         return (0.0, 1.0)
     return (float(min(values)), float(max(values)))
+
+
+def annotation_color(im, value: float) -> str:
+    """Ink or white for a number printed on a heatmap cell, whichever
+    contrasts more with the cell's colour (WCAG relative luminance).
+
+    One fixed ink colour vanishes on the dark end of the teal ramps, where
+    most of the interesting cells sit. Reference columns outside the scale
+    take the colour of the end they clip to, as drawn.
+    """
+    ink, white = theme.PALETTE["ink"], theme.THESIS["white"]
+    if not np.isfinite(value):
+        return ink
+
+    def luminance(rgb) -> float:
+        lin = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+               for c in rgb[:3]]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    def contrast(a: float, b: float) -> float:
+        return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+
+    cell = luminance(im.cmap(im.norm(value)))
+    on_ink = contrast(cell, luminance(mcolors.to_rgb(ink)))
+    on_white = contrast(cell, luminance(mcolors.to_rgb(white)))
+    return white if on_white > on_ink else ink
 
 
 def beats_all(
